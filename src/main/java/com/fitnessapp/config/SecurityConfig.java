@@ -1,24 +1,30 @@
 package com.fitnessapp.config;
 
 
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Изключваме CSRF за улеснение при тестове
+                .csrf(csrf -> csrf.disable()) // изключваме CSRF защита
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/users/login", "/api/users/register").permitAll() // Позволяваме достъп до login и register
-                        .anyRequest().authenticated() // Всичко друго изисква логин
-                )
-                .formLogin(form -> form.disable()); // Изключваме дефолтния login form на Spring
-
+                        .requestMatchers("/api/users/login", "/api/users/register").permitAll() // разрешаваме login и register
+                        .anyRequest().authenticated() // всички други заявки искат автентикация
+                );
         return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

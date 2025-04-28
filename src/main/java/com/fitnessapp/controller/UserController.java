@@ -52,6 +52,7 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+
     // 🔹 Взимане на всички потребители
     @GetMapping
     public ResponseEntity<?> getAllUsers() {
