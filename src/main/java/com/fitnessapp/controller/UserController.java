@@ -1,8 +1,9 @@
 package com.fitnessapp.controller;
 
-import com.fitnessapp.dto.LoginRequest;
+
 import com.fitnessapp.model.User;
 import com.fitnessapp.service.UserService;
+import com.fitnessapp.dto.LoginRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*") // За да позволява заявки от фронтенд
+@CrossOrigin(origins = "*")
 public class UserController {
 
     private final UserService userService;
@@ -26,6 +27,9 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
+            // 👉 Криптиране на паролата преди запис
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+
             User savedUser = userService.saveUser(user);
             return ResponseEntity.ok(savedUser);
         } catch (Exception e) {
@@ -33,7 +37,7 @@ public class UserController {
         }
     }
 
-    // 🔹 Влизане (логване) на потребител
+    // 🔹 Вход (Login) на потребител
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest loginRequest) {
         User user = userService.getUserByEmail(loginRequest.getEmail());
@@ -61,7 +65,7 @@ public class UserController {
         return user != null ? ResponseEntity.ok(user) : ResponseEntity.notFound().build();
     }
 
-    // 🔹 Актуализиране на потребител по ID
+    // 🔹 Актуализиране на потребител
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
         User updatedUser = userService.updateUser(id, userDetails);
@@ -72,7 +76,7 @@ public class UserController {
         }
     }
 
-    // 🔹 Изтриване на потребител по ID
+    // 🔹 Изтриване на потребител
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
