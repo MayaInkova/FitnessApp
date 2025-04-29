@@ -27,9 +27,7 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
-            // 👉 Криптиране на паролата преди запис
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-
+            user.setPassword(passwordEncoder.encode(user.getPassword())); // КРИПТИРАМЕ ПАРОЛАТА
             User savedUser = userService.saveUser(user);
             return ResponseEntity.ok(savedUser);
         } catch (Exception e) {
@@ -49,7 +47,20 @@ public class UserController {
             return ResponseEntity.status(401).body("Невалидна парола!");
         }
 
-        return ResponseEntity.ok(user);
+        // Връщаме само безопасна информация
+        User safeUser = User.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .age(user.getAge())
+                .height(user.getHeight())
+                .weight(user.getWeight())
+                .gender(user.getGender())
+                .activityLevel(user.getActivityLevel())
+                .goal(user.getGoal())
+                .build();
+
+        return ResponseEntity.ok(safeUser);
     }
 
 

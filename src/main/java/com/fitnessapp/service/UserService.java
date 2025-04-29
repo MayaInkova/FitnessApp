@@ -3,6 +3,7 @@ package com.fitnessapp.service;
 
 import com.fitnessapp.model.User;
 import com.fitnessapp.repository.UserRepository;
+import lombok.Builder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -10,11 +11,13 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
 
     @Autowired
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
@@ -48,6 +51,7 @@ public class UserService {
             user.setGender(userDetails.getGender());
             user.setActivityLevel(userDetails.getActivityLevel());
             user.setGoal(userDetails.getGoal());
+
             // Ако се сменя парола:
             user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
             return userRepository.save(user);
