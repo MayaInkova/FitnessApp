@@ -15,6 +15,7 @@ public class NutritionPlanService {
 
     private final NutritionPlanRepository nutritionPlanRepository;
 
+
     @Autowired
     public NutritionPlanService(NutritionPlanRepository nutritionPlanRepository) {
         this.nutritionPlanRepository = nutritionPlanRepository;

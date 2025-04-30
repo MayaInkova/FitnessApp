@@ -4,7 +4,9 @@ package com.fitnessapp.controller;
 import com.fitnessapp.dto.LoginRequest;
 import com.fitnessapp.dto.UserRequest;
 import com.fitnessapp.dto.UserResponse;
+import com.fitnessapp.model.NutritionPlan;
 import com.fitnessapp.model.User;
+import com.fitnessapp.service.NutritionPlanService;
 import com.fitnessapp.service.UserService;
 import lombok.Builder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,20 +22,30 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
-@Builder
+
 
 public class UserController {
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final NutritionPlanService nutritionPlanService;
 
     @Autowired
-    public UserController(UserService userService, PasswordEncoder passwordEncoder) {
+    public UserController(UserService userService,
+                          PasswordEncoder passwordEncoder,
+                          NutritionPlanService nutritionPlanService) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
+        this.nutritionPlanService = nutritionPlanService;
     }
 
-    @PostMapping("/register")public ResponseEntity<?> registerUser(@Valid @RequestBody UserRequest userRequest) {
+
+    @PostMapping("/register")
+
+    public ResponseEntity<?> registerUser(@Valid @RequestBody UserRequest userRequest, BindingResult result) {
+        if (result.hasErrors()) {
+            return ResponseEntity.badRequest().body(result.getAllErrors());
+        }
 
         User user = new User();
         user.setFullName(userRequest.getFullName());
@@ -48,6 +60,9 @@ public class UserController {
 
         User savedUser = userService.saveUser(user);
 
+        //  Генерираме хранителен план
+        nutritionPlanService.generatePlanForUser(savedUser);
+
         UserResponse response = UserResponse.builder()
                 .id(savedUser.getId())
                 .fullName(savedUser.getFullName())
@@ -61,9 +76,7 @@ public class UserController {
                 .build();
 
         return ResponseEntity.ok(response);
-
     }
-
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest loginRequest, BindingResult result) {
         if (result.hasErrors()) {
