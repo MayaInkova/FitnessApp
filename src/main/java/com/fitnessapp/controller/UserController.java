@@ -1,54 +1,81 @@
 package com.fitnessapp.controller;
 
 
+import com.fitnessapp.dto.LoginRequest;
+import com.fitnessapp.dto.UserRequest;
+import com.fitnessapp.dto.UserResponse;
 import com.fitnessapp.model.User;
 import com.fitnessapp.service.UserService;
-import com.fitnessapp.dto.LoginRequest;
+import lombok.Builder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import org.springframework.validation.BindingResult;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
+@Builder
+
 public class UserController {
 
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, PasswordEncoder passwordEncoder) {
         this.userService = userService;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    // 🔹 Регистрация на потребител
-    @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
-        try {
-            user.setPassword(passwordEncoder.encode(user.getPassword())); // КРИПТИРАМЕ ПАРОЛАТА
-            User savedUser = userService.saveUser(user);
-            return ResponseEntity.ok(savedUser);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Грешка при регистрация: " + e.getMessage());
-        }
+    @PostMapping("/register")public ResponseEntity<?> registerUser(@Valid @RequestBody UserRequest userRequest) {
+
+        User user = new User();
+        user.setFullName(userRequest.getFullName());
+        user.setEmail(userRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+        user.setAge(userRequest.getAge());
+        user.setHeight(userRequest.getHeight());
+        user.setWeight(userRequest.getWeight());
+        user.setGender(userRequest.getGender());
+        user.setActivityLevel(userRequest.getActivityLevel());
+        user.setGoal(userRequest.getGoal());
+
+        User savedUser = userService.saveUser(user);
+
+        UserResponse response = UserResponse.builder()
+                .id(savedUser.getId())
+                .fullName(savedUser.getFullName())
+                .email(savedUser.getEmail())
+                .age(savedUser.getAge())
+                .height(savedUser.getHeight())
+                .weight(savedUser.getWeight())
+                .gender(savedUser.getGender())
+                .activityLevel(savedUser.getActivityLevel())
+                .goal(savedUser.getGoal())
+                .build();
+
+        return ResponseEntity.ok(response);
+
     }
 
-    // 🔹 Вход (Login) на потребител
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest loginRequest, BindingResult result) {
+        if (result.hasErrors()) {
+            return ResponseEntity.badRequest().body(result.getAllErrors());
+        }
+
         User user = userService.getUserByEmail(loginRequest.getEmail());
-        if (user == null) {
-            return ResponseEntity.status(404).body("Потребителят не съществува!");
+        if (user == null || !passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            return ResponseEntity.status(401).body("Невалидни данни за вход");
         }
 
-        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            return ResponseEntity.status(401).body("Невалидна парола!");
-        }
-
-        // Връщаме само безопасна информация
-        User safeUser = User.builder()
+        UserResponse response = UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
@@ -60,42 +87,44 @@ public class UserController {
                 .goal(user.getGoal())
                 .build();
 
-        return ResponseEntity.ok(safeUser);
+        return ResponseEntity.ok(response);
     }
 
-
-    // 🔹 Взимане на всички потребители
     @GetMapping
     public ResponseEntity<?> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+        List<User> users = userService.getAllUsers();
+        List<UserResponse> responses = users.stream().map(user -> UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .age(user.getAge())
+                .height(user.getHeight())
+                .weight(user.getWeight())
+                .gender(user.getGender())
+                .activityLevel(user.getActivityLevel())
+                .goal(user.getGoal())
+                .build()).collect(Collectors.toList());
+
+        return ResponseEntity.ok(responses);
     }
 
-    // 🔹 Взимане на потребител по ID
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
         User user = userService.getUserById(id);
-        return user != null ? ResponseEntity.ok(user) : ResponseEntity.notFound().build();
-    }
+        if (user == null) return ResponseEntity.notFound().build();
 
-    // 🔹 Актуализиране на потребител
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
-        User updatedUser = userService.updateUser(id, userDetails);
-        if (updatedUser != null) {
-            return ResponseEntity.ok(updatedUser);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
+        UserResponse response = UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .age(user.getAge())
+                .height(user.getHeight())
+                .weight(user.getWeight())
+                .gender(user.getGender())
+                .activityLevel(user.getActivityLevel())
+                .goal(user.getGoal())
+                .build();
 
-    // 🔹 Изтриване на потребител
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-        try {
-            userService.deleteUser(id);
-            return ResponseEntity.ok("Потребителят е успешно изтрит.");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Грешка при изтриване: " + e.getMessage());
-        }
+        return ResponseEntity.ok(response);
     }
 }

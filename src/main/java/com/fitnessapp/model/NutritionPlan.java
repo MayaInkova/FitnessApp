@@ -2,7 +2,9 @@ package com.fitnessapp.model;
 
 
 import jakarta.persistence.*;
+import lombok.Builder;
 
+@Builder
 @Entity
 @Table(name = "nutrition_plans")
 
