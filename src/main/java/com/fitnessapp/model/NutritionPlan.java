@@ -1,8 +1,8 @@
 package com.fitnessapp.model;
 
-
 import jakarta.persistence.*;
 import lombok.Builder;
+import java.util.List;
 
 @Builder
 @Entity
@@ -24,11 +24,20 @@ public class NutritionPlan {
     @JoinColumn(name = "user_id")
     private User user;
 
+    // Добавяне на ManyToMany връзка с Recipe
+    @ManyToMany
+    @JoinTable(
+            name = "nutrition_plan_recipes",
+            joinColumns = @JoinColumn(name = "nutrition_plan_id"),
+            inverseJoinColumns = @JoinColumn(name = "recipe_id")
+    )
+    private List<Recipe> recipes; // Списък от рецепти
+
     // Празен конструктор
     public NutritionPlan() {}
 
     // Пълен конструктор
-    public NutritionPlan(Long id, Double calories, Double protein, Double fat, Double carbs, String goal, User user) {
+    public NutritionPlan(Long id, Double calories, Double protein, Double fat, Double carbs, String goal, User user, List<Recipe> recipes) {
         this.id = id;
         this.calories = calories;
         this.protein = protein;
@@ -36,6 +45,7 @@ public class NutritionPlan {
         this.carbs = carbs;
         this.goal = goal;
         this.user = user;
+        this.recipes = recipes;
     }
 
     // GETTERS
@@ -67,6 +77,10 @@ public class NutritionPlan {
         return user;
     }
 
+    public List<Recipe> getRecipes() {
+        return recipes;
+    }
+
     // SETTERS
     public void setId(Long id) {
         this.id = id;
@@ -94,5 +108,9 @@ public class NutritionPlan {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public void setRecipes(List<Recipe> recipes) {
+        this.recipes = recipes;
     }
 }
