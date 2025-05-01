@@ -50,7 +50,7 @@ public class UserController {
         User user = new User();
         user.setFullName(userRequest.getFullName());
         user.setEmail(userRequest.getEmail());
-        user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+        user.setPassword(userRequest.getPassword());
         user.setAge(userRequest.getAge());
         user.setHeight(userRequest.getHeight());
         user.setWeight(userRequest.getWeight());
@@ -101,6 +101,7 @@ public class UserController {
                 .build();
 
         return ResponseEntity.ok(response);
+
     }
 
     @GetMapping
