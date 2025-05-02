@@ -61,6 +61,11 @@ public class NutritionPlanService {
     }
 
     public List<NutritionPlan> getAllPlans() {
-        return nutritionPlanRepository.findAll();
+        List<NutritionPlan> plans = nutritionPlanRepository.findAll();
+        plans.forEach(System.out::println);
+        return plans;
+
     }
 }
+
+

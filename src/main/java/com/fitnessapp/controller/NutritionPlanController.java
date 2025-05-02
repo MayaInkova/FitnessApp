@@ -44,7 +44,12 @@ public class NutritionPlanController {
 
     @GetMapping
     public ResponseEntity<?> getAllNutritionPlans() {
-        return ResponseEntity.ok(nutritionPlanService.getAllPlans());
+        try {
+            return ResponseEntity.ok(nutritionPlanService.getAllPlans());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Грешка при зареждане на плановете: " + e.getMessage());
+        }
+
     }
 
     @PostMapping("/generate/{userId}")

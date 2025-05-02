@@ -20,33 +20,33 @@ public class RecipeController {
         this.recipeService = recipeService;
     }
 
-    // 🔹 Създаване на рецепта
+    //  Създаване на рецепта
     @PostMapping
     public ResponseEntity<?> createRecipe(@RequestBody Recipe recipe) {
         Recipe saved = recipeService.saveRecipe(recipe);
         return ResponseEntity.ok(saved);
     }
 
-    // 🔹 Вземане на всички рецепти
+    //  Вземане на всички рецепти
     @GetMapping
     public ResponseEntity<?> getAllRecipes() {
         return ResponseEntity.ok(recipeService.getAllRecipes());
     }
 
-    // 🔹 Вземане по тип (напр. "закуска")
+    //  Вземане по тип (напр. "закуска")
     @GetMapping("/type/{type}")
     public ResponseEntity<?> getRecipesByType(@PathVariable String type) {
         return ResponseEntity.ok(recipeService.getRecipesByType(type));
     }
 
-    // 🔹 Вземане по ID
+    //  Вземане по ID
     @GetMapping("/{id}")
     public ResponseEntity<?> getRecipeById(@PathVariable Long id) {
         Recipe recipe = recipeService.getRecipeById(id);
         return recipe != null ? ResponseEntity.ok(recipe) : ResponseEntity.notFound().build();
     }
 
-    // 🔹 Изтриване
+    //  Изтриване
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteRecipe(@PathVariable Long id) {
         recipeService.deleteRecipe(id);
