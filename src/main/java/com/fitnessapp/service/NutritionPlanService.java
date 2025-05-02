@@ -31,9 +31,13 @@ public class NutritionPlanService {
             case "muscle_gain" -> tdee + 500;
             default -> tdee;
         };
+        List<Recipe> recipes;
 
-        // Извличаме рецепти според целта
-        List<Recipe> recipes = recipeRepository.findByType(user.getGoal());
+        switch (user.getGoal()) {
+            case "weight_loss" -> recipes = recipeRepository.findTop5ByCaloriesLessThanOrderByCaloriesAsc(400.0);
+            case "muscle_gain" -> recipes = recipeRepository.findTop5ByProteinGreaterThanOrderByProteinDesc(25.0);
+            default -> recipes = recipeRepository.findTop5ByOrderByCaloriesAsc();
+        }
 
         NutritionPlan plan = NutritionPlan.builder()
                 .user(user)
