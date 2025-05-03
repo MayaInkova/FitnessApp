@@ -1,8 +1,10 @@
 package com.fitnessapp.service;
 
+import com.fitnessapp.model.Meal;
 import com.fitnessapp.model.NutritionPlan;
 import com.fitnessapp.model.Recipe;
 import com.fitnessapp.model.User;
+import com.fitnessapp.repository.MealRepository;
 import com.fitnessapp.repository.NutritionPlanRepository;
 import com.fitnessapp.repository.RecipeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,12 +17,15 @@ public class NutritionPlanService {
 
     private final NutritionPlanRepository nutritionPlanRepository;
     private final RecipeRepository recipeRepository;
+    private final MealRepository mealRepository;
 
     @Autowired
     public NutritionPlanService(NutritionPlanRepository nutritionPlanRepository,
-                                RecipeRepository recipeRepository) {
+                                RecipeRepository recipeRepository,
+                                MealRepository mealRepository) {
         this.nutritionPlanRepository = nutritionPlanRepository;
         this.recipeRepository = recipeRepository;
+        this.mealRepository = mealRepository;
     }
 
     public NutritionPlan generatePlanForUser(User user) {
@@ -31,13 +36,12 @@ public class NutritionPlanService {
             case "muscle_gain" -> tdee + 500;
             default -> tdee;
         };
-        List<Recipe> recipes;
 
-        switch (user.getGoal()) {
-            case "weight_loss" -> recipes = recipeRepository.findTop5ByCaloriesLessThanOrderByCaloriesAsc(400.0);
-            case "muscle_gain" -> recipes = recipeRepository.findTop5ByProteinGreaterThanOrderByProteinDesc(25.0);
-            default -> recipes = recipeRepository.findTop5ByOrderByCaloriesAsc();
-        }
+        List<Recipe> recipes = switch (user.getGoal()) {
+            case "weight_loss" -> recipeRepository.findTop5ByCaloriesLessThanOrderByCaloriesAsc(400.0);
+            case "muscle_gain" -> recipeRepository.findTop5ByProteinGreaterThanOrderByProteinDesc(25.0);
+            default -> recipeRepository.findTop5ByOrderByCaloriesAsc();
+        };
 
         NutritionPlan plan = NutritionPlan.builder()
                 .user(user)
@@ -49,7 +53,19 @@ public class NutritionPlanService {
                 .recipes(recipes)
                 .build();
 
-        return nutritionPlanRepository.save(plan);
+        NutritionPlan savedPlan = nutritionPlanRepository.save(plan);
+
+        // 🔽 Автоматично създаване на хранения
+        for (Recipe recipe : recipes) {
+            Meal meal = Meal.builder()
+                    .plan(savedPlan)
+                    .recipe(recipe)
+                    .type(recipe.getType())  // напр. "breakfast"
+                    .build();
+            mealRepository.save(meal);
+        }
+
+        return savedPlan;
     }
 
     public NutritionPlan savePlan(NutritionPlan plan) {
@@ -62,10 +78,9 @@ public class NutritionPlanService {
 
     public List<NutritionPlan> getAllPlans() {
         List<NutritionPlan> plans = nutritionPlanRepository.findAll();
-        plans.forEach(System.out::println);
+        if (plans == null || plans.isEmpty()) {
+            throw new RuntimeException("Няма налични планове.");
+        }
         return plans;
-
     }
 }
-
-
