@@ -16,7 +16,7 @@ public class ChatbotController {
     public String handleMessage(@RequestBody ChatMessageRequest request) {
         if (request.getMessage().trim().equalsIgnoreCase("рестарт")) {
             chatbotService.resetSession(request.getSessionId());
-            return "🔄 Сесията е рестартирана. Колко тежиш в момента?";
+            return " Сесията е рестартирана. Колко тежиш в момента?";
         }
 
         return chatbotService.processMessage(request.getSessionId(), request.getMessage());
@@ -27,7 +27,7 @@ public class ChatbotController {
         private String sessionId;
         private String message;
 
-        // Гетъри и сетъри
+
         public String getSessionId() {
             return sessionId;
         }

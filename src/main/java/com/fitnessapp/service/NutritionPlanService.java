@@ -55,7 +55,7 @@ public class NutritionPlanService {
 
         NutritionPlan savedPlan = nutritionPlanRepository.save(plan);
 
-        // 🔽 Автоматично създаване на хранения
+        // Автоматично създаване на хранения
         for (Recipe recipe : recipes) {
             Meal meal = Meal.builder()
                     .plan(savedPlan)
