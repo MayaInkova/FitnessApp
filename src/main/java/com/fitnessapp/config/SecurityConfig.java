@@ -18,8 +18,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // изключваме CSRF защита
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/recipes/**").permitAll()
-                        .requestMatchers("/api/users/login", "/api/users/register", "/api/nutrition-plans/**","/api/meals/**"
-                        ).permitAll()
+                        .requestMatchers("/api/users/login", "/api/users/register", "/api/nutrition-plans/**","/api/meals/**","/api/chatbot/**"
+                 ).permitAll()
                         .anyRequest().authenticated() // всички други заявки искат автентикация
                 );
         return http.build();
