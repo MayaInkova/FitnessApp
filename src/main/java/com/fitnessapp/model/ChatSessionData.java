@@ -23,4 +23,8 @@ public class ChatSessionData {
     private String gender;
     private String goal;
     private String state = "ASK_WEIGHT";
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")  // тук ще се пази връзката към потребителя
+    private User user;
 }
