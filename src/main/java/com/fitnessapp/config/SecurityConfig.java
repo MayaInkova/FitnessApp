@@ -1,7 +1,5 @@
 package com.fitnessapp.config;
 
-
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,13 +13,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // изключваме CSRF защита
+                .csrf(csrf -> csrf.disable()) // Изключваме CSRF за тестване с Postman
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/recipes/**").permitAll()
-                        .requestMatchers("/api/users/login", "/api/users/register", "/api/nutrition-plans/**","/api/meals/**","/api/chatbot/**"
-                 ).permitAll()
-                        .anyRequest().authenticated() // всички други заявки искат автентикация
+                        .requestMatchers(
+                                "/api/recipes/**",
+                                "/api/users/login",
+                                "/api/users/register",
+                                "/api/nutrition-plans/**",
+                                "/api/meals/**",
+                                "/api/chatbot/**"
+                        ).permitAll()
+                        .anyRequest().authenticated()
                 );
+
         return http.build();
     }
 

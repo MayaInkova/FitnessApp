@@ -37,12 +37,7 @@ public class NutritionPlanService {
             default -> tdee;
         };
 
-        List<Recipe> recipes = switch (user.getGoal()) {
-            case "weight_loss" -> recipeRepository.findTop5ByCaloriesLessThanOrderByCaloriesAsc(400.0);
-            case "muscle_gain" -> recipeRepository.findTop5ByProteinGreaterThanOrderByProteinDesc(25.0);
-            default -> recipeRepository.findTop5ByOrderByCaloriesAsc();
-        };
-
+        // Създаваме NutritionPlan без рецепти
         NutritionPlan plan = NutritionPlan.builder()
                 .user(user)
                 .calories(calories)
@@ -50,17 +45,28 @@ public class NutritionPlanService {
                 .fat((calories * 0.25) / 9)
                 .carbs((calories * 0.45) / 4)
                 .goal(user.getGoal())
-                .recipes(recipes)
                 .build();
 
+        // Записваме NutritionPlan, за да получи ID
         NutritionPlan savedPlan = nutritionPlanRepository.save(plan);
 
-        // Автоматично създаване на хранения
+        // Вземаме подходящи рецепти според целта
+        List<Recipe> recipes = switch (user.getGoal()) {
+            case "weight_loss" -> recipeRepository.findTop5ByCaloriesLessThanOrderByCaloriesAsc(400.0);
+            case "muscle_gain" -> recipeRepository.findTop5ByProteinGreaterThanOrderByProteinDesc(25.0);
+            default -> recipeRepository.findTop5ByOrderByCaloriesAsc();
+        };
+
+        // Добавяме рецепти към вече записания план
+        savedPlan.setRecipes(recipes);
+        savedPlan = nutritionPlanRepository.save(savedPlan);
+
+        // Създаваме Meal обекти за всяка рецепта
         for (Recipe recipe : recipes) {
             Meal meal = Meal.builder()
                     .plan(savedPlan)
                     .recipe(recipe)
-                    .type(recipe.getType())  // напр. "breakfast"
+                    .type(recipe.getType())  // напр. "breakfast", "lunch"
                     .build();
             mealRepository.save(meal);
         }
