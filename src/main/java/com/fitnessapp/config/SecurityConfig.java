@@ -21,8 +21,9 @@ public class SecurityConfig {
                                 "/api/users/register",
                                 "/api/nutrition-plans/**",
                                 "/api/meals/**",
-                                "/api/chatbot/**"
-                        ).permitAll()
+                                "/api/chatbot/**",
+                                "/api/goals/**"
+                                ).permitAll()
                         .anyRequest().authenticated()
                 );
 

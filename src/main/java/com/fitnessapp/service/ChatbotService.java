@@ -25,7 +25,7 @@ public class ChatbotService {
 
     public String processMessage(String sessionId, String message) {
         // Получаваме или създаваме нова сесия
-        SessionState session = sessionMap.getOrDefault(sessionId, new SessionState());
+        SessionState session = sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
         String response;
 
         if (message.equalsIgnoreCase("рестарт")) {
