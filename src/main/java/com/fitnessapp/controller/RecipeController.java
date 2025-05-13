@@ -41,14 +41,14 @@ public class RecipeController {
 
     //  Вземане по ID
     @GetMapping("/{id}")
-    public ResponseEntity<?> getRecipeById(@PathVariable Long id) {
+    public ResponseEntity<?> getRecipeById(@PathVariable Integer id) {
         Recipe recipe = recipeService.getRecipeById(id);
         return recipe != null ? ResponseEntity.ok(recipe) : ResponseEntity.notFound().build();
     }
 
     //  Изтриване
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteRecipe(@PathVariable Long id) {
+    public ResponseEntity<?> deleteRecipe(@PathVariable Integer id) {
         recipeService.deleteRecipe(id);
         return ResponseEntity.ok("Рецептата е изтрита.");
     }

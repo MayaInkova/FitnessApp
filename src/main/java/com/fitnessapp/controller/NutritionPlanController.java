@@ -54,7 +54,7 @@ public class NutritionPlanController {
 
     //  Генериране на план от бекенда по логика (BMR, TDEE и т.н.)
     @PostMapping("/generate/{userId}")
-    public ResponseEntity<?> generatePlan(@PathVariable Long userId) {
+    public ResponseEntity<?> generatePlan(@PathVariable Integer userId) {
         try {
             User user = userService.getUserById(userId);
             if (user == null) return ResponseEntity.notFound().build();
@@ -69,7 +69,7 @@ public class NutritionPlanController {
 
     // Връщане на план по потребител ID
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getNutritionPlanByUserId(@PathVariable Long userId) {
+    public ResponseEntity<?> getNutritionPlanByUserId(@PathVariable Integer userId) {
         try {
             NutritionPlan plan = nutritionPlanService.getPlanByUserId(userId);
             return plan != null ? ResponseEntity.ok(plan) : ResponseEntity.notFound().build();

@@ -3,6 +3,7 @@ package com.fitnessapp.service;
 import com.fitnessapp.model.NutritionPlan;
 import com.fitnessapp.model.Recipe;
 import com.fitnessapp.model.User;
+import com.fitnessapp.repository.UserRepository;
 import com.fitnessapp.service.NutritionPlanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,26 +11,27 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
+
 @Service
 public class ChatbotService {
 
     private final NutritionPlanService nutritionPlanService;
+    private final UserRepository userRepository;
 
-    // Сесии, съхранявани в паметта
     private final Map<String, SessionState> sessionMap = new HashMap<>();
 
     @Autowired
-    public ChatbotService(NutritionPlanService nutritionPlanService) {
+    public ChatbotService(NutritionPlanService nutritionPlanService, UserRepository userRepository) {
         this.nutritionPlanService = nutritionPlanService;
+        this.userRepository = userRepository;
     }
 
     public String processMessage(String sessionId, String message) {
-        // Получаваме или създаваме нова сесия
         SessionState session = sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
         String response;
 
         if (message.equalsIgnoreCase("рестарт")) {
-            resetSession(sessionId);  // използваме метода по-долу
+            resetSession(sessionId);
             return "Сесията е рестартирана. Колко тежиш в момента?";
         }
 
@@ -56,11 +58,26 @@ public class ChatbotService {
                         response = "Моля, въведи ръст между 100 и 250 см.";
                     } else {
                         session.height = height;
+                        session.state = "ASK_AGE";
+                        response = "Колко години си?";
+                    }
+                } catch (NumberFormatException e) {
+                    response = "Моля, въведи ръста си като число. Например: 175";
+                }
+                break;
+
+            case "ASK_AGE":
+                try {
+                    int age = Integer.parseInt(message);
+                    if (age < 10 || age > 100) {
+                        response = "Моля, въведи реалистична възраст между 10 и 100 години.";
+                    } else {
+                        session.age = age;
                         session.state = "ASK_GENDER";
                         response = "Какъв е твоят пол? (мъж / жена)";
                     }
                 } catch (NumberFormatException e) {
-                    response = "Моля, въведи ръста си като число. Например: 175";
+                    response = "Моля, въведи възрастта си като цяло число. Например: 25";
                 }
                 break;
 
@@ -81,12 +98,21 @@ public class ChatbotService {
                     session.goal = goal;
                     session.state = "DONE";
 
-                    User tempUser = new User();
-                    tempUser.setWeight(session.weight);
-                    tempUser.setHeight(session.height);
-                    tempUser.setGender(session.gender);
-                    tempUser.setGoal(session.goal);
-                    tempUser.setActivityLevel("moderate");
+                    String email = "temp_" + sessionId + "@temp.com";
+
+                    User tempUser = User.builder()
+                            .email(email)
+                            .fullName("Временен потребител")
+                            .password("none")
+                            .age(session.age)
+                            .height(session.height)
+                            .weight(session.weight)
+                            .gender(session.gender)
+                            .goal(session.goal)
+                            .activityLevel("moderate")
+                            .build();
+
+                    userRepository.save(tempUser);
 
                     NutritionPlan plan = nutritionPlanService.generatePlanForUser(tempUser);
 
@@ -110,20 +136,18 @@ public class ChatbotService {
                 response = "Нещо се обърка. Опитай отново.";
         }
 
-        // Запазваме състоянието
         sessionMap.put(sessionId, session);
         return response;
     }
 
-    //  Метод за рестартиране на сесията
     public void resetSession(String sessionId) {
         sessionMap.put(sessionId, new SessionState());
     }
 
-    //  Клас за състоянието на сесията
     private static class SessionState {
         double weight;
         double height;
+        int age;
         String gender;
         String goal;
         String state = "ASK_WEIGHT";

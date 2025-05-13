@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface RecipeRepository extends JpaRepository<Recipe, Long> {
+public interface RecipeRepository extends JpaRepository<Recipe, Integer> {
     List<Recipe> findByType(String type); // За филтриране по тип (закуска, обяд и т.н.)
     List<Recipe> findTop5ByTypeIn(List<String> types);
     List<Recipe> findTop5ByCaloriesLessThanOrderByCaloriesAsc(Double maxCalories);

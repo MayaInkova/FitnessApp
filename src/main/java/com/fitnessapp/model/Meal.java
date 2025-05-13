@@ -1,11 +1,7 @@
 package com.fitnessapp.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import jakarta.persistence.Id;
+import lombok.*;
 
 @Entity
 @Table(name = "meals")
@@ -13,26 +9,19 @@ import jakarta.persistence.Id;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class Meal {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
-    private String type; // breakfast, lunch, snack, etc.
+    private String type; // breakfast, lunch, etc.
 
     @ManyToOne
     @JoinColumn(name = "plan_id")
-    private NutritionPlan plan;
+    private NutritionPlan nutritionPlan;
 
     @ManyToOne
     @JoinColumn(name = "recipe_id")
     private Recipe recipe;
-
-    @ManyToOne
-    @JoinColumn(name = "nutrition_plan_id")
-    private NutritionPlan nutritionPlan;
 }
-
-

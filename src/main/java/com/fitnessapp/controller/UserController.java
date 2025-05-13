@@ -4,17 +4,16 @@ package com.fitnessapp.controller;
 import com.fitnessapp.dto.LoginRequest;
 import com.fitnessapp.dto.UserRequest;
 import com.fitnessapp.dto.UserResponse;
-import com.fitnessapp.model.NutritionPlan;
 import com.fitnessapp.model.User;
 import com.fitnessapp.service.NutritionPlanService;
 import com.fitnessapp.service.UserService;
+import jakarta.validation.Valid;
 import lombok.Builder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,8 +21,6 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
-
-
 public class UserController {
 
     private final UserService userService;
@@ -39,9 +36,7 @@ public class UserController {
         this.nutritionPlanService = nutritionPlanService;
     }
 
-
     @PostMapping("/register")
-
     public ResponseEntity<?> registerUser(@Valid @RequestBody UserRequest userRequest, BindingResult result) {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body(result.getAllErrors());
@@ -59,8 +54,6 @@ public class UserController {
         user.setGoal(userRequest.getGoal());
 
         User savedUser = userService.saveUser(user);
-
-        //  Генерираме хранителен план
         nutritionPlanService.generatePlanForUser(savedUser);
 
         UserResponse response = UserResponse.builder()
@@ -77,6 +70,7 @@ public class UserController {
 
         return ResponseEntity.ok(response);
     }
+
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest loginRequest, BindingResult result) {
         if (result.hasErrors()) {
@@ -101,7 +95,6 @@ public class UserController {
                 .build();
 
         return ResponseEntity.ok(response);
-
     }
 
     @GetMapping
@@ -123,7 +116,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+    public ResponseEntity<?> getUserById(@PathVariable Integer id) {
         User user = userService.getUserById(id);
         if (user == null) return ResponseEntity.notFound().build();
 

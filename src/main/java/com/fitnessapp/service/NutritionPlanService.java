@@ -28,6 +28,7 @@ public class NutritionPlanService {
         this.mealRepository = mealRepository;
     }
 
+    // Използва се при регистрация или админ панел
     public NutritionPlan generatePlanForUser(User user) {
         double tdee = NutritionCalculator.calculateTDEE(user);
 
@@ -37,7 +38,6 @@ public class NutritionPlanService {
             default -> tdee;
         };
 
-        // Създаваме NutritionPlan без рецепти
         NutritionPlan plan = NutritionPlan.builder()
                 .user(user)
                 .calories(calories)
@@ -47,26 +47,22 @@ public class NutritionPlanService {
                 .goal(user.getGoal())
                 .build();
 
-        // Записваме NutritionPlan, за да получи ID
         NutritionPlan savedPlan = nutritionPlanRepository.save(plan);
 
-        // Вземаме подходящи рецепти според целта
         List<Recipe> recipes = switch (user.getGoal()) {
             case "weight_loss" -> recipeRepository.findTop5ByCaloriesLessThanOrderByCaloriesAsc(400.0);
             case "muscle_gain" -> recipeRepository.findTop5ByProteinGreaterThanOrderByProteinDesc(25.0);
             default -> recipeRepository.findTop5ByOrderByCaloriesAsc();
         };
 
-        // Добавяме рецепти към вече записания план
         savedPlan.setRecipes(recipes);
         savedPlan = nutritionPlanRepository.save(savedPlan);
 
-        // Създаваме Meal обекти за всяка рецепта
         for (Recipe recipe : recipes) {
             Meal meal = Meal.builder()
-                    .plan(savedPlan)
+                    .nutritionPlan(savedPlan)
                     .recipe(recipe)
-                    .type(recipe.getType())  // напр. "breakfast", "lunch"
+                    .type(recipe.getType())
                     .build();
             mealRepository.save(meal);
         }
@@ -74,11 +70,37 @@ public class NutritionPlanService {
         return savedPlan;
     }
 
+    // ✅ Използва се само от Chatbot – не записва в DB
+    public NutritionPlan calculatePlanForUser(User user) {
+        double tdee = NutritionCalculator.calculateTDEE(user);
+
+        double calories = switch (user.getGoal()) {
+            case "weight_loss" -> tdee - 500;
+            case "muscle_gain" -> tdee + 500;
+            default -> tdee;
+        };
+
+        List<Recipe> recipes = switch (user.getGoal()) {
+            case "weight_loss" -> recipeRepository.findTop5ByCaloriesLessThanOrderByCaloriesAsc(400.0);
+            case "muscle_gain" -> recipeRepository.findTop5ByProteinGreaterThanOrderByProteinDesc(25.0);
+            default -> recipeRepository.findTop5ByOrderByCaloriesAsc();
+        };
+
+        return NutritionPlan.builder()
+                .calories(calories)
+                .protein((calories * 0.3) / 4)
+                .fat((calories * 0.25) / 9)
+                .carbs((calories * 0.45) / 4)
+                .goal(user.getGoal())
+                .recipes(recipes)
+                .build();
+    }
+
     public NutritionPlan savePlan(NutritionPlan plan) {
         return nutritionPlanRepository.save(plan);
     }
 
-    public NutritionPlan getPlanByUserId(Long userId) {
+    public NutritionPlan getPlanByUserId(Integer userId) {
         return nutritionPlanRepository.findByUserId(userId);
     }
 

@@ -25,11 +25,11 @@ public class MealService {
         return mealRepository.findAll();
     }
 
-    public List<Meal> getMealsByPlanId(Long planId) {
-        return mealRepository.findByPlanId(planId);
+    public List<Meal> getMealsByPlanId(Integer planId) {
+        return mealRepository. findByNutritionPlanId(planId);
     }
 
-    public void deleteMeal(Long id) {
+    public void deleteMeal(Integer id) {
         mealRepository.deleteById(id);
     }
 }

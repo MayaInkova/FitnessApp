@@ -35,12 +35,12 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public User getUserById(Long id) {
+    public User getUserById(Integer id) {
         Optional<User> optionalUser = userRepository.findById(id);
         return optionalUser.orElse(null);
     }
 
-    public User updateUser(Long id, User userDetails) {
+    public User updateUser(Integer id, User userDetails) {
         User user = getUserById(id);
         if (user != null) {
             user.setFullName(userDetails.getFullName());
@@ -59,7 +59,7 @@ public class UserService {
         return null;
     }
 
-    public void deleteUser(Long id) {
+    public void deleteUser(Integer id) {
         userRepository.deleteById(id);
     }
 

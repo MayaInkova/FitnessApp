@@ -1,3 +1,4 @@
+
 package com.fitnessapp.model;
 
 public enum GoalType {
@@ -16,11 +17,15 @@ public enum GoalType {
     }
 
     public static GoalType fromString(String input) {
-        return switch (input.toLowerCase()) {
-            case "weight_loss" -> WEIGHT_LOSS;
-            case "maintain" -> MAINTAIN;
-            case "muscle_gain" -> MUSCLE_GAIN;
-            default -> throw new IllegalArgumentException("Invalid goal: " + input);
-        };
+        switch (input.toLowerCase()) {
+            case "weight_loss", "отслабване":
+                return WEIGHT_LOSS;
+            case "maintain", "поддържане":
+                return MAINTAIN;
+            case "muscle_gain", "качване на маса":
+                return MUSCLE_GAIN;
+            default:
+                throw new IllegalArgumentException("Невалидна цел: " + input);
+        }
     }
 }

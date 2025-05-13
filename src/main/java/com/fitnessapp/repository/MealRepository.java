@@ -9,7 +9,9 @@ import java.util.List;
 
 
 
-public interface MealRepository extends JpaRepository<Meal, Long> {
-    @Query("SELECT m FROM Meal m WHERE m.plan.id = :planId")
-    List<Meal> findByPlanId(@Param("planId") Long planId);
+
+public interface MealRepository extends JpaRepository<Meal, Integer> {
+
+    @Query("SELECT m FROM Meal m WHERE m.nutritionPlan.id = :planId")
+    List<Meal> findByNutritionPlanId(@Param("planId") Integer planId);
 }

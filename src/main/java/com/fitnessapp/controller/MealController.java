@@ -37,13 +37,13 @@ public class MealController {
 
     //  Връщане на хранения по план ID
     @GetMapping("/plan/{planId}")
-    public ResponseEntity<List<Meal>> getMealsByPlanId(@PathVariable Long planId) {
+    public ResponseEntity<List<Meal>> getMealsByPlanId(@PathVariable Integer planId) {
         return ResponseEntity.ok(mealService.getMealsByPlanId(planId));
     }
 
     //  Изтриване на хранене
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteMeal(@PathVariable Long id) {
+    public ResponseEntity<String> deleteMeal(@PathVariable Integer id) {
         mealService.deleteMeal(id);
         return ResponseEntity.ok("Храненето е изтрито.");
     }
