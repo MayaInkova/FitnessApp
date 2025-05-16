@@ -7,7 +7,6 @@ import com.fitnessapp.repository.UserRepository;
 import com.fitnessapp.service.NutritionPlanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,7 +16,6 @@ public class ChatbotService {
 
     private final NutritionPlanService nutritionPlanService;
     private final UserRepository userRepository;
-
     private final Map<String, SessionState> sessionMap = new HashMap<>();
 
     @Autowired
@@ -86,46 +84,33 @@ public class ChatbotService {
                 if (gender.equals("мъж") || gender.equals("жена")) {
                     session.gender = gender;
                     session.state = "ASK_GOAL";
-                    response = "Каква е твоята цел? (weight_loss / muscle_gain / maintain)";
+                    response = "Каква е твоята цел? (отслабване / качване / поддържане)";
                 } else {
                     response = "Моля, въведи пол: 'мъж' или 'жена'.";
                 }
                 break;
 
             case "ASK_GOAL":
-                String goal = message.trim().toLowerCase();
-                if (goal.equals("weight_loss") || goal.equals("muscle_gain") || goal.equals("maintain")) {
-                    session.goal = goal;
-                    session.state = "DONE";
-
-                    String email = "temp_" + sessionId + "@temp.com";
-
-                    User tempUser = User.builder()
-                            .email(email)
-                            .fullName("Временен потребител")
-                            .password("none")
-                            .age(session.age)
-                            .height(session.height)
-                            .weight(session.weight)
-                            .gender(session.gender)
-                            .goal(session.goal)
-                            .activityLevel("moderate")
-                            .build();
-
-                    userRepository.save(tempUser);
-
-                    NutritionPlan plan = nutritionPlanService.generatePlanForUser(tempUser);
-
-                    StringBuilder sb = new StringBuilder();
-                    sb.append(String.format("Препоръчителен дневен прием: %.0f ккал.\n", plan.getCalories()));
-                    sb.append("Примерни рецепти:\n");
-                    for (Recipe recipe : plan.getRecipes()) {
-                        sb.append("- ").append(recipe.getName()).append("\n");
-                    }
-                    response = sb.toString();
-                } else {
-                    response = "Моля, въведи целта си: weight_loss / muscle_gain / maintain";
+                String goalInput = message.trim().toLowerCase();
+                String goal;
+                switch (goalInput) {
+                    case "отслабване":
+                        goal = "weight_loss";
+                        break;
+                    case "качване":
+                        goal = "muscle_gain";
+                        break;
+                    case "поддържане":
+                        goal = "maintain";
+                        break;
+                    default:
+                        response = "Моля, избери цел: отслабване / качване / поддържане";
+                        sessionMap.put(sessionId, session);
+                        return response;
                 }
+                session.goal = goal;
+                session.state = "DONE";
+                response = "Благодаря! Изчислявам твоя режим...";
                 break;
 
             case "DONE":
@@ -138,6 +123,35 @@ public class ChatbotService {
 
         sessionMap.put(sessionId, session);
         return response;
+    }
+
+    public boolean isReadyToGeneratePlan(String sessionId) {
+        SessionState session = sessionMap.get(sessionId);
+        return session != null
+                && session.state.equals("DONE")
+                && session.goal != null
+                && session.gender != null;
+    }
+
+    public NutritionPlan generatePlan(String sessionId) {
+        SessionState session = sessionMap.get(sessionId);
+
+        String email = "temp_" + sessionId + "@temp.com";
+
+        User tempUser = User.builder()
+                .email(email)
+                .fullName("Временен потребител")
+                .password("none")
+                .age(session.age)
+                .height(session.height)
+                .weight(session.weight)
+                .gender(session.gender)
+                .goal(session.goal)
+                .activityLevel("moderate")
+                .build();
+
+        userRepository.save(tempUser);
+        return nutritionPlanService.generatePlanForUser(tempUser);
     }
 
     public void resetSession(String sessionId) {
