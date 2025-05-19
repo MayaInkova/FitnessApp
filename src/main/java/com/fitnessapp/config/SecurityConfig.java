@@ -22,7 +22,11 @@ public class SecurityConfig {
                                 "/api/nutrition-plans/**",
                                 "/api/meals/**",
                                 "/api/chatbot/**",
-                                "/api/goals/**"
+                                "/api/goals/**","/api/meal-items/**",
+                                "/api/food-items/**",
+                                "/api/recipe-ingredients/**",
+                                "/api/chat-sessions/**",
+                                "/api/chat-messages/**"
                                 ).permitAll()
                         .anyRequest().authenticated()
                 );

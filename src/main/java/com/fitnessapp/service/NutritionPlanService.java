@@ -70,7 +70,7 @@ public class NutritionPlanService {
         return savedPlan;
     }
 
-    // ✅ Използва се само от Chatbot – не записва в DB
+    // Използва се само от Chatbot – не записва в DB
     public NutritionPlan calculatePlanForUser(User user) {
         double tdee = NutritionCalculator.calculateTDEE(user);
 
