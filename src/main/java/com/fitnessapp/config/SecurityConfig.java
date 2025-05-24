@@ -27,7 +27,7 @@ public class SecurityConfig {
                                 "/api/recipe-ingredients/**",
                                 "/api/chat-sessions/**",
                                 "/api/chat-messages/**"
-                                ).permitAll()
+                        ).permitAll()
                         .anyRequest().authenticated()
                 );
 

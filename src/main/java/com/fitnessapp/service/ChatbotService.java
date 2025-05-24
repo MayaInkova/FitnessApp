@@ -135,22 +135,28 @@ public class ChatbotService {
 
     public NutritionPlan generatePlan(String sessionId) {
         SessionState session = sessionMap.get(sessionId);
-
         String email = "temp_" + sessionId + "@temp.com";
 
-        User tempUser = User.builder()
-                .email(email)
-                .fullName("Временен потребител")
-                .password("none")
-                .age(session.age)
-                .height(session.height)
-                .weight(session.weight)
-                .gender(session.gender)
-                .goal(session.goal)
-                .activityLevel("moderate")
-                .build();
+        // Проверка дали вече съществува потребител с този email
+        User tempUser = userRepository.findByEmail(email).orElse(null);
 
-        userRepository.save(tempUser);
+        if (tempUser == null) {
+            // Създаваме нов, ако няма
+            tempUser = User.builder()
+                    .email(email)
+                    .fullName("Временен потребител")
+                    .password("none")
+                    .age(session.age)
+                    .height(session.height)
+                    .weight(session.weight)
+                    .gender(session.gender)
+                    .goal(session.goal)
+                    .activityLevel("moderate")
+                    .build();
+
+            userRepository.save(tempUser);
+        }
+
         return nutritionPlanService.generatePlanForUser(tempUser);
     }
 

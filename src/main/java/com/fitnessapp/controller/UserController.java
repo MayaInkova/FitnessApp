@@ -1,14 +1,12 @@
 package com.fitnessapp.controller;
 
-
 import com.fitnessapp.dto.LoginRequest;
-import com.fitnessapp.dto.UserRequest;
+import com.fitnessapp.dto.RegisterSimpleRequest;
 import com.fitnessapp.dto.UserResponse;
 import com.fitnessapp.model.User;
 import com.fitnessapp.service.NutritionPlanService;
 import com.fitnessapp.service.UserService;
 import jakarta.validation.Valid;
-import lombok.Builder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -37,7 +35,7 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody UserRequest userRequest, BindingResult result) {
+    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterSimpleRequest userRequest, BindingResult result) {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body(result.getAllErrors());
         }
@@ -45,27 +43,14 @@ public class UserController {
         User user = new User();
         user.setFullName(userRequest.getFullName());
         user.setEmail(userRequest.getEmail());
-        user.setPassword(userRequest.getPassword());
-        user.setAge(userRequest.getAge());
-        user.setHeight(userRequest.getHeight());
-        user.setWeight(userRequest.getWeight());
-        user.setGender(userRequest.getGender());
-        user.setActivityLevel(userRequest.getActivityLevel());
-        user.setGoal(userRequest.getGoal());
+        user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
 
         User savedUser = userService.saveUser(user);
-        nutritionPlanService.generatePlanForUser(savedUser);
 
         UserResponse response = UserResponse.builder()
                 .id(savedUser.getId())
                 .fullName(savedUser.getFullName())
                 .email(savedUser.getEmail())
-                .age(savedUser.getAge())
-                .height(savedUser.getHeight())
-                .weight(savedUser.getWeight())
-                .gender(savedUser.getGender())
-                .activityLevel(savedUser.getActivityLevel())
-                .goal(savedUser.getGoal())
                 .build();
 
         return ResponseEntity.ok(response);
@@ -86,12 +71,6 @@ public class UserController {
                 .id(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .age(user.getAge())
-                .height(user.getHeight())
-                .weight(user.getWeight())
-                .gender(user.getGender())
-                .activityLevel(user.getActivityLevel())
-                .goal(user.getGoal())
                 .build();
 
         return ResponseEntity.ok(response);
@@ -104,12 +83,6 @@ public class UserController {
                 .id(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .age(user.getAge())
-                .height(user.getHeight())
-                .weight(user.getWeight())
-                .gender(user.getGender())
-                .activityLevel(user.getActivityLevel())
-                .goal(user.getGoal())
                 .build()).collect(Collectors.toList());
 
         return ResponseEntity.ok(responses);
@@ -124,12 +97,6 @@ public class UserController {
                 .id(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .age(user.getAge())
-                .height(user.getHeight())
-                .weight(user.getWeight())
-                .gender(user.getGender())
-                .activityLevel(user.getActivityLevel())
-                .goal(user.getGoal())
                 .build();
 
         return ResponseEntity.ok(response);
