@@ -1,6 +1,8 @@
 package com.fitnessapp.controller;
 
 
+
+import com.fitnessapp.dto.NutritionPlanDTO;
 import com.fitnessapp.model.NutritionPlan;
 import com.fitnessapp.model.User;
 import com.fitnessapp.service.NutritionPlanService;
@@ -13,13 +15,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Builder
 @RestController
 @RequestMapping("/api/nutrition-plans")
 @CrossOrigin(origins = "*")
-
-
 public class NutritionPlanController {
 
     private final NutritionPlanService nutritionPlanService;
@@ -33,16 +34,14 @@ public class NutritionPlanController {
         this.userService = userService;
     }
 
-    // Създаване на план с рецепти (устойчиво на FK грешки)
     @PostMapping
     public ResponseEntity<?> createNutritionPlan(@RequestBody NutritionPlan plan) {
         try {
-            var recipes = plan.getRecipes(); // временно премахваме рецептите
+            var recipes = plan.getRecipes();
             plan.setRecipes(null);
 
-            NutritionPlan savedPlan = nutritionPlanService.savePlan(plan); // запис без рецепти
-
-            savedPlan.setRecipes(recipes); // добавяме обратно рецептите
+            NutritionPlan savedPlan = nutritionPlanService.savePlan(plan);
+            savedPlan.setRecipes(recipes);
             NutritionPlan updatedPlan = nutritionPlanService.savePlan(savedPlan);
 
             return ResponseEntity.ok(updatedPlan);
@@ -52,7 +51,6 @@ public class NutritionPlanController {
         }
     }
 
-    //  Генериране на план от бекенда по логика (BMR, TDEE и т.н.)
     @PostMapping("/generate/{userId}")
     public ResponseEntity<?> generatePlan(@PathVariable Integer userId) {
         try {
@@ -67,7 +65,6 @@ public class NutritionPlanController {
         }
     }
 
-    // Връщане на план по потребител ID
     @GetMapping("/{userId}")
     public ResponseEntity<?> getNutritionPlanByUserId(@PathVariable Integer userId) {
         try {
@@ -79,7 +76,6 @@ public class NutritionPlanController {
         }
     }
 
-    // Връщане на всички планове (за админ)
     @GetMapping
     public ResponseEntity<?> getAllNutritionPlans() {
         try {
@@ -88,6 +84,30 @@ public class NutritionPlanController {
         } catch (Exception e) {
             logger.error("Грешка при зареждане на всички планове: ", e);
             return ResponseEntity.status(500).body("Грешка при зареждане: " + e.getMessage());
+        }
+    }
+
+
+    @GetMapping("/history/{userId}")
+    public ResponseEntity<?> getPlanHistory(@PathVariable Integer userId) {
+        try {
+            List<NutritionPlan> plans = nutritionPlanService.getAllByUserId(userId);
+
+            List<NutritionPlanDTO> dtoList = plans.stream()
+                    .map(p -> new NutritionPlanDTO(
+                            p.getId(),
+                            p.getCalories(),
+                            p.getProtein(),
+                            p.getFat(),
+                            p.getCarbs(),
+                            p.getGoal()
+                    ))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(dtoList);
+        } catch (Exception e) {
+            logger.error("Грешка при зареждане на историята на плановете: ", e);
+            return ResponseEntity.status(500).body("Грешка при зареждане на историята");
         }
     }
 }

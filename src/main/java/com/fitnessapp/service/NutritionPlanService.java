@@ -67,7 +67,7 @@ public class NutritionPlanService {
             mealRepository.save(meal);
         }
 
-        // 🔁 Връщаме плана с заредени хранения
+        // Връщаме плана с заредени хранения
         List<Meal> meals = mealRepository.findByNutritionPlanId(savedPlan.getId());
         savedPlan.setMeals(meals);
 
@@ -113,6 +113,10 @@ public class NutritionPlanService {
             throw new RuntimeException("Няма налични планове.");
         }
         return plans;
+    }
+
+    public List<NutritionPlan> getAllByUserId(Integer userId) {
+        return nutritionPlanRepository.findAllByUserIdOrderByIdDesc(userId);
     }
 
     // 🕒 Метод за определяне на подходящ час според името на рецептата

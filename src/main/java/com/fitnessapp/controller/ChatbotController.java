@@ -3,6 +3,7 @@ package com.fitnessapp.controller;
 import com.fitnessapp.dto.ChatMessageRequest;
 import com.fitnessapp.model.NutritionPlan;
 import com.fitnessapp.service.ChatbotService;
+import com.fitnessapp.service.ChatbotService.SessionState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -25,13 +26,24 @@ public class ChatbotController {
     @PostMapping("/message")
     public ResponseEntity<?> handleMessage(@RequestBody ChatMessageRequest request) {
         try {
-            logger.info("📩 Получено съобщение: {}", request.getMessage());
+            logger.info(" Получено съобщение: {}", request.getMessage());
+
+            //  Вземаме/създаваме сесия
+            SessionState session = chatbotService.getOrCreateSession(request.getSessionId());
+
+            //  Ако няма userId, запиши го
+            if (session.userId == null && request.getUserId() != null) {
+                session.userId = request.getUserId();
+            }
+
+            //  Обработка на съобщението
             String result = chatbotService.processMessage(request.getSessionId(), request.getMessage());
 
-            if (chatbotService.isReadyToGeneratePlan(request.getSessionId())) {
+            //  Генерирай план само ако не е генериран досега
+            if (!session.planGenerated && chatbotService.isReadyToGeneratePlan(request.getSessionId())) {
                 NutritionPlan plan = chatbotService.generatePlan(request.getSessionId());
+                session.planGenerated = true; // Маркира, че вече е генериран
 
-                // Връщаме директно NutritionPlan със списък от Meal обекти, всеки със своя Recipe
                 return ResponseEntity.ok(Map.of(
                         "type", "plan",
                         "plan", plan
@@ -44,7 +56,7 @@ public class ChatbotController {
             ));
 
         } catch (Exception e) {
-            logger.error("❌ Грешка при обработка на съобщението", e);
+            logger.error(" Грешка при обработка на съобщението", e);
             return ResponseEntity.status(500).body("Грешка при обработка на съобщението: " + e.getMessage());
         }
     }
