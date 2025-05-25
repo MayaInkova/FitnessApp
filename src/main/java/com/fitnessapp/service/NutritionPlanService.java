@@ -62,12 +62,11 @@ public class NutritionPlanService {
                     .nutritionPlan(savedPlan)
                     .recipe(recipe)
                     .type(recipe.getType())
-                    .time(getSuggestedTimeForMeal(recipe.getName()))
+                    .time(getSuggestedTimeForMeal(recipe.getType())) // 🕒 използваме тип
                     .build();
             mealRepository.save(meal);
         }
 
-        // Връщаме плана с заредени хранения
         List<Meal> meals = mealRepository.findByNutritionPlanId(savedPlan.getId());
         savedPlan.setMeals(meals);
 
@@ -119,18 +118,25 @@ public class NutritionPlanService {
         return nutritionPlanRepository.findAllByUserIdOrderByIdDesc(userId);
     }
 
-    // 🕒 Метод за определяне на подходящ час според името на рецептата
-    private String getSuggestedTimeForMeal(String recipeName) {
-        recipeName = recipeName.toLowerCase();
+    // 🕒 Връща фиксирано време според типа хранене
+    private String getSuggestedTimeForMeal(String type) {
+        if (type == null) return "08:00";
 
-        if (recipeName.contains("овес") || recipeName.contains("омлет") || recipeName.contains("яйце") || recipeName.contains("мляко")) {
-            return "08:00";
-        } else if (recipeName.contains("пилешко") || recipeName.contains("сьомга") || recipeName.contains("макарони")) {
-            return "12:30";
-        } else if (recipeName.contains("шейк") || recipeName.contains("оризовки") || recipeName.contains("кисело мляко")) {
-            return "16:00";
-        } else {
-            return "19:30";
+        switch (type.toLowerCase()) {
+            case "breakfast":
+            case "закуска":
+                return "08:00";
+            case "lunch":
+            case "обяд":
+                return "13:00";
+            case "snack":
+            case "междинно":
+                return "16:00";
+            case "dinner":
+            case "вечеря":
+                return "19:00";
+            default:
+                return "10:30";
         }
     }
 }

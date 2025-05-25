@@ -2,6 +2,7 @@ package com.fitnessapp.service;
 
 import com.fitnessapp.model.Meal;
 import com.fitnessapp.model.NutritionPlan;
+import com.fitnessapp.model.Recipe;
 import com.fitnessapp.model.User;
 import com.fitnessapp.repository.MealRepository;
 import com.fitnessapp.repository.UserRepository;
@@ -175,9 +176,33 @@ public class ChatbotService {
         }
 
         NutritionPlan plan = nutritionPlanService.generatePlanForUser(user);
+
+        // Задаване на време за всяко хранене
+        for (Meal meal : plan.getMeals()) {
+            meal.setTime(getDefaultMealTime(meal.getType()));
+            mealRepository.save(meal);
+        }
+
         List<Meal> meals = mealRepository.findByNutritionPlanId(plan.getId());
         plan.setMeals(meals);
         return plan;
+    }
+
+    private String getDefaultMealTime(String type) {
+        if (type == null) return "08:00";
+        switch (type.toLowerCase()) {
+            case "закуска":
+            case "breakfast":
+                return "08:00";
+            case "обяд":
+            case "lunch":
+                return "13:00";
+            case "вечеря":
+            case "dinner":
+                return "19:00";
+            default:
+                return "10:30";
+        }
     }
 
     private void updateUserWithSessionData(User user, SessionState session) {

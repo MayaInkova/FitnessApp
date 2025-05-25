@@ -1,7 +1,5 @@
 package com.fitnessapp.controller;
 
-
-
 import com.fitnessapp.dto.NutritionPlanDTO;
 import com.fitnessapp.model.NutritionPlan;
 import com.fitnessapp.model.User;
@@ -87,10 +85,14 @@ public class NutritionPlanController {
         }
     }
 
-
     @GetMapping("/history/{userId}")
     public ResponseEntity<?> getPlanHistory(@PathVariable Integer userId) {
         try {
+            User user = userService.getUserById(userId);
+            if (user == null) {
+                return ResponseEntity.status(403).body("🔒 Достъпът е разрешен само за регистрирани потребители.");
+            }
+
             List<NutritionPlan> plans = nutritionPlanService.getAllByUserId(userId);
 
             List<NutritionPlanDTO> dtoList = plans.stream()
