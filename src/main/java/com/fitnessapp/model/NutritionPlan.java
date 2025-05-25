@@ -1,5 +1,6 @@
 package com.fitnessapp.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -27,10 +28,12 @@ public class NutritionPlan {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @OneToMany(mappedBy = "nutritionPlan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "nutritionPlan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
     private List<Meal> meals;
 
-    @ManyToMany
+    // Може да го премахнеш ако не ползваш recipes вече
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "nutrition_plan_recipes",
             joinColumns = @JoinColumn(name = "nutrition_plan_id"),

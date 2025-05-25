@@ -28,7 +28,6 @@ public class NutritionPlanService {
         this.mealRepository = mealRepository;
     }
 
-    // Използва се при регистрация или админ панел
     public NutritionPlan generatePlanForUser(User user) {
         double tdee = NutritionCalculator.calculateTDEE(user);
 
@@ -63,14 +62,18 @@ public class NutritionPlanService {
                     .nutritionPlan(savedPlan)
                     .recipe(recipe)
                     .type(recipe.getType())
+                    .time(getSuggestedTimeForMeal(recipe.getName()))
                     .build();
             mealRepository.save(meal);
         }
 
+        // 🔁 Връщаме плана с заредени хранения
+        List<Meal> meals = mealRepository.findByNutritionPlanId(savedPlan.getId());
+        savedPlan.setMeals(meals);
+
         return savedPlan;
     }
 
-    // Използва се само от Chatbot – не записва в DB
     public NutritionPlan calculatePlanForUser(User user) {
         double tdee = NutritionCalculator.calculateTDEE(user);
 
@@ -110,5 +113,20 @@ public class NutritionPlanService {
             throw new RuntimeException("Няма налични планове.");
         }
         return plans;
+    }
+
+    // 🕒 Метод за определяне на подходящ час според името на рецептата
+    private String getSuggestedTimeForMeal(String recipeName) {
+        recipeName = recipeName.toLowerCase();
+
+        if (recipeName.contains("овес") || recipeName.contains("омлет") || recipeName.contains("яйце") || recipeName.contains("мляко")) {
+            return "08:00";
+        } else if (recipeName.contains("пилешко") || recipeName.contains("сьомга") || recipeName.contains("макарони")) {
+            return "12:30";
+        } else if (recipeName.contains("шейк") || recipeName.contains("оризовки") || recipeName.contains("кисело мляко")) {
+            return "16:00";
+        } else {
+            return "19:30";
+        }
     }
 }

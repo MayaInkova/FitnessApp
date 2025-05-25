@@ -1,27 +1,33 @@
 package com.fitnessapp.service;
 
+import com.fitnessapp.model.Meal;
 import com.fitnessapp.model.NutritionPlan;
-import com.fitnessapp.model.Recipe;
 import com.fitnessapp.model.User;
+import com.fitnessapp.repository.MealRepository;
 import com.fitnessapp.repository.UserRepository;
-import com.fitnessapp.service.NutritionPlanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.util.HashMap;
-import java.util.Map;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class ChatbotService {
 
     private final NutritionPlanService nutritionPlanService;
     private final UserRepository userRepository;
+    private final MealRepository mealRepository;
+
     private final Map<String, SessionState> sessionMap = new HashMap<>();
 
     @Autowired
-    public ChatbotService(NutritionPlanService nutritionPlanService, UserRepository userRepository) {
+    public ChatbotService(NutritionPlanService nutritionPlanService,
+                          UserRepository userRepository,
+                          MealRepository mealRepository) {
         this.nutritionPlanService = nutritionPlanService;
         this.userRepository = userRepository;
+        this.mealRepository = mealRepository;
     }
 
     public String processMessage(String sessionId, String message) {
@@ -92,23 +98,19 @@ public class ChatbotService {
 
             case "ASK_GOAL":
                 String goalInput = message.trim().toLowerCase();
-                String goal;
                 switch (goalInput) {
                     case "отслабване":
-                        goal = "weight_loss";
+                        session.goal = "weight_loss";
                         break;
                     case "качване":
-                        goal = "muscle_gain";
+                        session.goal = "muscle_gain";
                         break;
                     case "поддържане":
-                        goal = "maintain";
+                        session.goal = "maintain";
                         break;
                     default:
-                        response = "Моля, избери цел: отслабване / качване / поддържане";
-                        sessionMap.put(sessionId, session);
-                        return response;
+                        return "Моля, избери цел: отслабване / качване / поддържане";
                 }
-                session.goal = goal;
                 session.state = "DONE";
                 response = "Благодаря! Изчислявам твоя режим...";
                 break;
@@ -137,11 +139,9 @@ public class ChatbotService {
         SessionState session = sessionMap.get(sessionId);
         String email = "temp_" + sessionId + "@temp.com";
 
-        // Проверка дали вече съществува потребител с този email
         User tempUser = userRepository.findByEmail(email).orElse(null);
 
         if (tempUser == null) {
-            // Създаваме нов, ако няма
             tempUser = User.builder()
                     .email(email)
                     .fullName("Временен потребител")
@@ -157,7 +157,13 @@ public class ChatbotService {
             userRepository.save(tempUser);
         }
 
-        return nutritionPlanService.generatePlanForUser(tempUser);
+        NutritionPlan plan = nutritionPlanService.generatePlanForUser(tempUser);
+
+        // ⚠️ Добавяме списъка с хранения (meals)
+        List<Meal> meals = mealRepository.findByNutritionPlanId(plan.getId());
+        plan.setMeals(meals);
+
+        return plan;
     }
 
     public void resetSession(String sessionId) {

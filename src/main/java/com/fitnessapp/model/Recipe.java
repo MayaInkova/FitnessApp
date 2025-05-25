@@ -17,13 +17,14 @@ public class Recipe {
 
     private String name;
 
-    @Column(length = 1000)
-    private String description;
+    private String type; // breakfast, lunch, dinner и т.н.
 
-    private Double calories;
-    private Double protein;
-    private Double fat;
-    private Double carbs;
+    private String instructions;
 
-    private String type; // Пример: "breakfast", "lunch", "dinner", "snack"
+    private String imageUrl;
+
+    private double calories;
+    private double protein;
+    private double fat;
+    private double carbs;
 }

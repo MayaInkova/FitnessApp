@@ -1,5 +1,6 @@
 package com.fitnessapp.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,10 +16,12 @@ public class Meal {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String type; // breakfast, lunch, etc.
+    private String type;
+    private String time;
 
     @ManyToOne
     @JoinColumn(name = "plan_id")
+    @JsonBackReference
     private NutritionPlan nutritionPlan;
 
     @ManyToOne
