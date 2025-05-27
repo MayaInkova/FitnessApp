@@ -4,18 +4,18 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "goals")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Goal {
+@Table(name = "roles")
+public class Role {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String name;
-    private double calorieModifier;
-    private String description;
+    @Column(unique = true)
+    private String name; // ROLE_USER, ROLE_ADMIN, ROLE_MODERATOR
 }

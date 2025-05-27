@@ -10,6 +10,7 @@ import com.fitnessapp.repository.RecipeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -62,7 +63,7 @@ public class NutritionPlanService {
                     .nutritionPlan(savedPlan)
                     .recipe(recipe)
                     .type(recipe.getType())
-                    .time(getSuggestedTimeForMeal(recipe.getType())) // 🕒 използваме тип
+                    .time(getSuggestedTimeForMeal(recipe.getType()))
                     .build();
             mealRepository.save(meal);
         }
@@ -71,6 +72,15 @@ public class NutritionPlanService {
         savedPlan.setMeals(meals);
 
         return savedPlan;
+    }
+
+    public List<NutritionPlan> generateWeeklyPlanForUser(User user) {
+        List<NutritionPlan> plans = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            NutritionPlan dailyPlan = generatePlanForUser(user);
+            plans.add(dailyPlan);
+        }
+        return plans;
     }
 
     public NutritionPlan calculatePlanForUser(User user) {
@@ -118,25 +128,14 @@ public class NutritionPlanService {
         return nutritionPlanRepository.findAllByUserIdOrderByIdDesc(userId);
     }
 
-    // 🕒 Връща фиксирано време според типа хранене
     private String getSuggestedTimeForMeal(String type) {
         if (type == null) return "08:00";
-
-        switch (type.toLowerCase()) {
-            case "breakfast":
-            case "закуска":
-                return "08:00";
-            case "lunch":
-            case "обяд":
-                return "13:00";
-            case "snack":
-            case "междинно":
-                return "16:00";
-            case "dinner":
-            case "вечеря":
-                return "19:00";
-            default:
-                return "10:30";
-        }
+        return switch (type.toLowerCase()) {
+            case "breakfast", "закуска" -> "08:00";
+            case "lunch", "обяд" -> "13:00";
+            case "snack", "междинно" -> "16:00";
+            case "dinner", "вечеря" -> "19:00";
+            default -> "10:30";
+        };
     }
 }

@@ -1,8 +1,8 @@
+
 package com.fitnessapp.service;
 
 import com.fitnessapp.model.Recipe;
 import com.fitnessapp.repository.RecipeRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,7 +12,6 @@ public class RecipeService {
 
     private final RecipeRepository recipeRepository;
 
-    @Autowired
     public RecipeService(RecipeRepository recipeRepository) {
         this.recipeRepository = recipeRepository;
     }
@@ -35,5 +34,20 @@ public class RecipeService {
 
     public void deleteRecipe(Integer id) {
         recipeRepository.deleteById(id);
+    }
+
+    public Recipe updateRecipe(Integer id, Recipe updatedRecipe) {
+        Recipe existing = recipeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Рецептата не е намерена"));
+
+        existing.setName(updatedRecipe.getName());
+        existing.setDescription(updatedRecipe.getDescription());
+        existing.setType(updatedRecipe.getType());
+        existing.setCalories(updatedRecipe.getCalories());
+        existing.setProtein(updatedRecipe.getProtein());
+        existing.setCarbs(updatedRecipe.getCarbs());
+        existing.setFat(updatedRecipe.getFat());
+
+        return recipeRepository.save(existing);
     }
 }

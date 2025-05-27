@@ -90,7 +90,7 @@ public class NutritionPlanController {
         try {
             User user = userService.getUserById(userId);
             if (user == null) {
-                return ResponseEntity.status(403).body("🔒 Достъпът е разрешен само за регистрирани потребители.");
+                return ResponseEntity.status(403).body(" Достъпът е разрешен само за регистрирани потребители.");
             }
 
             List<NutritionPlan> plans = nutritionPlanService.getAllByUserId(userId);
@@ -110,6 +110,23 @@ public class NutritionPlanController {
         } catch (Exception e) {
             logger.error("Грешка при зареждане на историята на плановете: ", e);
             return ResponseEntity.status(500).body("Грешка при зареждане на историята");
+        }
+    }
+
+    //  Седмичен план
+    @GetMapping("/weekly/{userId}")
+    public ResponseEntity<?> generateWeeklyPlan(@PathVariable Integer userId) {
+        try {
+            User user = userService.getUserById(userId);
+            if (user == null) {
+                return ResponseEntity.status(403).body(" Само за регистрирани потребители.");
+            }
+
+            List<NutritionPlan> weeklyPlans = nutritionPlanService.generateWeeklyPlanForUser(user);
+            return ResponseEntity.ok(weeklyPlans);
+        } catch (Exception e) {
+            logger.error("Грешка при генериране на седмичен план: ", e);
+            return ResponseEntity.status(500).body("Грешка при седмичен режим: " + e.getMessage());
         }
     }
 }

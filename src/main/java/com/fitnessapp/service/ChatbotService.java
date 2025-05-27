@@ -66,6 +66,123 @@ public class ChatbotService {
         return response;
     }
 
+    public boolean isReadyToGeneratePlan(String sessionId) {
+        SessionState session = sessionMap.get(sessionId);
+        return session != null &&
+                "DONE".equals(session.state) &&
+                session.goal != null &&
+                session.gender != null;
+    }
+
+    public NutritionPlan generatePlan(String sessionId) {
+        SessionState session = sessionMap.get(sessionId);
+
+        //  Гост потребител
+        if (session.isGuest) {
+            String tempEmail = "guest_" + sessionId + "@guest.com";
+
+            User demoUser = User.builder()
+                    .age(session.age > 0 ? session.age : 25)
+                    .height(session.height > 0 ? session.height : 175)
+                    .weight(session.weight > 0 ? session.weight : 70)
+                    .gender(session.gender != null ? session.gender : "мъж")
+                    .goal(session.goal != null ? session.goal : "maintain")
+                    .activityLevel("moderate")
+                    .email(tempEmail)
+                    .fullName("Гост потребител")
+                    .password("guest") // dummy value
+                    .build();
+
+            demoUser = userRepository.save(demoUser);
+
+            return nutritionPlanService.generatePlanForUser(demoUser);
+        }
+
+        User user = null;
+        if (session.userId != null) {
+            user = userRepository.findById(session.userId).orElse(null);
+            if (user != null) {
+                updateUserWithSessionData(user, session);
+                userRepository.save(user);
+            }
+        }
+
+        if (user == null) {
+            String email = "temp_" + sessionId + "@temp.com";
+            user = userRepository.findByEmail(email).orElseGet(() -> {
+                User tempUser = User.builder()
+                        .email(email)
+                        .fullName("Временен потребител")
+                        .password("none")
+                        .age(session.age)
+                        .height(session.height)
+                        .weight(session.weight)
+                        .gender(session.gender)
+                        .goal(session.goal)
+                        .activityLevel("moderate")
+                        .build();
+                return userRepository.save(tempUser);
+            });
+        }
+
+        NutritionPlan plan = nutritionPlanService.generatePlanForUser(user);
+
+        for (Meal meal : plan.getMeals()) {
+            meal.setTime(getDefaultMealTime(meal.getType()));
+            mealRepository.save(meal);
+        }
+
+        List<Meal> meals = mealRepository.findByNutritionPlanId(plan.getId());
+        plan.setMeals(meals);
+        return plan;
+    }
+
+    private void updateUserWithSessionData(User user, SessionState session) {
+        if (session.weight > 0) user.setWeight(session.weight);
+        if (session.height > 0) user.setHeight(session.height);
+        if (session.age > 0) user.setAge(session.age);
+        if (session.gender != null) user.setGender(session.gender);
+        if (session.goal != null) user.setGoal(session.goal);
+        user.setActivityLevel("moderate");
+    }
+
+    private String getDefaultMealTime(String type) {
+        if (type == null) return "08:00";
+        return switch (type.toLowerCase()) {
+            case "закуска", "breakfast" -> "08:00";
+            case "обяд", "lunch" -> "13:00";
+            case "вечеря", "dinner" -> "19:00";
+            default -> "10:30";
+        };
+    }
+
+    public void resetSession(String sessionId) {
+        sessionMap.put(sessionId, new SessionState());
+    }
+
+    public void attachUserToSession(String sessionId, Integer userId) {
+        SessionState session = getOrCreateSession(sessionId);
+        session.userId = userId;
+    }
+
+    public SessionState getOrCreateSession(String sessionId) {
+        return sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
+    }
+
+    //  Сесия
+    public static class SessionState {
+        public double weight;
+        public double height;
+        public int age;
+        public String gender;
+        public String goal;
+        public String state = "ASK_WEIGHT";
+        public Integer userId;
+        public boolean planGenerated = false;
+        public boolean isGuest = false;
+    }
+
+    //  ВЪТРЕШНИ МЕТОДИ
     private String handleWeightInput(SessionState session, String message) {
         try {
             double weight = Double.parseDouble(message);
@@ -121,120 +238,14 @@ public class ChatbotService {
     private String handleGoalInput(SessionState session, String message) {
         String goal = message.trim().toLowerCase();
         switch (goal) {
-            case "отслабване":
-                session.goal = "weight_loss";
-                break;
-            case "качване":
-                session.goal = "muscle_gain";
-                break;
-            case "поддържане":
-                session.goal = "maintain";
-                break;
-            default:
+            case "отслабване" -> session.goal = "weight_loss";
+            case "качване" -> session.goal = "muscle_gain";
+            case "поддържане" -> session.goal = "maintain";
+            default -> {
                 return "Моля, избери цел: отслабване / качване / поддържане";
+            }
         }
         session.state = "DONE";
         return "Благодаря! Изчислявам твоя режим...";
-    }
-
-    public boolean isReadyToGeneratePlan(String sessionId) {
-        SessionState session = sessionMap.get(sessionId);
-        return session != null &&
-                "DONE".equals(session.state) &&
-                session.goal != null &&
-                session.gender != null;
-    }
-
-    public NutritionPlan generatePlan(String sessionId) {
-        SessionState session = sessionMap.get(sessionId);
-        User user = null;
-
-        if (session.userId != null) {
-            user = userRepository.findById(session.userId).orElse(null);
-            if (user != null) {
-                updateUserWithSessionData(user, session);
-                userRepository.save(user);
-            }
-        }
-
-        if (user == null) {
-            String email = "temp_" + sessionId + "@temp.com";
-            user = userRepository.findByEmail(email).orElseGet(() -> {
-                User tempUser = User.builder()
-                        .email(email)
-                        .fullName("Временен потребител")
-                        .password("none")
-                        .age(session.age)
-                        .height(session.height)
-                        .weight(session.weight)
-                        .gender(session.gender)
-                        .goal(session.goal)
-                        .activityLevel("moderate")
-                        .build();
-                return userRepository.save(tempUser);
-            });
-        }
-
-        NutritionPlan plan = nutritionPlanService.generatePlanForUser(user);
-
-        // Задаване на време за всяко хранене
-        for (Meal meal : plan.getMeals()) {
-            meal.setTime(getDefaultMealTime(meal.getType()));
-            mealRepository.save(meal);
-        }
-
-        List<Meal> meals = mealRepository.findByNutritionPlanId(plan.getId());
-        plan.setMeals(meals);
-        return plan;
-    }
-
-    private String getDefaultMealTime(String type) {
-        if (type == null) return "08:00";
-        switch (type.toLowerCase()) {
-            case "закуска":
-            case "breakfast":
-                return "08:00";
-            case "обяд":
-            case "lunch":
-                return "13:00";
-            case "вечеря":
-            case "dinner":
-                return "19:00";
-            default:
-                return "10:30";
-        }
-    }
-
-    private void updateUserWithSessionData(User user, SessionState session) {
-        if (session.weight > 0) user.setWeight(session.weight);
-        if (session.height > 0) user.setHeight(session.height);
-        if (session.age > 0) user.setAge(session.age);
-        if (session.gender != null) user.setGender(session.gender);
-        if (session.goal != null) user.setGoal(session.goal);
-        user.setActivityLevel("moderate");
-    }
-
-    public void resetSession(String sessionId) {
-        sessionMap.put(sessionId, new SessionState());
-    }
-
-    public void attachUserToSession(String sessionId, Integer userId) {
-        SessionState session = getOrCreateSession(sessionId);
-        session.userId = userId;
-    }
-
-    public SessionState getOrCreateSession(String sessionId) {
-        return sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
-    }
-
-    public static class SessionState {
-        public double weight;
-        public double height;
-        public int age;
-        public String gender;
-        public String goal;
-        public String state = "ASK_WEIGHT";
-        public Integer userId;
-        public boolean planGenerated = false;
     }
 }

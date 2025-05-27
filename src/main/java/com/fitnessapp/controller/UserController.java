@@ -101,4 +101,20 @@ public class UserController {
 
         return ResponseEntity.ok(response);
     }
+
+    //  Обновяване на потребителски данни
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable Integer id, @RequestBody User userData) {
+        User user = userService.getUserById(id);
+        if (user == null) return ResponseEntity.notFound().build();
+
+        user.setAge(userData.getAge());
+        user.setHeight(userData.getHeight());
+        user.setWeight(userData.getWeight());
+        user.setGoal(userData.getGoal());
+        user.setGender(userData.getGender());
+
+        User updated = userService.saveUser(user);
+        return ResponseEntity.ok(updated);
+    }
 }

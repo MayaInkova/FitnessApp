@@ -3,14 +3,17 @@ package com.fitnessapp.service;
 import com.fitnessapp.model.Goal;
 import com.fitnessapp.model.GoalType;
 import com.fitnessapp.repository.GoalRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class GoalService {
 
     private final GoalRepository goalRepository;
 
-    //  конструктор за dependency injection
+    @Autowired
     public GoalService(GoalRepository goalRepository) {
         this.goalRepository = goalRepository;
     }
@@ -19,8 +22,24 @@ public class GoalService {
         String normalized = input.toLowerCase(); // напр. "maintain"
         GoalType goalType = GoalType.fromString(normalized);
 
-        // Превръщаме обратно в string, защото в DB goal.name e на български
         return goalRepository.findByName(goalType.getDisplayName())
                 .orElseThrow(() -> new RuntimeException("Goal not found"));
+    }
+
+    public List<Goal> getAllGoals() {
+        return goalRepository.findAll();
+    }
+
+    public Goal updateGoal(Integer id, Goal updatedGoal) {
+        Goal existing = goalRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Целта не е намерена"));
+
+        existing.setName(updatedGoal.getName());
+        existing.setDescription(updatedGoal.getDescription());
+        return goalRepository.save(existing);
+    }
+
+    public void deleteGoal(Integer id) {
+        goalRepository.deleteById(id);
     }
 }

@@ -27,4 +27,5 @@ public class Recipe {
     private double protein;
     private double fat;
     private double carbs;
+    private String description;
 }
