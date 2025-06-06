@@ -1,6 +1,5 @@
 package com.fitnessapp.controller;
 
-
 import com.fitnessapp.dto.ChatMessageRequest;
 import com.fitnessapp.model.NutritionPlan;
 import com.fitnessapp.service.ChatbotService;
@@ -31,26 +30,31 @@ public class ChatbotController {
 
             SessionState session = chatbotService.getOrCreateSession(request.getSessionId());
 
+            // Свързване с потребител, ако има
             if (session.userId == null && request.getUserId() != null) {
                 session.userId = request.getUserId();
                 session.isGuest = false;
             }
 
+            // Ако няма userId – приемаме, че е гост
             if (request.getUserId() == null) {
                 session.isGuest = true;
             }
 
-            // Задаване на диета
-            if (request.getDietType() != null) {
-                session.dietType = request.getDietType();
-            }
-
+            // Обработка на съобщението
             String result = chatbotService.processMessage(request.getSessionId(), request.getMessage());
 
+            // Генериране на режим – отделна логика за гост vs регистриран
             if (!session.planGenerated && chatbotService.isReadyToGeneratePlan(request.getSessionId())) {
-                NutritionPlan plan = chatbotService.generatePlan(request.getSessionId());
                 session.planGenerated = true;
 
+                if (session.isGuest) {
+                    return ResponseEntity.ok(Map.of(
+                            "type", "demo_plan_redirect"
+                    ));
+                }
+
+                NutritionPlan plan = chatbotService.generatePlan(request.getSessionId());
                 return ResponseEntity.ok(Map.of(
                         "type", "plan",
                         "plan", plan
