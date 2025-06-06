@@ -1,11 +1,9 @@
 package com.fitnessapp.service;
 
-import com.fitnessapp.model.Meal;
-import com.fitnessapp.model.NutritionPlan;
-import com.fitnessapp.model.Recipe;
-import com.fitnessapp.model.User;
+import com.fitnessapp.model.*;
 import com.fitnessapp.repository.MealRepository;
 import com.fitnessapp.repository.UserRepository;
+import com.fitnessapp.repository.DietTypeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,51 +17,71 @@ public class ChatbotService {
     private final NutritionPlanService nutritionPlanService;
     private final UserRepository userRepository;
     private final MealRepository mealRepository;
+    private final DietTypeRepository dietTypeRepository;
 
     private final Map<String, SessionState> sessionMap = new HashMap<>();
 
     @Autowired
     public ChatbotService(NutritionPlanService nutritionPlanService,
                           UserRepository userRepository,
-                          MealRepository mealRepository) {
+                          MealRepository mealRepository,
+                          DietTypeRepository dietTypeRepository) {
         this.nutritionPlanService = nutritionPlanService;
         this.userRepository = userRepository;
         this.mealRepository = mealRepository;
+        this.dietTypeRepository = dietTypeRepository;
     }
 
     public String processMessage(String sessionId, String message) {
         SessionState session = sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
-        String response;
 
         if (message.equalsIgnoreCase("рестарт")) {
             resetSession(sessionId);
-            return "Сесията е рестартирана. Колко тежиш в момента?";
+            return "Сесията е рестартирана. Искаш ли малко информация за диетите преди да избереш? (да / не)";
         }
 
-        switch (session.state) {
-            case "ASK_WEIGHT":
-                response = handleWeightInput(session, message);
-                break;
-            case "ASK_HEIGHT":
-                response = handleHeightInput(session, message);
-                break;
-            case "ASK_AGE":
-                response = handleAgeInput(session, message);
-                break;
-            case "ASK_GENDER":
-                response = handleGenderInput(session, message);
-                break;
-            case "ASK_GOAL":
-                response = handleGoalInput(session, message);
-                break;
-            case "DONE":
-                response = "Вече ти изчислих режим! Ако искаш нов, напиши: рестарт";
-                break;
-            default:
-                response = "Нещо се обърка. Опитай отново.";
+        // обработка при първоначално състояние
+        if ("ASK_DIET_EXPLANATION".equals(session.state)) {
+            if (message.trim().equalsIgnoreCase("да")) {
+                session.state = "ASK_DIET_TYPE";
+                return """
+                Ето кратка информация:
+                🟢 Balanced – разнообразна храна, умерени количества.
+                🥩 High Protein – за мускулна маса, повече месо и протеин.
+                🥑 Keto – високо съдържание на мазнини, ниско на въглехидрати.
+
+                Сега избери тип диета: balanced / high_protein / keto
+            """;
+            } else if (message.trim().equalsIgnoreCase("не")) {
+                session.state = "ASK_DIET_TYPE";
+                return "Добре. Моля, избери вид диета: balanced / high_protein / keto";
+            } else {
+                return "Искаш ли кратко обяснение за видовете диети? Отговори с 'да' или 'не'.";
+            }
         }
 
-        return response;
+        if ("ASK_DIET_TYPE".equals(session.state)) {
+            if (message.equalsIgnoreCase("keto") || message.equalsIgnoreCase("balanced") || message.equalsIgnoreCase("high_protein")) {
+                session.dietType = message.toLowerCase();
+                session.state = "ASK_WEIGHT";
+                return "Регистрирах тип диета: " + session.dietType + ". Колко тежиш в момента?";
+            }
+            return "Моля, избери тип диета: balanced / high_protein / keto";
+        }
+
+        return switch (session.state) {
+            case "ASK_WEIGHT" -> handleWeightInput(session, message);
+            case "ASK_HEIGHT" -> handleHeightInput(session, message);
+            case "ASK_AGE" -> handleAgeInput(session, message);
+            case "ASK_GENDER" -> handleGenderInput(session, message);
+            case "ASK_GOAL" -> handleGoalInput(session, message);
+            case "ASK_MEAT" -> handleMeatPreference(session, message);
+            case "ASK_DAIRY" -> handleDairy(session, message);
+            case "ASK_TRAINING" -> handleTraining(session, message);
+            case "ASK_ALLERGIES" -> handleAllergies(session, message);
+            case "DONE" -> "Вече ти изчислих режим! Ако искаш нов, напиши: рестарт";
+            default -> "Нещо се обърка. Опитай отново.";
+        };
     }
 
     public boolean isReadyToGeneratePlan(String sessionId) {
@@ -76,10 +94,35 @@ public class ChatbotService {
 
     public NutritionPlan generatePlan(String sessionId) {
         SessionState session = sessionMap.get(sessionId);
+        if (session == null) throw new IllegalStateException("Липсва активна сесия.");
 
-        //  Гост потребител
+        String dietTypeName = session.dietType != null ? session.dietType : "balanced";
+        DietType dietTypeEntity = dietTypeRepository.findByNameIgnoreCase(dietTypeName)
+                .orElseGet(() -> dietTypeRepository.findByNameIgnoreCase("balanced").orElse(null));
+
+        User user = createOrUpdateUser(session, sessionId);
+        user.setDietType(dietTypeEntity);
+        userRepository.save(user);
+
+        NutritionPlan plan = nutritionPlanService.generatePlanForUser(user, dietTypeName);
+
+        for (Meal meal : plan.getMeals()) {
+            meal.setTime(getDefaultMealTime(meal.getType()));
+            mealRepository.save(meal);
+        }
+
+        List<Meal> meals = mealRepository.findByNutritionPlanId(plan.getId());
+        plan.setMeals(meals);
+
+        return plan;
+    }
+
+    private User createOrUpdateUser(SessionState session, String sessionId) {
         if (session.isGuest) {
             String tempEmail = "guest_" + sessionId + "@guest.com";
+            DietType dietType = dietTypeRepository.findByNameIgnoreCase(
+                            session.dietType != null ? session.dietType : "balanced")
+                    .orElseThrow(() -> new RuntimeException("Невалиден тип диета: " + session.dietType));
 
             User demoUser = User.builder()
                     .age(session.age > 0 ? session.age : 25)
@@ -90,51 +133,26 @@ public class ChatbotService {
                     .activityLevel("moderate")
                     .email(tempEmail)
                     .fullName("Гост потребител")
-                    .password("guest") // dummy value
+                    .password("guest")
+                    .meatPreference(session.meatPreference)
+                    .consumesDairy(session.consumesDairy != null ? session.consumesDairy : true)
+                    .allergies(session.allergies)
+                    .trainingType(session.trainingType)
+                    .dietType(dietType)
                     .build();
 
-            demoUser = userRepository.save(demoUser);
-
-            return nutritionPlanService.generatePlanForUser(demoUser);
+            return userRepository.save(demoUser);
         }
 
-        User user = null;
-        if (session.userId != null) {
-            user = userRepository.findById(session.userId).orElse(null);
-            if (user != null) {
-                updateUserWithSessionData(user, session);
-                userRepository.save(user);
-            }
-        }
+        User user = userRepository.findById(session.userId).orElseThrow();
+        updateUserWithSessionData(user, session);
 
-        if (user == null) {
-            String email = "temp_" + sessionId + "@temp.com";
-            user = userRepository.findByEmail(email).orElseGet(() -> {
-                User tempUser = User.builder()
-                        .email(email)
-                        .fullName("Временен потребител")
-                        .password("none")
-                        .age(session.age)
-                        .height(session.height)
-                        .weight(session.weight)
-                        .gender(session.gender)
-                        .goal(session.goal)
-                        .activityLevel("moderate")
-                        .build();
-                return userRepository.save(tempUser);
-            });
-        }
+        DietType dietType = dietTypeRepository.findByNameIgnoreCase(
+                        session.dietType != null ? session.dietType : "balanced")
+                .orElse(null);
+        user.setDietType(dietType);
 
-        NutritionPlan plan = nutritionPlanService.generatePlanForUser(user);
-
-        for (Meal meal : plan.getMeals()) {
-            meal.setTime(getDefaultMealTime(meal.getType()));
-            mealRepository.save(meal);
-        }
-
-        List<Meal> meals = mealRepository.findByNutritionPlanId(plan.getId());
-        plan.setMeals(meals);
-        return plan;
+        return userRepository.save(user);
     }
 
     private void updateUserWithSessionData(User user, SessionState session) {
@@ -143,6 +161,10 @@ public class ChatbotService {
         if (session.age > 0) user.setAge(session.age);
         if (session.gender != null) user.setGender(session.gender);
         if (session.goal != null) user.setGoal(session.goal);
+        if (session.meatPreference != null) user.setMeatPreference(session.meatPreference);
+        if (session.consumesDairy != null) user.setConsumesDairy(session.consumesDairy);
+        if (session.allergies != null) user.setAllergies(session.allergies);
+        if (session.trainingType != null) user.setTrainingType(session.trainingType);
         user.setActivityLevel("moderate");
     }
 
@@ -169,26 +191,29 @@ public class ChatbotService {
         return sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
     }
 
-    //  Сесия
     public static class SessionState {
         public double weight;
         public double height;
         public int age;
         public String gender;
         public String goal;
-        public String state = "ASK_WEIGHT";
+        public String state = "ASK_DIET_EXPLANATION";
         public Integer userId;
         public boolean planGenerated = false;
         public boolean isGuest = false;
+        public String dietType;
+
+        public String meatPreference;
+        public Boolean consumesDairy;
+        public String trainingType;
+        public String allergies;
     }
 
-    //  ВЪТРЕШНИ МЕТОДИ
+
     private String handleWeightInput(SessionState session, String message) {
         try {
             double weight = Double.parseDouble(message);
-            if (weight < 30 || weight > 250) {
-                return "Моля, въведи реалистично тегло между 30 и 250 кг.";
-            }
+            if (weight < 30 || weight > 250) return "Моля, въведи реалистично тегло между 30 и 250 кг.";
             session.weight = weight;
             session.state = "ASK_HEIGHT";
             return "Колко е твоят ръст в сантиметри?";
@@ -200,9 +225,7 @@ public class ChatbotService {
     private String handleHeightInput(SessionState session, String message) {
         try {
             double height = Double.parseDouble(message);
-            if (height < 100 || height > 250) {
-                return "Моля, въведи ръст между 100 и 250 см.";
-            }
+            if (height < 100 || height > 250) return "Моля, въведи ръст между 100 и 250 см.";
             session.height = height;
             session.state = "ASK_AGE";
             return "Колко години си?";
@@ -214,9 +237,7 @@ public class ChatbotService {
     private String handleAgeInput(SessionState session, String message) {
         try {
             int age = Integer.parseInt(message);
-            if (age < 10 || age > 100) {
-                return "Моля, въведи реалистична възраст между 10 и 100 години.";
-            }
+            if (age < 10 || age > 100) return "Моля, въведи реалистична възраст между 10 и 100 години.";
             session.age = age;
             session.state = "ASK_GENDER";
             return "Какъв е твоят пол? (мъж / жена)";
@@ -237,15 +258,47 @@ public class ChatbotService {
 
     private String handleGoalInput(SessionState session, String message) {
         String goal = message.trim().toLowerCase();
-        switch (goal) {
-            case "отслабване" -> session.goal = "weight_loss";
-            case "качване" -> session.goal = "muscle_gain";
-            case "поддържане" -> session.goal = "maintain";
-            default -> {
-                return "Моля, избери цел: отслабване / качване / поддържане";
+        return switch (goal) {
+            case "отслабване" -> {
+                session.goal = "weight_loss";
+                session.state = "ASK_MEAT";
+                yield "Какъв тип месо предпочиташ? (пиле / телешко / свинско / риба / вегетарианец)";
             }
-        }
+            case "качване" -> {
+                session.goal = "muscle_gain";
+                session.state = "ASK_MEAT";
+                yield "Какъв тип месо предпочиташ? (пиле / телешко / свинско / риба / вегетарианец)";
+            }
+            case "поддържане" -> {
+                session.goal = "maintain";
+                session.state = "ASK_MEAT";
+                yield "Какъв тип месо предпочиташ? (пиле / телешко / свинско / риба / вегетарианец)";
+            }
+            default -> "Моля, избери цел: отслабване / качване / поддържане";
+        };
+    }
+
+    private String handleMeatPreference(SessionState session, String message) {
+        session.meatPreference = message.trim();
+        session.state = "ASK_DAIRY";
+        return "Консумираш ли млечни продукти? (да / не)";
+    }
+
+    private String handleDairy(SessionState session, String message) {
+        session.consumesDairy = message.trim().equalsIgnoreCase("да");
+        session.state = "ASK_TRAINING";
+        return "Предпочиташ ли план с тежести или без тежести?";
+    }
+
+    private String handleTraining(SessionState session, String message) {
+        session.trainingType = message.trim().toLowerCase();
+        session.state = "ASK_ALLERGIES";
+        return "Ако имаш алергии, напиши кои са. Ако нямаш, напиши 'не'.";
+    }
+
+    private String handleAllergies(SessionState session, String message) {
+        session.allergies = message.trim();
         session.state = "DONE";
-        return "Благодаря! Изчислявам твоя режим...";
+        return "Благодаря! Изчислявам персонализиран режим...";
     }
 }

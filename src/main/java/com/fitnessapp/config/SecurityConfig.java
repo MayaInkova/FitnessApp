@@ -22,7 +22,9 @@ public class SecurityConfig {
                                 "/api/users/login",
                                 "/api/chatbot/**",
                                 "/api/nutrition-plans/**",
-                                "/api/recipes/public/**", // публични рецепти
+                                "/api/training/**",
+                                "/api/exercises/**",
+                                "/api/recipes/**",
                                 "/api/guest/**",
                                 "/api/goals/**",
                                 "/api/food-items/**"
@@ -32,11 +34,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/moderator/**")
                         .hasRole("MODERATOR")
 
-                        // 🛡 За администратори
+                        // За администратори
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")
 
-                        // 🛡 Всички останали - само ако са логнати
+                        //  Всички останали - само ако са логнати
                         .anyRequest()
                         .authenticated()
                 );

@@ -16,15 +16,15 @@ public class Meal {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String type;
-    private String time;
+    private String type;  // напр. закуска, обяд, вечеря
+    private String time;  // например: 08:00
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "plan_id")
     @JsonBackReference
     private NutritionPlan nutritionPlan;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recipe_id")
     private Recipe recipe;
 }

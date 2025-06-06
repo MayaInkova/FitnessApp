@@ -19,6 +19,8 @@ public class Recipe {
 
     private String type; // breakfast, lunch, dinner и т.н.
 
+    @Lob
+    @Column(length = 1000)
     private String instructions;
 
     private String imageUrl;
@@ -27,5 +29,12 @@ public class Recipe {
     private double protein;
     private double fat;
     private double carbs;
+
+    @Lob
+    @Column(length = 1000)
     private String description;
+
+    @Lob
+    @Column(length = 1000)
+    private String ingredients; //  използва се за филтриране по месо, млечни и алергии
 }

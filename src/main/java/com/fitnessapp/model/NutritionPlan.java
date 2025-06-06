@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -30,16 +31,33 @@ public class NutritionPlan {
     @JsonIgnore
     private User user;
 
-    @OneToMany(mappedBy = "nutritionPlan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    @OneToMany(mappedBy = "nutritionPlan", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference
-    private List<Meal> meals;
+    private List<Meal> meals = new ArrayList<>();
 
-    // Може да го премахнеш ако не ползваш recipes вече
+    public void addMeal(Meal meal) {
+        meals.add(meal);
+        meal.setNutritionPlan(this);
+    }
+
+    public void clearMeals() {
+        for (Meal meal : meals) {
+            meal.setNutritionPlan(null);
+        }
+        meals.clear();
+    }
+
+    @Builder.Default
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "nutrition_plan_recipes",
             joinColumns = @JoinColumn(name = "nutrition_plan_id"),
             inverseJoinColumns = @JoinColumn(name = "recipe_id")
     )
-    private List<Recipe> recipes;
+    private List<Recipe> recipes = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "training_plan_id")
+    private TrainingPlan trainingPlan;
 }

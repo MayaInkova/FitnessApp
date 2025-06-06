@@ -1,7 +1,9 @@
 package com.fitnessapp.service;
 
+import com.fitnessapp.model.DietType;
 import com.fitnessapp.model.Role;
 import com.fitnessapp.model.User;
+import com.fitnessapp.repository.DietTypeRepository;
 import com.fitnessapp.repository.RoleRepository;
 import com.fitnessapp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,18 +17,26 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final DietTypeRepository dietTypeRepository;
 
     @Autowired
     public UserService(UserRepository userRepository,
-                       RoleRepository roleRepository) {
+                       RoleRepository roleRepository,
+                       DietTypeRepository dietTypeRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.dietTypeRepository = dietTypeRepository;
     }
 
     public User saveUser(User user) {
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseThrow(() -> new RuntimeException("Ролята не е намерена"));
-        user.setRoles(List.of(userRole));
+
+
+        List<Role> roles = new ArrayList<>();
+        roles.add(userRole);
+        user.setRoles(roles);
+
         return userRepository.save(user);
     }
 
@@ -57,5 +67,16 @@ public class UserService {
             user.getRoles().add(role);
             userRepository.save(user);
         }
+    }
+
+    public void updateDietTypeForUser(Integer userId, String dietName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        DietType dietType = dietTypeRepository.findByNameIgnoreCase(dietName)
+                .orElseThrow(() -> new RuntimeException("Unknown diet type"));
+
+        user.setDietType(dietType);
+        userRepository.save(user);
     }
 }

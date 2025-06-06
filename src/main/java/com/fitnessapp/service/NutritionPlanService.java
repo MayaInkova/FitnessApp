@@ -1,17 +1,13 @@
 package com.fitnessapp.service;
 
-import com.fitnessapp.model.Meal;
-import com.fitnessapp.model.NutritionPlan;
-import com.fitnessapp.model.Recipe;
-import com.fitnessapp.model.User;
+import com.fitnessapp.model.*;
 import com.fitnessapp.repository.MealRepository;
 import com.fitnessapp.repository.NutritionPlanRepository;
 import com.fitnessapp.repository.RecipeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class NutritionPlanService {
@@ -19,17 +15,20 @@ public class NutritionPlanService {
     private final NutritionPlanRepository nutritionPlanRepository;
     private final RecipeRepository recipeRepository;
     private final MealRepository mealRepository;
+    private final TrainingPlanService trainingPlanService;
 
     @Autowired
     public NutritionPlanService(NutritionPlanRepository nutritionPlanRepository,
                                 RecipeRepository recipeRepository,
-                                MealRepository mealRepository) {
+                                MealRepository mealRepository,
+                                TrainingPlanService trainingPlanService) {
         this.nutritionPlanRepository = nutritionPlanRepository;
         this.recipeRepository = recipeRepository;
         this.mealRepository = mealRepository;
+        this.trainingPlanService = trainingPlanService;
     }
 
-    public NutritionPlan generatePlanForUser(User user) {
+    public NutritionPlan generatePlanForUser(User user, String dietType) {
         double tdee = NutritionCalculator.calculateTDEE(user);
 
         double calories = switch (user.getGoal()) {
@@ -38,94 +37,95 @@ public class NutritionPlanService {
             default -> tdee;
         };
 
+        double proteinRatio = 0.3;
+        double fatRatio = 0.25;
+        double carbsRatio = 0.45;
+
+        if (dietType != null) {
+            switch (dietType.toLowerCase()) {
+                case "keto" -> {
+                    proteinRatio = 0.25;
+                    fatRatio = 0.65;
+                    carbsRatio = 0.10;
+                }
+                case "high_protein" -> {
+                    proteinRatio = 0.40;
+                    fatRatio = 0.30;
+                    carbsRatio = 0.30;
+                }
+            }
+        }
+
+        double protein = calories * proteinRatio / 4;
+        double fat = calories * fatRatio / 9;
+        double carbs = calories * carbsRatio / 4;
+
         NutritionPlan plan = NutritionPlan.builder()
                 .user(user)
                 .calories(calories)
-                .protein((calories * 0.3) / 4)
-                .fat((calories * 0.25) / 9)
-                .carbs((calories * 0.45) / 4)
+                .protein(protein)
+                .fat(fat)
+                .carbs(carbs)
                 .goal(user.getGoal())
                 .build();
 
         NutritionPlan savedPlan = nutritionPlanRepository.save(plan);
 
-        List<Recipe> recipes = switch (user.getGoal()) {
-            case "weight_loss" -> recipeRepository.findTop5ByCaloriesLessThanOrderByCaloriesAsc(400.0);
-            case "muscle_gain" -> recipeRepository.findTop5ByProteinGreaterThanOrderByProteinDesc(25.0);
-            default -> recipeRepository.findTop5ByOrderByCaloriesAsc();
-        };
+        List<Recipe> allRecipes = recipeRepository.findAll();
+        List<Recipe> filtered = filterRecipes(allRecipes, user);
 
-        savedPlan.setRecipes(recipes);
-        savedPlan = nutritionPlanRepository.save(savedPlan);
+        if (filtered.isEmpty()) {
+            filtered = allRecipes;
+            if (filtered.isEmpty()) {
+                throw new RuntimeException("Няма налични рецепти в базата.");
+            }
+        }
 
-        for (Recipe recipe : recipes) {
+        List<Recipe> selectedRecipes = new ArrayList<>(filtered.stream().limit(5).toList());
+        for (Recipe recipe : selectedRecipes) {
             Meal meal = Meal.builder()
-                    .nutritionPlan(savedPlan)
                     .recipe(recipe)
                     .type(recipe.getType())
                     .time(getSuggestedTimeForMeal(recipe.getType()))
                     .build();
-            mealRepository.save(meal);
+            savedPlan.addMeal(meal);
         }
 
-        List<Meal> meals = mealRepository.findByNutritionPlanId(savedPlan.getId());
-        savedPlan.setMeals(meals);
+        savedPlan.setRecipes(selectedRecipes);
 
-        return savedPlan;
+        boolean prefersWeights = user.getTrainingType() != null && user.getTrainingType().toLowerCase().contains("тежест");
+        TrainingPlan trainingPlan = trainingPlanService.getRecommended(user.getGoal(), prefersWeights);
+        savedPlan.setTrainingPlan(trainingPlan);
+
+        return nutritionPlanRepository.save(savedPlan);
     }
 
-    public List<NutritionPlan> generateWeeklyPlanForUser(User user) {
-        List<NutritionPlan> plans = new ArrayList<>();
-        for (int i = 0; i < 7; i++) {
-            NutritionPlan dailyPlan = generatePlanForUser(user);
-            plans.add(dailyPlan);
+    private List<Recipe> filterRecipes(List<Recipe> recipes, User user) {
+        final List<String> allergens;
+        if (user.getAllergies() != null && !user.getAllergies().isBlank() && !user.getAllergies().equalsIgnoreCase("не")) {
+            allergens = Arrays.asList(user.getAllergies().toLowerCase().split("[,;\\s]+"));
+        } else {
+            allergens = Collections.emptyList();
         }
-        return plans;
-    }
 
-    public NutritionPlan calculatePlanForUser(User user) {
-        double tdee = NutritionCalculator.calculateTDEE(user);
+        return recipes.stream()
+                .filter(r -> {
+                    String ingredients = Optional.ofNullable(r.getIngredients()).orElse("").toLowerCase();
 
-        double calories = switch (user.getGoal()) {
-            case "weight_loss" -> tdee - 500;
-            case "muscle_gain" -> tdee + 500;
-            default -> tdee;
-        };
+                    boolean matchesMeat = user.getMeatPreference() == null ||
+                            ingredients.contains(user.getMeatPreference().toLowerCase());
 
-        List<Recipe> recipes = switch (user.getGoal()) {
-            case "weight_loss" -> recipeRepository.findTop5ByCaloriesLessThanOrderByCaloriesAsc(400.0);
-            case "muscle_gain" -> recipeRepository.findTop5ByProteinGreaterThanOrderByProteinDesc(25.0);
-            default -> recipeRepository.findTop5ByOrderByCaloriesAsc();
-        };
+                    boolean matchesDairy = user.getConsumesDairy() == null || user.getConsumesDairy() ||
+                            (!ingredients.contains("мляко") &&
+                                    !ingredients.contains("сирене") &&
+                                    !ingredients.contains("кисело мляко") &&
+                                    !ingredients.contains("масло"));
 
-        return NutritionPlan.builder()
-                .calories(calories)
-                .protein((calories * 0.3) / 4)
-                .fat((calories * 0.25) / 9)
-                .carbs((calories * 0.45) / 4)
-                .goal(user.getGoal())
-                .recipes(recipes)
-                .build();
-    }
+                    boolean matchesAllergies = allergens.stream().noneMatch(ingredients::contains);
 
-    public NutritionPlan savePlan(NutritionPlan plan) {
-        return nutritionPlanRepository.save(plan);
-    }
-
-    public NutritionPlan getPlanByUserId(Integer userId) {
-        return nutritionPlanRepository.findByUserId(userId);
-    }
-
-    public List<NutritionPlan> getAllPlans() {
-        List<NutritionPlan> plans = nutritionPlanRepository.findAll();
-        if (plans == null || plans.isEmpty()) {
-            throw new RuntimeException("Няма налични планове.");
-        }
-        return plans;
-    }
-
-    public List<NutritionPlan> getAllByUserId(Integer userId) {
-        return nutritionPlanRepository.findAllByUserIdOrderByIdDesc(userId);
+                    return matchesMeat && matchesDairy && matchesAllergies;
+                })
+                .toList();
     }
 
     private String getSuggestedTimeForMeal(String type) {
@@ -137,5 +137,29 @@ public class NutritionPlanService {
             case "dinner", "вечеря" -> "19:00";
             default -> "10:30";
         };
+    }
+
+    public List<NutritionPlan> generateWeeklyPlanForUser(User user, String dietType) {
+        List<NutritionPlan> plans = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            plans.add(generatePlanForUser(user, dietType));
+        }
+        return plans;
+    }
+
+    public NutritionPlan savePlan(NutritionPlan plan) {
+        return nutritionPlanRepository.save(plan);
+    }
+
+    public NutritionPlan getPlanByUserId(Integer userId) {
+        return nutritionPlanRepository.findByUserId(userId);
+    }
+
+    public List<NutritionPlan> getAllPlans() {
+        return nutritionPlanRepository.findAll();
+    }
+
+    public List<NutritionPlan> getAllByUserId(Integer userId) {
+        return nutritionPlanRepository.findAllByUserIdOrderByIdDesc(userId);
     }
 }

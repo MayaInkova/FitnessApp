@@ -14,6 +14,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -116,5 +117,12 @@ public class UserController {
 
         User updated = userService.saveUser(user);
         return ResponseEntity.ok(updated);
+    }
+
+    @PutMapping("/{id}/diet")
+    public ResponseEntity<String> updateUserDiet(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+        String diet = body.get("diet");
+        userService.updateDietTypeForUser(id, diet);
+        return ResponseEntity.ok("Diet type updated");
     }
 }

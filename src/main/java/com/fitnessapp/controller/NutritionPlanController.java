@@ -1,9 +1,12 @@
 package com.fitnessapp.controller;
 
 import com.fitnessapp.dto.NutritionPlanDTO;
+import com.fitnessapp.dto.PlanBundleResponse;
 import com.fitnessapp.model.NutritionPlan;
+import com.fitnessapp.model.TrainingPlan;
 import com.fitnessapp.model.User;
 import com.fitnessapp.service.NutritionPlanService;
+import com.fitnessapp.service.TrainingPlanService;
 import com.fitnessapp.service.UserService;
 import lombok.Builder;
 import org.slf4j.Logger;
@@ -22,13 +25,17 @@ import java.util.stream.Collectors;
 public class NutritionPlanController {
 
     private final NutritionPlanService nutritionPlanService;
+    private final TrainingPlanService trainingPlanService;
     private final UserService userService;
 
     private static final Logger logger = LoggerFactory.getLogger(NutritionPlanController.class);
 
     @Autowired
-    public NutritionPlanController(NutritionPlanService nutritionPlanService, UserService userService) {
+    public NutritionPlanController(NutritionPlanService nutritionPlanService,
+                                   TrainingPlanService trainingPlanService,
+                                   UserService userService) {
         this.nutritionPlanService = nutritionPlanService;
+        this.trainingPlanService = trainingPlanService;
         this.userService = userService;
     }
 
@@ -55,8 +62,12 @@ public class NutritionPlanController {
             User user = userService.getUserById(userId);
             if (user == null) return ResponseEntity.notFound().build();
 
-            NutritionPlan plan = nutritionPlanService.generatePlanForUser(user);
-            return ResponseEntity.ok(plan);
+            String dietTypeName = user.getDietType() != null ? user.getDietType().getName() : null;
+            NutritionPlan nutritionPlan = nutritionPlanService.generatePlanForUser(user, dietTypeName);
+
+            TrainingPlan trainingPlan = trainingPlanService.getRecommended(user.getGoal(), "weights".equalsIgnoreCase(user.getTrainingType()));
+
+            return ResponseEntity.ok(new PlanBundleResponse(nutritionPlan, trainingPlan));
         } catch (Exception e) {
             logger.error("Грешка при генериране на план: ", e);
             return ResponseEntity.status(500).body("Грешка при генериране: " + e.getMessage());
@@ -90,7 +101,7 @@ public class NutritionPlanController {
         try {
             User user = userService.getUserById(userId);
             if (user == null) {
-                return ResponseEntity.status(403).body(" Достъпът е разрешен само за регистрирани потребители.");
+                return ResponseEntity.status(403).body("Достъпът е разрешен само за регистрирани потребители.");
             }
 
             List<NutritionPlan> plans = nutritionPlanService.getAllByUserId(userId);
@@ -113,17 +124,21 @@ public class NutritionPlanController {
         }
     }
 
-    //  Седмичен план
     @GetMapping("/weekly/{userId}")
     public ResponseEntity<?> generateWeeklyPlan(@PathVariable Integer userId) {
         try {
             User user = userService.getUserById(userId);
             if (user == null) {
-                return ResponseEntity.status(403).body(" Само за регистрирани потребители.");
+                return ResponseEntity.status(403).body("Само за регистрирани потребители.");
             }
 
-            List<NutritionPlan> weeklyPlans = nutritionPlanService.generateWeeklyPlanForUser(user);
-            return ResponseEntity.ok(weeklyPlans);
+            String dietTypeName = user.getDietType() != null ? user.getDietType().getName() : null;
+            List<NutritionPlan> weeklyPlans = nutritionPlanService.generateWeeklyPlanForUser(user, dietTypeName);
+            TrainingPlan trainingPlan = trainingPlanService.getRecommended(user.getGoal(), "weights".equalsIgnoreCase(user.getTrainingType()));
+
+            return ResponseEntity.ok(
+                    new PlanBundleResponse(weeklyPlans.get(0), trainingPlan) // само първия план заедно с тренировъчния
+            );
         } catch (Exception e) {
             logger.error("Грешка при генериране на седмичен план: ", e);
             return ResponseEntity.status(500).body("Грешка при седмичен режим: " + e.getMessage());
