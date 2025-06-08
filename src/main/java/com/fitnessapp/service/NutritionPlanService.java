@@ -1,9 +1,11 @@
 package com.fitnessapp.service;
 
+import com.fitnessapp.dto.FullPlanDTO;
 import com.fitnessapp.model.*;
 import com.fitnessapp.repository.MealRepository;
 import com.fitnessapp.repository.NutritionPlanRepository;
 import com.fitnessapp.repository.RecipeRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -37,9 +39,7 @@ public class NutritionPlanService {
             default -> tdee;
         };
 
-        double proteinRatio = 0.3;
-        double fatRatio = 0.25;
-        double carbsRatio = 0.45;
+        double proteinRatio = 0.3, fatRatio = 0.25, carbsRatio = 0.45;
 
         if (dietType != null) {
             switch (dietType.toLowerCase()) {
@@ -73,13 +73,8 @@ public class NutritionPlanService {
 
         List<Recipe> allRecipes = recipeRepository.findAll();
         List<Recipe> filtered = filterRecipes(allRecipes, user);
-
-        if (filtered.isEmpty()) {
-            filtered = allRecipes;
-            if (filtered.isEmpty()) {
-                throw new RuntimeException("Няма налични рецепти в базата.");
-            }
-        }
+        if (filtered.isEmpty()) filtered = allRecipes;
+        if (filtered.isEmpty()) throw new RuntimeException("Няма налични рецепти в базата.");
 
         List<Recipe> selectedRecipes = new ArrayList<>(filtered.stream().limit(5).toList());
         for (Recipe recipe : selectedRecipes) {
@@ -101,28 +96,18 @@ public class NutritionPlanService {
     }
 
     private List<Recipe> filterRecipes(List<Recipe> recipes, User user) {
-        final List<String> allergens;
-        if (user.getAllergies() != null && !user.getAllergies().isBlank() && !user.getAllergies().equalsIgnoreCase("не")) {
-            allergens = Arrays.asList(user.getAllergies().toLowerCase().split("[,;\\s]+"));
-        } else {
-            allergens = Collections.emptyList();
-        }
+        final List<String> allergens = (user.getAllergies() != null && !user.getAllergies().isBlank() && !user.getAllergies().equalsIgnoreCase("не"))
+                ? Arrays.asList(user.getAllergies().toLowerCase().split("[,;\\s]+"))
+                : Collections.emptyList();
 
         return recipes.stream()
                 .filter(r -> {
                     String ingredients = Optional.ofNullable(r.getIngredients()).orElse("").toLowerCase();
-
-                    boolean matchesMeat = user.getMeatPreference() == null ||
-                            ingredients.contains(user.getMeatPreference().toLowerCase());
-
+                    boolean matchesMeat = user.getMeatPreference() == null || ingredients.contains(user.getMeatPreference().toLowerCase());
                     boolean matchesDairy = user.getConsumesDairy() == null || user.getConsumesDairy() ||
-                            (!ingredients.contains("мляко") &&
-                                    !ingredients.contains("сирене") &&
-                                    !ingredients.contains("кисело мляко") &&
-                                    !ingredients.contains("масло"));
-
+                            (!ingredients.contains("мляко") && !ingredients.contains("сирене") &&
+                                    !ingredients.contains("кисело мляко") && !ingredients.contains("масло"));
                     boolean matchesAllergies = allergens.stream().noneMatch(ingredients::contains);
-
                     return matchesMeat && matchesDairy && matchesAllergies;
                 })
                 .toList();
@@ -139,6 +124,41 @@ public class NutritionPlanService {
         };
     }
 
+    @Transactional
+    public FullPlanDTO getFullPlanByUserId(Integer userId) {
+        NutritionPlan plan = nutritionPlanRepository.findTopByUserIdOrderByIdDesc(userId);
+        if (plan == null) {
+            System.out.println(" Не е намерен хранителен план за userId: " + userId);
+            return null;
+        }
+
+        TrainingPlan trainingPlan = plan.getTrainingPlan();
+        System.out.println(" Зареден trainingPlan: " + (trainingPlan != null ? trainingPlan.getName() : "null"));
+
+        return FullPlanDTO.builder()
+                .calories(plan.getCalories())
+                .protein(plan.getProtein())
+                .fat(plan.getFat())
+                .carbs(plan.getCarbs())
+                .goal(plan.getGoal())
+                .meals(plan.getMeals())
+                .recipes(plan.getRecipes())
+                .trainingName(trainingPlan != null ? trainingPlan.getName() : null)
+                .trainingDescription(trainingPlan != null ? trainingPlan.getDescription() : null)
+                .daysPerWeek(trainingPlan != null ? trainingPlan.getDaysPerWeek() : 0)
+                .durationMinutes(trainingPlan != null ? trainingPlan.getDurationMinutes() : 0)
+                .exercises(trainingPlan != null && trainingPlan.getExercises() != null ? trainingPlan.getExercises() : Collections.emptyList())
+                .build();
+    }
+
+    public FullPlanDTO getFullPlanForUser(Long userId) {
+        return getFullPlanByUserId(userId.intValue());
+    }
+
+    public NutritionPlan savePlan(NutritionPlan plan) {
+        return nutritionPlanRepository.save(plan);
+    }
+
     public List<NutritionPlan> generateWeeklyPlanForUser(User user, String dietType) {
         List<NutritionPlan> plans = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
@@ -147,19 +167,15 @@ public class NutritionPlanService {
         return plans;
     }
 
-    public NutritionPlan savePlan(NutritionPlan plan) {
-        return nutritionPlanRepository.save(plan);
-    }
-
-    public NutritionPlan getPlanByUserId(Integer userId) {
-        return nutritionPlanRepository.findByUserId(userId);
-    }
-
     public List<NutritionPlan> getAllPlans() {
         return nutritionPlanRepository.findAll();
     }
 
     public List<NutritionPlan> getAllByUserId(Integer userId) {
         return nutritionPlanRepository.findAllByUserIdOrderByIdDesc(userId);
+    }
+
+    public NutritionPlan getPlanByUserId(Integer userId) {
+        return nutritionPlanRepository.findTopByUserIdOrderByIdDesc(userId);
     }
 }

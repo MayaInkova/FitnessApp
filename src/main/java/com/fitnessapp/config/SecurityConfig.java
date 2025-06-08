@@ -27,7 +27,8 @@ public class SecurityConfig {
                                 "/api/recipes/**",
                                 "/api/guest/**",
                                 "/api/goals/**",
-                                "/api/food-items/**"
+                                "/api/food-items/**",
+                                "/api/**"
                         ).permitAll()
 
                         // ️ За модератори

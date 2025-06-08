@@ -1,5 +1,6 @@
 package com.fitnessapp.controller;
 
+import com.fitnessapp.dto.FullPlanDTO;
 import com.fitnessapp.dto.NutritionPlanDTO;
 import com.fitnessapp.dto.PlanBundleResponse;
 import com.fitnessapp.model.NutritionPlan;
@@ -8,7 +9,6 @@ import com.fitnessapp.model.User;
 import com.fitnessapp.service.NutritionPlanService;
 import com.fitnessapp.service.TrainingPlanService;
 import com.fitnessapp.service.UserService;
-import lombok.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Builder
 @RestController
 @RequestMapping("/api/nutrition-plans")
 @CrossOrigin(origins = "*")
@@ -44,11 +43,9 @@ public class NutritionPlanController {
         try {
             var recipes = plan.getRecipes();
             plan.setRecipes(null);
-
             NutritionPlan savedPlan = nutritionPlanService.savePlan(plan);
             savedPlan.setRecipes(recipes);
             NutritionPlan updatedPlan = nutritionPlanService.savePlan(savedPlan);
-
             return ResponseEntity.ok(updatedPlan);
         } catch (Exception e) {
             logger.error("Грешка при създаване на хранителен план: ", e);
@@ -65,7 +62,8 @@ public class NutritionPlanController {
             String dietTypeName = user.getDietType() != null ? user.getDietType().getName() : null;
             NutritionPlan nutritionPlan = nutritionPlanService.generatePlanForUser(user, dietTypeName);
 
-            TrainingPlan trainingPlan = trainingPlanService.getRecommended(user.getGoal(), "weights".equalsIgnoreCase(user.getTrainingType()));
+            TrainingPlan trainingPlan = trainingPlanService.getRecommended(user.getGoal(),
+                    "weights".equalsIgnoreCase(user.getTrainingType()));
 
             return ResponseEntity.ok(new PlanBundleResponse(nutritionPlan, trainingPlan));
         } catch (Exception e) {
@@ -85,7 +83,7 @@ public class NutritionPlanController {
         }
     }
 
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<?> getAllNutritionPlans() {
         try {
             List<NutritionPlan> plans = nutritionPlanService.getAllPlans();
@@ -134,14 +132,29 @@ public class NutritionPlanController {
 
             String dietTypeName = user.getDietType() != null ? user.getDietType().getName() : null;
             List<NutritionPlan> weeklyPlans = nutritionPlanService.generateWeeklyPlanForUser(user, dietTypeName);
-            TrainingPlan trainingPlan = trainingPlanService.getRecommended(user.getGoal(), "weights".equalsIgnoreCase(user.getTrainingType()));
+            TrainingPlan trainingPlan = trainingPlanService.getRecommended(user.getGoal(),
+                    "weights".equalsIgnoreCase(user.getTrainingType()));
 
             return ResponseEntity.ok(
-                    new PlanBundleResponse(weeklyPlans.get(0), trainingPlan) // само първия план заедно с тренировъчния
+                    new PlanBundleResponse(weeklyPlans.get(0), trainingPlan)
             );
         } catch (Exception e) {
             logger.error("Грешка при генериране на седмичен план: ", e);
             return ResponseEntity.status(500).body("Грешка при седмичен режим: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/full")
+    public ResponseEntity<?> getFullPlan(@RequestParam Integer userId) {
+        try {
+            FullPlanDTO fullPlan = nutritionPlanService.getFullPlanByUserId(userId);
+            if (fullPlan == null) {
+                return ResponseEntity.status(404).body("Няма намерен план за потребителя.");
+            }
+            return ResponseEntity.ok(fullPlan);
+        } catch (Exception e) {
+            logger.error("Грешка при вземане на пълен план: ", e);
+            return ResponseEntity.status(500).body("Вътрешна грешка: " + e.getMessage());
         }
     }
 }

@@ -1,13 +1,16 @@
 package com.fitnessapp.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "nutrition_plans")
 @Data
@@ -28,7 +31,7 @@ public class NutritionPlan {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    @JsonIgnore
+    @JsonIgnore // 🔁 предотвратява циклична зависимост
     private User user;
 
     @Builder.Default
@@ -60,4 +63,11 @@ public class NutritionPlan {
     @ManyToOne
     @JoinColumn(name = "training_plan_id")
     private TrainingPlan trainingPlan;
+
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
 }
