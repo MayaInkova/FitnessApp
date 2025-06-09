@@ -1,8 +1,12 @@
 package com.fitnessapp.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
@@ -18,7 +22,6 @@ public class Recipe {
     private Integer id;
 
     private String name;
-
     private String type; // breakfast, lunch, dinner и т.н.
 
     @Lob
@@ -38,5 +41,9 @@ public class Recipe {
 
     @Lob
     @Column(length = 1000)
-    private String ingredients; //  използва се за филтриране по месо, млечни и алергии
+    private String ingredients; // използва се за филтриране по месо, млечни и алергии
+
+    @ManyToMany(mappedBy = "recipes")
+    @JsonBackReference
+    private List<NutritionPlan> nutritionPlans = new ArrayList<>();
 }

@@ -1,7 +1,6 @@
 package com.fitnessapp.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
@@ -19,18 +18,17 @@ public class Meal {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String type;  // напр. закуска, обяд, вечеря
-    private String time;  // например: 08:00
+    private String type;  // breakfast, lunch, dinner и т.н.
+    private String time;
+    private String dayOfWeek;  // напр. Monday, Tuesday и т.н.
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "plan_id")
     @JsonBackReference
-    @JsonIgnore
     private NutritionPlan nutritionPlan;
 
-
-    @JoinColumn(name = "recipe_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recipe_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "nutritionPlans"})
     private Recipe recipe;
 }

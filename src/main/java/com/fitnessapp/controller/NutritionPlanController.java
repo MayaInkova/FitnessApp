@@ -9,6 +9,7 @@ import com.fitnessapp.model.User;
 import com.fitnessapp.service.NutritionPlanService;
 import com.fitnessapp.service.TrainingPlanService;
 import com.fitnessapp.service.UserService;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -145,6 +146,7 @@ public class NutritionPlanController {
     }
 
     @GetMapping("/full")
+    @Transactional
     public ResponseEntity<?> getFullPlan(@RequestParam Integer userId) {
         try {
             FullPlanDTO fullPlan = nutritionPlanService.getFullPlanByUserId(userId);
@@ -156,5 +158,15 @@ public class NutritionPlanController {
             logger.error("Грешка при вземане на пълен план: ", e);
             return ResponseEntity.status(500).body("Вътрешна грешка: " + e.getMessage());
         }
+    }
+    @GetMapping("/debug/{userId}")
+    public ResponseEntity<?> debugPlan(@PathVariable Integer userId) {
+        var plan = nutritionPlanService.getPlanByUserId(userId);
+        return ResponseEntity.ok(plan);
+    }
+    @GetMapping("/fix-training")
+    public ResponseEntity<?> fixTrainingPlans() {
+        int fixed = nutritionPlanService.fixMissingTrainingPlans();
+        return ResponseEntity.ok("Обновени планове: " + fixed);
     }
 }

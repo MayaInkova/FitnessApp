@@ -11,14 +11,12 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-
 public class FullPlanDTO {
     private Double calories;
     private Double protein;
     private Double fat;
     private Double carbs;
     private String goal;
-
     private List<Meal> meals;
     private List<Recipe> recipes;
 

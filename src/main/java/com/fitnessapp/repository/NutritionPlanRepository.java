@@ -5,6 +5,8 @@ import com.fitnessapp.model.NutritionPlan;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+
+
 import java.util.List;
 
 @Repository
@@ -15,4 +17,5 @@ public interface NutritionPlanRepository extends JpaRepository<NutritionPlan, In
 
     // Връща само най-новия план на потребител
     NutritionPlan findTopByUserIdOrderByIdDesc(Integer userId);
+
 }
