@@ -12,7 +12,6 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class Exercise {
 
     @Id
@@ -21,8 +20,7 @@ public class Exercise {
 
     private String name;
     private String dayOfWeek;
-    private String level;
-    private boolean withWeights;
+    private String level; // Beginner, Intermediate, Advanced
     private int sets;
     private int reps;
     private int restSeconds;
@@ -35,6 +33,11 @@ public class Exercise {
 
     @Column(name = "image_url")
     private String imageUrl;
+
+    private boolean isRequiresWeights;
+    private String bodyPart;
+    private String equipment;
+    private String exerciseType;
 
     @ManyToOne
     @JoinColumn(name = "training_plan_id")

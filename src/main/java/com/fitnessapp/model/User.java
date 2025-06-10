@@ -2,7 +2,7 @@ package com.fitnessapp.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.*; // Увери се, че @Data или @Getter са тук
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +11,7 @@ import java.util.List;
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "users")
-@Data
+@Data // <-- Увери се, че тази анотация е тук! Тя генерира getters/setters.
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -40,6 +40,9 @@ public class User {
     private Boolean consumesDairy;
     private String trainingType;
     private String allergies;
+
+    private String level; // Например: "beginner", "intermediate", "advanced"
+
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

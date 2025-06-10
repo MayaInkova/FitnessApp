@@ -25,6 +25,7 @@ public class TrainingPlanController {
 
     @GetMapping("/recommend")
     public TrainingPlan recommend(@RequestParam String goal, @RequestParam boolean withWeights) {
+        // ТОЗИ МЕТОД ВЕЧЕ СЪЩЕСТВУВА В TrainingPlanService
         return trainingPlanService.getRecommended(goal, withWeights);
     }
 }

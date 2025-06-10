@@ -6,7 +6,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
@@ -29,6 +31,7 @@ public class Recipe {
     private String instructions;
 
     private String imageUrl;
+    private String videoUrl;
 
     private double calories;
     private double protein;
@@ -39,9 +42,12 @@ public class Recipe {
     @Column(length = 1000)
     private String description;
 
-    @Lob
-    @Column(length = 1000)
-    private String ingredients; // използва се за филтриране по месо, млечни и алергии
+
+    //  Set<String> tags
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "recipe_tags", joinColumns = @JoinColumn(name = "recipe_id"))
+    @Column(name = "tag")
+    private Set<String> tags = new HashSet<>();
 
     @ManyToMany(mappedBy = "recipes")
     @JsonBackReference
