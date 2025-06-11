@@ -26,7 +26,8 @@ public class MealItemService {
     }
 
     public List<MealItem> getMealItemsByMealId(Integer mealId) {
-        return mealItemRepository.findByMealId(mealId);
+        // КОРИГИРАНО: Използвай findByMeal_Id, както е дефинирано в Repository
+        return mealItemRepository.findByMeal_Id(mealId);
     }
 
     public void deleteMealItem(Integer id) {

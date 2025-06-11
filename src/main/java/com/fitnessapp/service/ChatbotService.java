@@ -1,34 +1,87 @@
 package com.fitnessapp.service;
 
 import com.fitnessapp.model.*;
-import com.fitnessapp.repository.MealRepository;
+        import com.fitnessapp.repository.MealRepository;
 import com.fitnessapp.repository.UserRepository;
 import com.fitnessapp.repository.DietTypeRepository;
+import com.fitnessapp.repository.ActivityLevelRepository;
+import com.fitnessapp.repository.GoalRepository;
+import com.fitnessapp.repository.RoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+        import java.util.stream.Collectors;
 
 @Service
 public class ChatbotService {
 
     private final NutritionPlanService nutritionPlanService;
+    private final TrainingPlanService trainingPlanService;
     private final UserRepository userRepository;
-    private final MealRepository mealRepository;
+    private final MealRepository mealRepository; // Не се използва директно тук, но е инжектиран
     private final DietTypeRepository dietTypeRepository;
+    private final ActivityLevelRepository activityLevelRepository;
+    private final GoalRepository goalRepository;
+    private final RoleRepository roleRepository;
+
     private final Map<String, SessionState> sessionMap = new HashMap<>();
 
     @Autowired
     public ChatbotService(NutritionPlanService nutritionPlanService,
+                          TrainingPlanService trainingPlanService,
                           UserRepository userRepository,
                           MealRepository mealRepository,
-                          DietTypeRepository dietTypeRepository) {
+                          DietTypeRepository dietTypeRepository,
+                          ActivityLevelRepository activityLevelRepository,
+                          GoalRepository goalRepository,
+                          RoleRepository roleRepository) {
         this.nutritionPlanService = nutritionPlanService;
+        this.trainingPlanService = trainingPlanService;
         this.userRepository = userRepository;
         this.mealRepository = mealRepository;
         this.dietTypeRepository = dietTypeRepository;
+        this.activityLevelRepository = activityLevelRepository;
+        this.goalRepository = goalRepository;
+        this.roleRepository = roleRepository;
+    }
+
+    // Клас за състоянието на сесията (вече публичен)
+    public static class SessionState {
+        String state = "ASK_DIET_EXPLANATION"; // Начално състояние
+        String email;
+        String fullName;
+        String dietType; // Име на DietType
+        Double weight;
+        Double height;
+        Integer age;
+        String gender; // String представяне на GenderType
+        String goal; // Име на Goal
+        String activityLevel; // Име на ActivityLevel
+        String meatPreference; // String представяне на MeatPreferenceType
+        Boolean consumesDairy;
+        String trainingType; // String представяне на TrainingType
+        Set<String> allergies = new HashSet<>();
+        Set<String> otherDietaryPreferences = new HashSet<>();
+        Integer trainingDaysPerWeek;
+        Integer trainingDurationMinutes;
+        String level; // String представяне на LevelType
+        String mealFrequencyPreference; // String представяне на MealFrequencyPreferenceType (например "3", "4" или "3 пъти дневно")
+
+        // Добавени полета, които се използват в ChatbotController
+        public Integer userId; // КОРИГИРАНО: За потребителския ID, ако е влязъл
+        public boolean isGuest = true; // Дали е гост потребител
+        public boolean planGenerated = false; // Флаг дали планът вече е генериран за сесията
+    }
+
+    // Метод за извличане или създаване на сесия
+    public SessionState getOrCreateSession(String sessionId) {
+        return sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
+    }
+
+    // Метод за нулиране на сесията
+    private void resetSession(String sessionId) {
+        sessionMap.put(sessionId, new SessionState());
     }
 
     public String processMessage(String sessionId, String message) {
@@ -36,309 +89,479 @@ public class ChatbotService {
 
         if (message.equalsIgnoreCase("рестарт")) {
             resetSession(sessionId);
-            return "Сесията е рестартирана. Искаш ли малко информация за диетите преди да избереш? (да / не)";
+            return "Здравейте! Аз съм вашият личен асистент за фитнес и хранене. Готови ли сте да създадем вашия персонализиран план? Първо, искате ли да научите повече за различните типове диети? (да / не)";
         }
 
-        if ("ASK_DIET_EXPLANATION".equals(session.state)) {
-            if (message.trim().equalsIgnoreCase("да")) {
-                session.state = "ASK_DIET_TYPE";
-                return """
-                🍽️ Ето кратка информация за типовете диети:
-
-                🔹 Балансирана – Разнообразна храна с умерени количества. Подходяща за поддържане на форма.
-                🥩 Протеинова – За мускулна маса. Повече месо, яйца, млечни продукти.
-                🥑 Кето – Високо съдържание на мазнини, ниско на въглехидрати. Подходяща при отслабване.
-                🥜 Веган – Без месо, млечни продукти и яйца. Богата на растителни източници на хранителни вещества.
-
-                👇 Моля, избери: балансирана / протеинова / кето / веган
-                """;
-            } else if (message.trim().equalsIgnoreCase("не")) {
-                session.state = "ASK_DIET_TYPE";
-                return "Добре. Моля, избери тип диета: балансирана / протеинова / кето / веган";
-            } else {
-                return "Искаш ли кратко обяснение за видовете диети? Отговори с 'да' или 'не'.";
-            }
-        }
-
-        if ("ASK_DIET_TYPE".equals(session.state)) {
-            String input = message.trim().toLowerCase();
-            String dietCode = switch (input) {
-                case "балансирана", "balanced" -> "balanced";
-                case "протеинова", "високо протеинова", "high_protein" -> "high_protein";
-                case "кето", "keto" -> "keto";
-                case "веган", "vegan" -> "vegan";
-                default -> null;
+        String response;
+        try {
+            response = switch (session.state) {
+                case "ASK_DIET_EXPLANATION" -> handleDietExplanation(session, message);
+                case "ASK_DIET_TYPE" -> handleDietTypeInput(session, message);
+                case "ASK_WEIGHT" -> handleWeightInput(session, message);
+                case "ASK_HEIGHT" -> handleHeightInput(session, message);
+                case "ASK_AGE" -> handleAgeInput(session, message);
+                case "ASK_GENDER" -> handleGenderInput(session, message);
+                case "ASK_GOAL" -> handleGoalInput(session, message);
+                case "ASK_ACTIVITY_LEVEL" -> handleActivityLevelInput(session, message);
+                case "ASK_MEAT_PREFERENCE" -> handleMeatPreference(session, message);
+                case "ASK_DAIRY_PREFERENCE" -> handleDairy(session, message);
+                case "ASK_TRAINING_TYPE" -> handleTrainingType(session, message);
+                case "ASK_ALLERGIES" -> handleAllergies(session, message);
+                case "ASK_OTHER_DIETARY_PREFERENCES" -> handleOtherDietaryPreferences(session, message);
+                case "ASK_TRAINING_DAYS_PER_WEEK" -> handleTrainingDaysPerWeek(session, message);
+                case "ASK_TRAINING_DURATION_MINUTES" -> handleTrainingDurationMinutes(session, message);
+                case "ASK_LEVEL" -> handleLevel(session, message);
+                case "ASK_MEAL_FREQUENCY" -> handleMealFrequency(session, message);
+                case "ASK_EMAIL" -> handleEmail(session, message);
+                case "ASK_FULL_NAME" -> handleFullName(session, message);
+                case "DONE" -> "Вашият персонализиран режим е вече изчислен! Ако желаете да генерирате нов, моля, напишете 'рестарт'.";
+                default -> "Изглежда има проблем с текущото състояние. Моля, напишете 'рестарт', за да започнем отначало.";
             };
-
-            if (dietCode != null) {
-                session.dietType = dietCode;
-                session.state = "ASK_WEIGHT";
-                return switch (dietCode) {
-                    case "balanced" -> """
-                        Избра Балансирана диета:
-                        Разнообразна храна, умерени количества протеини, мазнини и въглехидрати.
-                        Подходяща за поддържане на форма.
-
-                        Колко тежиш в момента? (в кг)
-                        """;
-                    case "high_protein" -> """
-                        Избра Протеинова диета:
-                        Подходяща за увеличаване на мускулна маса и сила.
-                        Богата на месо, яйца и млечни продукти.
-
-                        Колко тежиш в момента? (в кг)
-                        """;
-                    case "keto" -> """
-                        Избра Кето диета:
-                        Високо съдържание на мазнини, ниско на въглехидрати.
-                        Използва се за отслабване и контрол на кръвната захар.
-
-                        Колко тежиш в момента? (в кг)
-                        """;
-                    case "vegan" -> """
-                        Избра Веган диета:
-                        Без месо, млечни продукти и яйца.
-                        Подходяща за здравословен начин на живот и етични съображения.
-
-                        Колко тежиш в момента? (в кг)
-                        """;
-                    default -> "Колко тежиш в момента?";
-                };
-            }
-
-            return "Моля, избери валиден тип диета: балансирана / протеинова / кето / веган";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Възникна вътрешна грешка при обработката на съобщението: " + e.getMessage() + ". Моля, опитайте отново или напишете 'рестарт'.";
         }
 
-        return switch (session.state) {
-            case "ASK_WEIGHT" -> handleWeightInput(session, message);
-            case "ASK_HEIGHT" -> handleHeightInput(session, message);
-            case "ASK_AGE" -> handleAgeInput(session, message);
-            case "ASK_GENDER" -> handleGenderInput(session, message);
-            case "ASK_GOAL" -> handleGoalInput(session, message);
-            case "ASK_MEAT" -> handleMeatPreference(session, message);
-            case "ASK_DAIRY" -> handleDairy(session, message);
-            case "ASK_TRAINING" -> handleTraining(session, message);
-            case "ASK_ALLERGIES" -> handleAllergies(session, message);
-            case "DONE" -> "Вече ти изчислих режим! Ако искаш нов, напиши: рестарт";
-            default -> "Нещо се обърка. Опитай отново.";
-        };
+        return response;
     }
 
+    // Метод за проверка дали сесията е готова за генериране на план
     public boolean isReadyToGeneratePlan(String sessionId) {
         SessionState session = sessionMap.get(sessionId);
-        return session != null &&
-                "DONE".equals(session.state) &&
-                session.goal != null &&
-                session.gender != null;
+        return session != null && "DONE".equals(session.state);
     }
 
+    // Метод за генериране на план за хранене и тренировки, връщащ NutritionPlan
     public NutritionPlan generatePlan(String sessionId) {
         SessionState session = sessionMap.get(sessionId);
-        if (session == null) throw new IllegalStateException("Липсва активна сесия.");
-
-        String dietTypeName = session.dietType != null ? session.dietType : "balanced";
-        DietType dietTypeEntity = dietTypeRepository.findByNameIgnoreCase(dietTypeName)
-                .orElseGet(() -> dietTypeRepository.findByNameIgnoreCase("balanced").orElse(null));
-
-        User user = createOrUpdateUser(session, sessionId);
-        user.setDietType(dietTypeEntity);
-        userRepository.save(user);
-
-        NutritionPlan plan = nutritionPlanService.generatePlanForUser(user, dietTypeName);
-
-        for (Meal meal : plan.getMeals()) {
-            meal.setTime(getDefaultMealTime(meal.getType()));
-            mealRepository.save(meal);
+        if (session == null || !"DONE".equals(session.state)) {
+            throw new IllegalStateException("Сесията не е готова за генериране на план или не е намерена.");
         }
 
-        List<Meal> meals = mealRepository.findByNutritionPlanId(plan.getId());
-        plan.setMeals(meals);
+        User user = new User();
+        user.setEmail(session.email);
+        user.setFullName(session.fullName);
 
-        return plan;
-    }
+        // Задаваме временна парола (трябва да се хешира)
+        // В реално приложение, паролата би била подадена от потребителя и хеширана при регистрация.
+        user.setPassword("temporary_password_hashed"); // Моля, заменете с хеширана парола в реално приложение
 
-    private User createOrUpdateUser(SessionState session, String sessionId) {
-        if (session.isGuest) {
-            String tempEmail = "guest_" + sessionId + "@guest.com";
-            DietType dietType = dietTypeRepository.findByNameIgnoreCase(
-                            session.dietType != null ? session.dietType : "balanced")
-                    .orElseThrow(() -> new RuntimeException("Невалиден тип диета: " + session.dietType));
+        // Извличане на обектите от репозиториите
+        user.setDietType(dietTypeRepository.findByNameIgnoreCase(session.dietType)
+                .orElseThrow(() -> new RuntimeException("DietType не е намерен: " + session.dietType)));
+        user.setActivityLevel(activityLevelRepository.findByNameIgnoreCase(session.activityLevel)
+                .orElseThrow(() -> new RuntimeException("ActivityLevel не е намерен: " + session.activityLevel)));
+        user.setGoal(goalRepository.findByNameIgnoreCase(session.goal)
+                .orElseThrow(() -> new RuntimeException("Goal не е намерен: " + session.goal)));
 
-            User demoUser = User.builder()
-                    .age(session.age > 0 ? session.age : 25)
-                    .height(session.height > 0 ? session.height : 175)
-                    .weight(session.weight > 0 ? session.weight : 70)
-                    .gender(session.gender != null ? session.gender : "мъж")
-                    .goal(session.goal != null ? session.goal : "maintain")
-                    .activityLevel("moderate")
-                    .email(tempEmail)
-                    .fullName("Гост потребител")
-                    .password("guest")
-                    .meatPreference(session.meatPreference)
-                    .consumesDairy(session.consumesDairy != null ? session.consumesDairy : true)
-                    .allergies(session.allergies)
-                    .trainingType(session.trainingType)
-                    .dietType(dietType)
-                    .build();
+        // Попълване на останалите данни
+        user.setAge(session.age);
+        user.setWeight(session.weight);
+        user.setHeight(session.height);
 
-            return userRepository.save(demoUser);
+        // КОРИГИРАНО: Преобразуване на String към GenderType
+        if (session.gender != null) {
+            try {
+                user.setGender(GenderType.fromString(session.gender));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Невалиден пол в сесията: " + session.gender + " - " + e.getMessage(), e);
+            }
         }
 
-        User user = userRepository.findById(session.userId).orElseThrow();
-        updateUserWithSessionData(user, session);
+        // КОРИГИРАНО: Преобразуване на String към MeatPreferenceType
+        if (session.meatPreference != null) {
+            try {
+                user.setMeatPreference(MeatPreferenceType.fromString(session.meatPreference));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Невалидно предпочитание за месо в сесията: " + session.meatPreference + " - " + e.getMessage(), e);
+            }
+        }
 
-        DietType dietType = dietTypeRepository.findByNameIgnoreCase(
-                        session.dietType != null ? session.dietType : "balanced")
-                .orElse(null);
-        user.setDietType(dietType);
+        user.setConsumesDairy(session.consumesDairy);
 
-        return userRepository.save(user);
+        // КОРИГИРАНО: Преобразуване на String към TrainingType
+        if (session.trainingType != null) {
+            try {
+                user.setTrainingType(TrainingType.fromString(session.trainingType));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Невалиден тип тренировка в сесията: " + session.trainingType + " - " + e.getMessage(), e);
+            }
+        }
+
+        user.setAllergies(session.allergies);
+        user.setOtherDietaryPreferences(session.otherDietaryPreferences);
+        user.setTrainingDaysPerWeek(session.trainingDaysPerWeek);
+        user.setTrainingDurationMinutes(session.trainingDurationMinutes);
+
+        // КОРИГИРАНО: Преобразуване на String към LevelType
+        if (session.level != null) {
+            try {
+                user.setLevel(LevelType.fromString(session.level));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Невалидно фитнес ниво в сесията: " + session.level + " - " + e.getMessage(), e);
+            }
+        }
+
+        // КОРИГИРАНО: Преобразуване на String към MealFrequencyPreferenceType
+        if (session.mealFrequencyPreference != null) {
+            try {
+                String displayString;
+                switch (session.mealFrequencyPreference) {
+                    case "2": displayString = "2 пъти дневно"; break;
+                    case "3": displayString = "3 пъти дневно"; break;
+                    case "4": displayString = "4 пъти дневно"; break;
+                    case "5": displayString = "5 пъти дневно"; break;
+                    case "6": displayString = "6 пъти дневно"; break;
+                    default:
+                        // Ако имате други дефиниции, добавете ги тук.
+                        // Например, ако '3_main' е валидно, трябва да се преобразува.
+                        // За момента, ако не е число, ще хвърли грешка.
+                        throw new IllegalArgumentException("Невалидна честота на хранене в сесията: " + session.mealFrequencyPreference);
+                }
+                user.setMealFrequencyPreference(MealFrequencyPreferenceType.fromString(displayString));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Невалидно предпочитание за честота на хранене в сесията: " + session.mealFrequencyPreference + " - " + e.getMessage(), e);
+            }
+        }
+
+
+        // Задаваме роля по подразбиране (напр. ROLE_USER)
+        Role userRole = roleRepository.findByName("ROLE_USER")
+                .orElseThrow(() -> new RuntimeException("ROLE_USER не е намерен!"));
+        user.setRoles(Set.of(userRole));
+
+        // Запазваме потребителя
+        User savedUser = userRepository.save(user);
+
+        // Генерираме и запазваме плана за хранене и връщаме NutritionPlan
+        NutritionPlan nutritionPlan = nutritionPlanService.generateNutritionPlan(savedUser);
+
+        // Генерираме и запазваме тренировъчния план
+        trainingPlanService.generateAndSaveTrainingPlanForUser(savedUser);
+
+        System.out.println("План генериран за потребител: " + savedUser.getFullName());
+        return nutritionPlan; // Връщаме генерирания план за хранене
     }
 
-    private void updateUserWithSessionData(User user, SessionState session) {
-        if (session.weight > 0) user.setWeight(session.weight);
-        if (session.height > 0) user.setHeight(session.height);
-        if (session.age > 0) user.setAge(session.age);
-        if (session.gender != null) user.setGender(session.gender);
-        if (session.goal != null) user.setGoal(session.goal);
-        if (session.meatPreference != null) user.setMeatPreference(session.meatPreference);
-        if (session.consumesDairy != null) user.setConsumesDairy(session.consumesDairy);
-        if (session.allergies != null) user.setAllergies(session.allergies);
-        if (session.trainingType != null) user.setTrainingType(session.trainingType);
-        user.setActivityLevel("moderate");
+    private String handleDietExplanation(SessionState session, String message) {
+        if (message.trim().equalsIgnoreCase("да")) {
+            session.state = "ASK_DIET_TYPE";
+            return """
+            📊 Разбира се, ето кратко резюме на основните диетични подходи:
+
+            🍏 **Балансирана диета:** Фокусира се върху здравословна, разнообразна храна с умерено съотношение на макронутриенти (протеини, въглехидрати, мазнини). Идеална за поддържане на общо здраве и енергийни нива.
+            🥩 **Протеинова диета:** Богата на протеини (месо, риба, яйца, млечни продукти) и често по-ниска на въглехидрати. Подходяща за натрупване на мускулна маса, възстановяване и чувство за ситост.
+            🥑 **Кетогенна диета:** Силно ограничава въглехидратите, замествайки ги с мазнини. Тялото влиза в състояние на кетоза, което спомага за изгаряне на мазнини и може да е ефективна за отслабване и контрол на кръвната захар.
+            🌱 **Веган диета:** Изключва всички животински продукти, включително месо, млечни продукти, яйца и мед. Базира се изцяло на растителни храни, богати на фибри, витамини и минерали.
+            🍲 **Вегетарианска диета:** Подобна на веган, но позволява млечни продукти и яйца.
+            🌰 **Палео диета:** Фокусира се върху храни, достъпни за палеолитните хора (месо, риба, зеленчуци, плодове, ядки, семена), изключва зърнени култури, бобови растения, млечни продукти и преработени храни.
+
+            Моля, изберете диета, която най-добре отговаря на вашите нужди: **балансирана / протеинова / кето / веган / вегетарианска / палео**
+            """;
+        } else if (message.trim().equalsIgnoreCase("не")) {
+            session.state = "ASK_DIET_TYPE";
+            return "Разбрано. Моля, изберете предпочитан тип диета: **балансирана / протеинова / кето / веган / вегетарианска / палео**";
+        } else {
+            return "Моля, отговорете с 'да' или 'не', за да продължим. Искате ли информация за диетите?";
+        }
     }
 
-    private String getDefaultMealTime(String type) {
-        if (type == null) return "08:00";
-        return switch (type.toLowerCase()) {
-            case "закуска", "breakfast" -> "08:00";
-            case "обяд", "lunch" -> "13:00";
-            case "вечеря", "dinner" -> "19:00";
-            default -> "10:30";
-        };
+    private String handleDietTypeInput(SessionState session, String message) {
+        String input = message.trim().toLowerCase();
+        String dietName;
+
+        switch (input) {
+            case "балансирана":
+                dietName = "Standard";
+                break;
+            case "протеинова":
+                dietName = "High-Protein"; // Предполагам, че имате такъв тип диета или Standard
+                break;
+            case "кето":
+                dietName = "Keto";
+                break;
+            case "веган":
+                dietName = "Vegan";
+                break;
+            case "вегетарианска":
+                dietName = "Vegetarian";
+                break;
+            case "палео":
+                dietName = "Paleo";
+                break;
+            default:
+                return "Не разбрах избора Ви. Моля, изберете един от предложените типове диети: **балансирана / протеинова / кето / веган / вегетарианска / палео**";
+        }
+
+        Optional<DietType> dietTypeOptional = dietTypeRepository.findByNameIgnoreCase(dietName);
+        if (dietTypeOptional.isPresent()) {
+            session.dietType = dietTypeOptional.get().getName();
+            session.state = "ASK_WEIGHT";
+            return "Моля, въведете вашето текущо тегло **в килограми (кг)**.";
+        }
+        return "Не разбрах избора Ви. Моля, изберете един от предложените типове диети: **балансирана / протеинова / кето / веган / вегетарианска / палео**";
     }
-
-    public void resetSession(String sessionId) {
-        sessionMap.put(sessionId, new SessionState());
-    }
-
-    public void attachUserToSession(String sessionId, Integer userId) {
-        SessionState session = getOrCreateSession(sessionId);
-        session.userId = userId;
-    }
-
-    public SessionState getOrCreateSession(String sessionId) {
-        return sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
-    }
-
-    public static class SessionState {
-        public double weight;
-        public double height;
-        public int age;
-        public String gender;
-        public String goal;
-        public String state = "ASK_DIET_EXPLANATION";
-        public Integer userId;
-        public boolean planGenerated = false;
-        public boolean isGuest = false;
-        public String dietType;
-
-        public String meatPreference;
-        public Boolean consumesDairy;
-        public String trainingType;
-        public String allergies;
-    }
-
 
     private String handleWeightInput(SessionState session, String message) {
         try {
             double weight = Double.parseDouble(message);
-            if (weight < 30 || weight > 250) return "Моля, въведи реалистично тегло между 30 и 250 кг.";
+            if (weight < 30 || weight > 250) {
+                return "Въведеното тегло изглежда нереалистично. Моля, въведете тегло в диапазона от 30 до 250 кг.";
+            }
             session.weight = weight;
             session.state = "ASK_HEIGHT";
-            return "Колко е твоят ръст в сантиметри?";
+            return "Благодаря! Сега, моля, въведете вашия ръст **в сантиметри (см)**.";
         } catch (NumberFormatException e) {
-            return "Моля, въведи теглото си като число. Например: 70";
+            return "Невалиден формат за тегло. Моля, въведете само число. Например: 75.5";
         }
     }
 
     private String handleHeightInput(SessionState session, String message) {
         try {
             double height = Double.parseDouble(message);
-            if (height < 100 || height > 250) return "Моля, въведи ръст между 100 и 250 см.";
+            if (height < 100 || height > 250) {
+                return "Въведеният ръст изглежда нереалистичен. Моля, въведете ръст в диапазона от 100 до 250 см.";
+            }
             session.height = height;
             session.state = "ASK_AGE";
-            return "Колко години си?";
+            return "Чудесно! Моля, въведете вашата възраст **в години**.";
         } catch (NumberFormatException e) {
-            return "Моля, въведи ръста си като число. Например: 175";
+            return "Невалиден формат за ръст. Моля, въведете само число. Например: 178";
         }
     }
 
     private String handleAgeInput(SessionState session, String message) {
         try {
             int age = Integer.parseInt(message);
-            if (age < 10 || age > 100) return "Моля, въведи реалистична възраст между 10 и 100 години.";
+            if (age < 10 || age > 100) {
+                return "Моля, въведете реалистична възраст между 10 и 100 години.";
+            }
             session.age = age;
             session.state = "ASK_GENDER";
-            return "Какъв е твоят пол? (мъж / жена)";
+            return "Благодаря! Моля, посочете вашия пол: **мъж / жена**";
         } catch (NumberFormatException e) {
-            return "Моля, въведи възрастта си като цяло число. Например: 25";
+            return "Невалиден формат за възраст. Моля, въведете цяло число. Например: 30";
         }
     }
 
     private String handleGenderInput(SessionState session, String message) {
-        String gender = message.trim().toLowerCase();
-        if (gender.equals("мъж") || gender.equals("жена")) {
-            session.gender = gender;
+        String input = message.trim().toLowerCase();
+        if (input.equals("мъж") || input.equals("жена")) {
+            session.gender = input;
             session.state = "ASK_GOAL";
-            return "Каква е твоята цел? (отслабване / качване / поддържане)";
+            return "Разбрано. Каква е вашата основна фитнес цел? **отслабване / мускулна маса / поддържане**";
+        } else {
+            return "Невалиден отговор. Моля, посочете пол: **мъж / жена**";
         }
-        return "Моля, въведи пол: 'мъж' или 'жена'.";
     }
 
     private String handleGoalInput(SessionState session, String message) {
-        String goal = message.trim().toLowerCase();
-        return switch (goal) {
-            case "отслабване" -> {
-                session.goal = "weight_loss";
-                session.state = "ASK_MEAT";
-                yield "Какъв тип месо предпочиташ? (пиле / телешко / свинско)";
-            }
-            case "качване" -> {
-                session.goal = "muscle_gain";
-                session.state = "ASK_MEAT";
-                yield "Какъв тип месо предпочиташ? (пиле / телешко / свинско)";
-            }
-            case "поддържане" -> {
-                session.goal = "maintain";
-                session.state = "ASK_MEAT";
-                yield "Какъв тип месо предпочиташ? (пиле / телешко / свинско)";
-            }
-            default -> "Моля, избери цел: отслабване / качване / поддържане";
-        };
+        String input = message.trim().toLowerCase();
+        String goalName;
+
+        switch (input) {
+            case "отслабване":
+                goalName = "Weight Loss";
+                break;
+            case "мускулна маса":
+                goalName = "Muscle Gain";
+                break;
+            case "поддържане":
+                goalName = "Maintain";
+                break;
+            default:
+                return "Не разбрах целта Ви. Моля, изберете една от предложените: **отслабване / мускулна маса / поддържане**";
+        }
+
+        Optional<Goal> goalOptional = goalRepository.findByNameIgnoreCase(goalName);
+        if (goalOptional.isPresent()) {
+            session.goal = goalOptional.get().getName();
+            session.state = "ASK_ACTIVITY_LEVEL";
+            return "Моля, опишете вашето ниво на физическа активност: **малко / леко / умерено / активно / много активно**";
+        }
+        return "Не разбрах целта Ви. Моля, изберете една от предложените: **отслабване / мускулна маса / поддържане**";
+    }
+
+    private String handleActivityLevelInput(SessionState session, String message) {
+        String input = message.trim().toLowerCase();
+        String activityLevelName;
+
+        switch (input) {
+            case "малко":
+                activityLevelName = "Sedentary";
+                break;
+            case "леко":
+                activityLevelName = "Lightly Active"; // Корекция: "Light" -> "Lightly Active"
+                break;
+            case "умерено":
+                activityLevelName = "Moderately Active"; // Корекция: "Moderate" -> "Moderately Active"
+                break;
+            case "активно":
+                activityLevelName = "Very Active"; // Корекция: "Active" -> "Very Active"
+                break;
+            case "много активно":
+                activityLevelName = "Extra Active"; // Корекция: "Very Active" -> "Extra Active"
+                break;
+            default:
+                return "Не разбрах нивото на активност. Моля, изберете: **малко / леко / умерено / активно / много активно**";
+        }
+
+        Optional<ActivityLevel> activityLevelOptional = activityLevelRepository.findByNameIgnoreCase(activityLevelName);
+        if (activityLevelOptional.isPresent()) {
+            session.activityLevel = activityLevelOptional.get().getName();
+            session.state = "ASK_MEAT_PREFERENCE";
+            return "Имате ли предпочитания относно консумацията на месо? **пилешко / телешко / риба / свинско / агнешко / без месо / няма значение**";
+        }
+        return "Не разбрах нивото на активност. Моля, изберете: **малко / леко / умерено / активно / много активно**";
     }
 
     private String handleMeatPreference(SessionState session, String message) {
-        session.meatPreference = message.trim();
-        session.state = "ASK_DAIRY";
-        return "Консумираш ли млечни продукти? (да / не)";
+        String input = message.trim().toLowerCase();
+        List<String> validPreferences = Arrays.asList("пилешко", "телешко", "риба", "свинско", "агнешко", "без месо", "няма значение");
+
+        if (validPreferences.contains(input)) {
+            // КОРИГИРАНО: Съхраняваме оригиналния входен стринг, който `fromString` методът може да обработи.
+            session.meatPreference = input;
+            session.state = "ASK_DAIRY_PREFERENCE";
+            return "Консумирате ли млечни продукти? (да / не)";
+        } else {
+            return "Невалиден отговор. Моля, изберете: **пилешко / телешко / риба / свинско / агнешко / без месо / няма значение**";
+        }
     }
 
     private String handleDairy(SessionState session, String message) {
-        session.consumesDairy = message.trim().equalsIgnoreCase("да");
-        session.state = "ASK_TRAINING";
-        return "Предпочиташ ли план с тежести или без тежести?";
+        String input = message.trim().toLowerCase();
+        if (input.equals("да")) {
+            session.consumesDairy = true;
+            session.state = "ASK_TRAINING_TYPE";
+            return "Какъв тип тренировки предпочитате? **тежести / без тежести / кардио**";
+        } else if (input.equals("не")) {
+            session.consumesDairy = false;
+            session.state = "ASK_TRAINING_TYPE";
+            return "Какъв тип тренировки предпочитате? **тежести / без тежести / кардио**";
+        } else {
+            return "Моля, отговорете с 'да' или 'не'.";
+        }
     }
 
-    private String handleTraining(SessionState session, String message) {
-        session.trainingType = message.trim().toLowerCase();
-        session.state = "ASK_ALLERGIES";
-        return "Ако имаш алергии, напиши кои са. Ако нямаш, напиши 'не'.";
+    private String handleTrainingType(SessionState session, String message) {
+        String input = message.trim().toLowerCase();
+        List<String> validTypes = Arrays.asList("тежести", "без тежести", "кардио");
+        if (validTypes.contains(input)) {
+            session.trainingType = input;
+            session.state = "ASK_ALLERGIES";
+            return "Имате ли някакви хранителни алергии? Моля, избройте ги, разделени със запетая (напр. 'ядки, глутен, яйца') или напишете 'не'.";
+        } else {
+            return "Невалиден тип тренировка. Моля, изберете: **тежести / без тежести / кардио**";
+        }
     }
 
     private String handleAllergies(SessionState session, String message) {
-        session.allergies = message.trim();
-        session.state = "DONE";
-        return "Благодаря! Изчислявам персонализиран режим...";
+        String input = message.trim();
+        if (input.equalsIgnoreCase("не") || input.isEmpty()) {
+            session.allergies = Collections.emptySet();
+        } else {
+            session.allergies = Arrays.stream(input.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toSet());
+        }
+        session.state = "ASK_OTHER_DIETARY_PREFERENCES";
+        return "Имате ли други специални хранителни предпочитания или ограничения (напр. 'без захар', 'нискомаслено', 'без соя')? Моля, избройте ги, разделени със запетая, или напишете 'не'.";
+    }
+
+    private String handleOtherDietaryPreferences(SessionState session, String message) {
+        String input = message.trim();
+        if (input.equalsIgnoreCase("не") || input.isEmpty()) {
+            session.otherDietaryPreferences = Collections.emptySet();
+        } else {
+            session.otherDietaryPreferences = Arrays.stream(input.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toSet());
+        }
+        session.state = "ASK_TRAINING_DAYS_PER_WEEK";
+        return "Колко дни в седмицата планирате да тренирате? (число от 1 до 7)";
+    }
+
+    private String handleTrainingDaysPerWeek(SessionState session, String message) {
+        try {
+            int days = Integer.parseInt(message);
+            if (days >= 1 && days <= 7) {
+                session.trainingDaysPerWeek = days;
+                session.state = "ASK_TRAINING_DURATION_MINUTES";
+                return "Колко минути обикновено трае една ваша тренировка? (число)";
+            } else {
+                return "Невалиден брой дни. Моля, въведете число от 1 до 7.";
+            }
+        } catch (NumberFormatException e) {
+            return "Невалиден формат. Моля, въведете цяло число.";
+        }
+    }
+
+    private String handleTrainingDurationMinutes(SessionState session, String message) {
+        try {
+            int duration = Integer.parseInt(message);
+            if (duration >= 15 && duration <= 180) { // Разумни граници за тренировка
+                session.trainingDurationMinutes = duration;
+                session.state = "ASK_LEVEL"; // Следващо състояние за ниво на тренировка
+                return "Какво е вашето текущо фитнес ниво? **начинаещ / средно напреднал / напреднал**";
+            } else {
+                return "Невалидна продължителност. Моля, въведете число между 15 и 180 минути.";
+            }
+        } catch (NumberFormatException e) {
+            return "Невалиден формат. Моля, въведете цяло число.";
+        }
+    }
+
+    private String handleLevel(SessionState session, String message) {
+        String input = message.trim().toLowerCase();
+        List<String> validLevels = Arrays.asList("начинаещ", "средно напреднал", "напреднал");
+        if (validLevels.contains(input)) {
+            session.level = input;
+            session.state = "ASK_MEAL_FREQUENCY";
+            return "Колко хранения на ден предпочитате да имате? (напр. '2', '3', '4', '5' или '6')";
+        } else {
+            return "Невалидно ниво. Моля, изберете: **начинаещ / средно напреднал / напреднал**";
+        }
+    }
+
+    private String handleMealFrequency(SessionState session, String message) {
+        String input = message.trim();
+        try {
+            int frequency = Integer.parseInt(input);
+            if (frequency >= 2 && frequency <= 6) { // Разумен диапазон
+                // Съхраняваме числото, то ще бъде преобразувано в display value в generatePlan
+                session.mealFrequencyPreference = input;
+                session.state = "ASK_EMAIL"; // Преминаваме към събиране на потребителски данни за запис
+                return "Почти сме готови! Моля, въведете вашия имейл адрес, за да запазим плана ви.";
+            } else {
+                return "Невалидна честота на хранене. Моля, въведете число между 2 и 6.";
+            }
+        } catch (NumberFormatException e) {
+            return "Невалиден формат. Моля, въведете число.";
+        }
+    }
+
+    private String handleEmail(SessionState session, String message) {
+        String email = message.trim();
+        if (email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$")) {
+            session.email = email;
+            session.state = "ASK_FULL_NAME";
+            return "Благодаря! Сега, моля, въведете вашето пълно име (напр. Иван Петров).";
+        } else {
+            return "Невалиден имейл адрес. Моля, въведете валиден имейл.";
+        }
+    }
+
+    private String handleFullName(SessionState session, String message) {
+        String fullName = message.trim();
+        if (!fullName.isEmpty() && fullName.length() > 3) { // Проста валидация
+            session.fullName = fullName;
+            session.state = "DONE"; // Всички данни са събрани, планът може да бъде генериран
+            return "Всички необходими данни са събрани! Генерирам вашия персонализиран план...";
+        } else {
+            return "Моля, въведете пълното си име.";
+        }
     }
 }

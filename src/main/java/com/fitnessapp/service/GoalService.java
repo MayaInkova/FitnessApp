@@ -19,10 +19,11 @@ public class GoalService {
     }
 
     public Goal getGoalByInput(String input) {
-        String normalized = input.toLowerCase(); // напр. "maintain"
+        String normalized = input.toLowerCase();
         GoalType goalType = GoalType.fromString(normalized);
 
-        return goalRepository.findByName(goalType.getDisplayName())
+        // Използваме findByNameIgnoreCase, за да сме сигурни, че намираме целта
+        return goalRepository.findByNameIgnoreCase(goalType.getDisplayName()) // Използвайте findByNameIgnoreCase
                 .orElseThrow(() -> new RuntimeException("Goal not found"));
     }
 
@@ -32,10 +33,14 @@ public class GoalService {
 
     public Goal updateGoal(Integer id, Goal updatedGoal) {
         Goal existing = goalRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Целта не е намерена"));
+                .orElseThrow(() -> new RuntimeException("Целта не е намерена")); // Предупреждение за типо
 
         existing.setName(updatedGoal.getName());
         existing.setDescription(updatedGoal.getDescription());
+        // Добавете .setCalorieModifier(), ако го имате в DTO и е необходимо
+        if (updatedGoal.getCalorieModifier() != null) {
+            existing.setCalorieModifier(updatedGoal.getCalorieModifier());
+        }
         return goalRepository.save(existing);
     }
 

@@ -19,6 +19,6 @@ public class ExerciseController {
 
     @GetMapping("/by-plan/{planId}")
     public List<Exercise> getExercisesByPlan(@PathVariable Integer planId) {
-        return exerciseRepository.findByTrainingPlanId(planId);
+        return exerciseRepository.findByTrainingSession_TrainingPlan_Id(planId);
     }
 }

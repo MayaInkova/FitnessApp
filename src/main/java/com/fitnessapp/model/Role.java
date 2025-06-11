@@ -1,21 +1,23 @@
 package com.fitnessapp.model;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 
 @Entity
-@Getter
-@Setter
+@Table(name = "roles")
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "roles")
-public class Role {
 
+public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(unique = true)
-    private String name; // ROLE_USER, ROLE_ADMIN, ROLE_MODERATOR
+    @Column(nullable = false, unique = true)
+    private String name; // Например "ROLE_USER", "ROLE_ADMIN", "ROLE_MODERATOR"
 }

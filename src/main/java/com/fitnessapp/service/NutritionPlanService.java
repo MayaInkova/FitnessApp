@@ -1,297 +1,325 @@
 package com.fitnessapp.service;
 
 import com.fitnessapp.dto.FullPlanDTO;
+import com.fitnessapp.dto.MealDTO; // Added import
+import com.fitnessapp.dto.RecipeDTO; // Added import
+import com.fitnessapp.dto.TrainingSessionDTO; // Added import
+import com.fitnessapp.dto.ExerciseDTO; // Added import
+
 import com.fitnessapp.model.*;
-import com.fitnessapp.repository.MealRepository;
 import com.fitnessapp.repository.NutritionPlanRepository;
 import com.fitnessapp.repository.RecipeRepository;
-// import com.fitnessapp.service.NutritionCalculator; // Уверете се, че този импорт е правилен, ако е външен клас
-// import com.fitnessapp.service.TrainingPlanService; // Уверете се, че този импорт е правилен, но този Service не трябва да има инжекция на TrainingPlanService, защото може да доведе до циклична зависимост ако TrainingPlanService инжектира NutritionPlanService.
-import jakarta.transaction.Transactional;
+import com.fitnessapp.repository.TrainingPlanRepository;
+import com.fitnessapp.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class NutritionPlanService {
 
+    private static final Logger logger = LoggerFactory.getLogger(NutritionPlanService.class);
+
     private final NutritionPlanRepository nutritionPlanRepository;
     private final RecipeRepository recipeRepository;
-    private final MealRepository mealRepository;
-    private final TrainingPlanService trainingPlanService; // NutritionPlanService *генерира* TrainingPlan, така че има нужда от него.
+    private final TrainingPlanRepository trainingPlanRepository;
+    private final UserRepository userRepository;
 
     @Autowired
     public NutritionPlanService(NutritionPlanRepository nutritionPlanRepository,
                                 RecipeRepository recipeRepository,
-                                MealRepository mealRepository,
-                                TrainingPlanService trainingPlanService) {
+                                TrainingPlanRepository trainingPlanRepository,
+                                UserRepository userRepository) {
         this.nutritionPlanRepository = nutritionPlanRepository;
         this.recipeRepository = recipeRepository;
-        this.mealRepository = mealRepository;
-        this.trainingPlanService = trainingPlanService;
+        this.trainingPlanRepository = trainingPlanRepository;
+        this.userRepository = userRepository;
     }
 
     @Transactional
-    public NutritionPlan generatePlanForUser(User user, String dietType) {
-        NutritionPlan plan = new NutritionPlan();
-        plan.setUser(user);
-        plan.setGoal(user.getGoal());
+    public NutritionPlan generateNutritionPlan(User user) {
+        double targetCalories = NutritionCalculator.calculateTDEE(user);
 
-        // Уверете се, че NutritionCalculator е достъпен и методът calculateTDEE е статичен
-        double calories = NutritionCalculator.calculateTDEE(user);
-        double protein, fat, carbs;
-
-        double calorieAdjustment = 1.0;
-        switch (user.getGoal().toLowerCase()) {
-            case "weight_loss":
-                calorieAdjustment = 0.8;
-                break;
-            case "muscle_gain":
-                calorieAdjustment = 1.15;
-                break;
-            case "maintain":
-            default:
-                calorieAdjustment = 1.0;
-                break;
+        if (user.getGoal() != null && user.getGoal().getCalorieModifier() != null) {
+            targetCalories += user.getGoal().getCalorieModifier();
         }
-        calories *= calorieAdjustment;
-
-        protein = calories * 0.30 / 4;
-        fat = calories * 0.25 / 9;
-        carbs = (calories - (protein * 4 + fat * 9)) / 4;
-
-        plan.setCalories(Math.round(calories * 100.0) / 100.0);
-        plan.setProtein(Math.round(protein * 100.0) / 100.0);
-        plan.setFat(Math.round(fat * 100.0) / 100.0);
-        plan.setCarbs(Math.round(carbs * 100.0) / 100.0);
-
-        plan.setMeals(new ArrayList<>());
-        plan.setRecipes(new ArrayList<>());
 
         List<Recipe> allRecipes = recipeRepository.findAll();
-        List<Recipe> filteredRecipes = filterRecipes(allRecipes, user, dietType);
+        List<Recipe> filteredRecipes = filterRecipes(allRecipes, user);
 
-        if (filteredRecipes.isEmpty()) {
-            throw new IllegalStateException("Няма подходящи рецепти за зададените предпочитания и диетичен тип. Моля, добавете още рецепти или променете предпочитанията си.");
+        List<Recipe> breakfastRecipes = filteredRecipes.stream().filter(r -> r.getMealType() == MealType.BREAKFAST).collect(Collectors.toList());
+        List<Recipe> lunchRecipes = filteredRecipes.stream().filter(r -> r.getMealType() == MealType.LUNCH).collect(Collectors.toList());
+        List<Recipe> dinnerRecipes = filteredRecipes.stream().filter(r -> r.getMealType() == MealType.DINNER).collect(Collectors.toList());
+        List<Recipe> snackRecipes = filteredRecipes.stream().filter(r -> r.getMealType() == MealType.SNACK).collect(Collectors.toList());
+
+
+        Recipe chosenBreakfast = breakfastRecipes.stream().findFirst().orElse(null);
+        Recipe chosenLunch = lunchRecipes.stream().findFirst().orElse(null);
+        Recipe chosenDinner = dinnerRecipes.stream().findFirst().orElse(null);
+        Recipe chosenSnack1 = snackRecipes.stream().findFirst().orElse(null);
+        Recipe chosenSnack2 = snackRecipes.stream().skip(1).findFirst().orElse(null);
+
+        NutritionPlan nutritionPlan = new NutritionPlan();
+        nutritionPlan.setUser(user);
+        nutritionPlan.setTargetCalories(targetCalories);
+        // Note: Protein, Fat, Carbs are not calculated here, but in the bot after the plan is generated.
+        // Or they can be calculated based on the selected recipes.
+
+        if (chosenBreakfast != null) nutritionPlan.addMeal(Meal.builder().recipe(chosenBreakfast).mealType(MealType.BREAKFAST).portionSize(1.0).build());
+        if (chosenLunch != null) nutritionPlan.addMeal(Meal.builder().recipe(chosenLunch).mealType(MealType.LUNCH).portionSize(1.0).build());
+        if (chosenDinner != null) nutritionPlan.addMeal(Meal.builder().recipe(chosenDinner).mealType(MealType.DINNER).portionSize(1.0).build());
+
+        // Assuming user.getMealFrequencyPreference() returns a String like "3_main_2_snacks"
+        // You might need to adjust this based on the actual enum value in User
+        if (user.getMealFrequencyPreference() != null && user.getMealFrequencyPreference().name().equals("THREE_TIMES_DAILY")) { // Changed to match MealFrequencyPreferenceType enum
+            if (chosenSnack1 != null) nutritionPlan.addMeal(Meal.builder().recipe(chosenSnack1).mealType(MealType.SNACK).portionSize(1.0).build());
+            if (chosenSnack2 != null) nutritionPlan.addMeal(Meal.builder().recipe(chosenSnack2).mealType(MealType.SNACK).portionSize(1.0).build());
         }
 
-        Map<String, List<Recipe>> recipesByType = filteredRecipes.stream()
-                .collect(Collectors.groupingBy(r -> r.getType().toLowerCase()));
+        return nutritionPlanRepository.save(nutritionPlan);
+    }
 
-        Random random = new Random();
-        Set<Integer> usedRecipeIdsThisWeek = new HashSet<>();
+    private List<Recipe> filterRecipes(List<Recipe> recipes, User user) {
+        String meatPref = Optional.ofNullable(user.getMeatPreference())
+                .map(Enum::name)
+                .orElse("")
+                .toLowerCase();
 
-        List<String> days = List.of("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday");
-        List<String> mealTypes = List.of("breakfast", "snack", "lunch", "dinner");
+        Set<String> allergies = Optional.ofNullable(user.getAllergies())
+                .orElse(Collections.emptySet())
+                .stream().map(String::toLowerCase).collect(Collectors.toSet());
 
-        for (String day : days) {
-            Set<Integer> usedRecipeIdsToday = new HashSet<>();
-            for (String type : mealTypes) {
-                List<Recipe> candidates = recipesByType.getOrDefault(type, Collections.emptyList());
+        String dietType = user.getDietType() != null ? user.getDietType().getName().toLowerCase() : "";
+        Boolean consumesDairy = user.getConsumesDairy();
 
-                Recipe selectedRecipe = null;
-                List<Recipe> highlyAvailableCandidates = candidates.stream()
-                        .filter(r -> !usedRecipeIdsThisWeek.contains(r.getId()) && !usedRecipeIdsToday.contains(r.getId()))
-                        .collect(Collectors.toList());
-
-                if (!highlyAvailableCandidates.isEmpty()) {
-                    selectedRecipe = highlyAvailableCandidates.get(random.nextInt(highlyAvailableCandidates.size()));
-                } else {
-                    List<Recipe> dailyAvailableCandidates = candidates.stream()
-                            .filter(r -> !usedRecipeIdsToday.contains(r.getId()))
-                            .collect(Collectors.toList());
-
-                    if (!dailyAvailableCandidates.isEmpty()) {
-                        selectedRecipe = dailyAvailableCandidates.get(random.nextInt(dailyAvailableCandidates.size()));
-                    } else {
-                        if (!candidates.isEmpty()) {
-                            selectedRecipe = candidates.get(random.nextInt(candidates.size()));
-                        } else {
-                            List<Recipe> fallbackCandidates = filteredRecipes.stream()
-                                    .filter(r -> !usedRecipeIdsToday.contains(r.getId()))
-                                    .collect(Collectors.toList());
-                            if (!fallbackCandidates.isEmpty()) {
-                                selectedRecipe = fallbackCandidates.get(random.nextInt(fallbackCandidates.size()));
-                            } else {
-                                throw new IllegalStateException("Недостатъчно разнообразие от рецепти, моля добавете още или променете предпочитанията си.");
-                            }
-                        }
-                    }
-                }
-
-                usedRecipeIdsThisWeek.add(selectedRecipe.getId());
-                usedRecipeIdsToday.add(selectedRecipe.getId());
-
-                Meal meal = Meal.builder()
-                        .dayOfWeek(day)
-                        .type(type)
-                        .time(getDefaultTimeForType(type))
-                        .recipe(selectedRecipe)
-                        .nutritionPlan(plan)
-                        .build();
-
-                plan.addMeal(meal);
-                if (!plan.getRecipes().contains(selectedRecipe)) {
-                    plan.addRecipe(selectedRecipe);
-                }
+        return recipes.stream().filter(recipe -> {
+            // Filtering by DietType
+            if (recipe.getDietType() != null && !dietType.isEmpty() && !recipe.getDietType().getName().equalsIgnoreCase(dietType)) {
+                return false;
             }
+            // Filtering by Allergens
+            if (recipe.getAllergens() != null && recipe.getAllergens().stream().anyMatch(allergies::contains)) {
+                return false;
+            }
+
+            // Filtering by MeatPreference
+            if (("none".equals(meatPref) || "без месо".equalsIgnoreCase(meatPref)) && recipe.getMeatType() != null && !"none".equalsIgnoreCase(recipe.getMeatType().name())) {
+                return false; // If the user is "no meat", exclude recipes with a meat type other than "none"
+            }
+            if (("vegetarian".equals(meatPref) || "вегетарианска".equalsIgnoreCase(meatPref)) && Boolean.FALSE.equals(recipe.getIsVegetarian())) {
+                return false; // If the user is vegetarian, exclude non-vegetarian recipes
+            }
+            // If the user has a specific meat preference (not "none" or "vegetarian")
+            // and the recipe has a MeatType that does not match, exclude it.
+            if (!meatPref.isEmpty() && !"none".equals(meatPref) && !"vegetarian".equals(meatPref) && recipe.getMeatType() != null && !meatPref.equalsIgnoreCase(recipe.getMeatType().name())) {
+                return false;
+            }
+
+            // Filtering by ConsumesDairy
+            if (Boolean.FALSE.equals(consumesDairy) && Boolean.TRUE.equals(recipe.getContainsDairy())) {
+                return false;
+            }
+            return true;
+        }).collect(Collectors.toList());
+    }
+
+    public List<NutritionPlan> getNutritionPlansByUser(User user) {
+        return nutritionPlanRepository.findByUser(user);
+    }
+
+    public String getTrainingSummary(User user) {
+        Optional<TrainingPlan> trainingPlanOpt = trainingPlanRepository.findByUserOrderByDateGeneratedDesc(user).stream().findFirst();
+
+        if (trainingPlanOpt.isPresent()) {
+            TrainingPlan plan = trainingPlanOpt.get();
+            StringBuilder sb = new StringBuilder("Тренировъчен план за ")
+                    .append(plan.getDateGenerated()).append(":\n")
+                    .append("Дни: ").append(plan.getDaysPerWeek()).append("\n")
+                    .append("Продължителност: ").append(plan.getDurationMinutes()).append(" мин\n\n");
+
+            for (TrainingSession session : Optional.ofNullable(plan.getTrainingSessions()).orElse(Collections.emptyList())) {
+                sb.append("  ").append(session.getDayOfWeek()).append(" (")
+                        .append(session.getDurationMinutes()).append(" мин.):\n");
+                for (Exercise exercise : Optional.ofNullable(session.getExercises()).orElse(Collections.emptyList())) {
+                    sb.append("    - ").append(exercise.getName()).append(" (").append(exercise.getDescription()).append(")\n");
+                }
+                sb.append("\n");
+            }
+            return sb.toString();
         }
+        return "Няма намерен тренировъчен план.";
+    }
 
-        TrainingPlan training = trainingPlanService.generateTrainingPlanForUser(user);
-        plan.setTrainingPlan(training);
-
+    @Transactional
+    public NutritionPlan saveNutritionPlan(NutritionPlan plan) {
+        // Ensure the user is a managed Entity before saving the plan
+        if (plan.getUser() != null && plan.getUser().getId() != null) {
+            User managedUser = userRepository.findById(plan.getUser().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("User with ID " + plan.getUser().getId() + " not found."));
+            plan.setUser(managedUser);
+        } else if (plan.getUser() != null) { // If the user is new, but without an ID
+            userRepository.save(plan.getUser()); // Save the user first
+        }
         return nutritionPlanRepository.save(plan);
     }
 
-    private List<Recipe> filterRecipes(List<Recipe> recipes, User user, String dietType) {
-        final Set<String> userAllergens = user.getAllergies() != null && !user.getAllergies().isBlank() && !user.getAllergies().equalsIgnoreCase("не")
-                ? Arrays.stream(user.getAllergies().toLowerCase().split("[,;\\s]+"))
-                .map(String::trim)
-                .map(s -> "allergy_" + s)
-                .collect(Collectors.toSet())
-                : Collections.emptySet();
-
-        final String userMeatPreferenceTag = (user.getMeatPreference() != null && !user.getMeatPreference().isBlank())
-                ? "meat_" + user.getMeatPreference().toLowerCase().trim()
-                : null;
-
-        final String userDietTypeTag = (dietType != null && !dietType.isBlank())
-                ? dietType.toLowerCase().trim()
-                : null;
-
-        final boolean consumesDairy = user.getConsumesDairy() != null && user.getConsumesDairy();
-
-        return recipes.stream()
-                .filter(r -> {
-                    Set<String> recipeTags = r.getTags() != null ? r.getTags() : Collections.emptySet();
-
-                    if (userDietTypeTag != null && !userDietTypeTag.isEmpty()) {
-                        if (!recipeTags.contains(userDietTypeTag)) {
-                            return false;
-                        }
-                    }
-
-                    boolean hasAllergyConflict = userAllergens.stream().anyMatch(recipeTags::contains);
-                    if (hasAllergyConflict) {
-                        return false;
-                    }
-
-                    boolean recipeHasMeat = recipeTags.stream().anyMatch(tag -> tag.startsWith("meat_"));
-
-                    if (("vegan".equals(userDietTypeTag) || "vegetarian".equals(userDietTypeTag))) {
-                        if (recipeHasMeat) {
-                            return false;
-                        }
-                    } else {
-                        if (userMeatPreferenceTag != null && !userMeatPreferenceTag.isEmpty()) {
-                            if (recipeHasMeat && !recipeTags.contains(userMeatPreferenceTag)) {
-                                return false;
-                            }
-                        }
-                        if (userMeatPreferenceTag != null && userMeatPreferenceTag.equalsIgnoreCase("meat_none") && recipeHasMeat) {
-                            return false;
-                        }
-                    }
-
-                    if (!consumesDairy) {
-                        if (recipeTags.contains("dairy")) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                })
-                .collect(Collectors.toList());
-    }
-
-    private String getDefaultTimeForType(String type) {
-        return switch (type.toLowerCase()) {
-            case "breakfast" -> "08:00";
-            case "snack" -> "10:30";
-            case "lunch" -> "13:00";
-            case "dinner" -> "19:30";
-            default -> "08:00";
-        };
-    }
-
-    public NutritionPlan savePlan(NutritionPlan plan) {
-        return nutritionPlanRepository.save(plan);
-    }
-
-    @Transactional
-    public NutritionPlan getPlanByUserId(Integer userId) {
-        NutritionPlan plan = nutritionPlanRepository.findTopByUserIdOrderByIdDesc(userId);
-        if (plan != null) {
-            plan.getMeals().size();
-            plan.getRecipes().size();
-            if (plan.getTrainingPlan() != null) {
-                plan.getTrainingPlan().getName();
-                plan.getTrainingPlan().getExercises().size();
-            }
-        }
-        return plan;
-    }
-
-    @Transactional
-    public List<NutritionPlan> getAllNutritionPlansForUser(Integer userId) {
-        List<NutritionPlan> plans = nutritionPlanRepository.findAllByUserIdOrderByIdDesc(userId);
-
-        for (NutritionPlan plan : plans) {
-            if (plan.getMeals() != null) {
-                plan.getMeals().size();
-            }
-            if (plan.getRecipes() != null) {
-                plan.getRecipes().size();
-            }
-            if (plan.getTrainingPlan() != null) {
-                plan.getTrainingPlan().getName();
-                if (plan.getTrainingPlan().getExercises() != null) {
-                    plan.getTrainingPlan().getExercises().size();
-                }
-            }
-        }
-        return plans;
-    }
-
-    @Transactional
-    public FullPlanDTO getFullPlanByUserId(Integer userId) {
-        NutritionPlan plan = getPlanByUserId(userId);
-        if (plan == null) return null;
-
-        TrainingPlan trainingPlan = plan.getTrainingPlan();
-
-        List<Exercise> sortedExercises = Collections.emptyList();
-        if (trainingPlan != null && trainingPlan.getExercises() != null) {
-            List<String> dayOrder = List.of("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday");
-            sortedExercises = trainingPlan.getExercises().stream()
-                    .sorted(Comparator.comparingInt(e -> dayOrder.indexOf(e.getDayOfWeek())))
-                    .collect(Collectors.toList());
-        }
-
-        return FullPlanDTO.builder()
-                .calories(plan.getCalories())
-                .protein(plan.getProtein())
-                .fat(plan.getFat())
-                .carbs(plan.getCarbs())
-                .goal(plan.getGoal())
-                .meals(plan.getMeals())
-                .recipes(plan.getRecipes())
-                .trainingName(trainingPlan != null ? trainingPlan.getName() : null)
-                .trainingDescription(trainingPlan != null ? trainingPlan.getDescription() : null)
-                .daysPerWeek(trainingPlan != null ? trainingPlan.getDaysPerWeek() : 0)
-                .durationMinutes(trainingPlan != null ? trainingPlan.getDurationMinutes() : 0)
-                .exercises(sortedExercises)
-                .build();
-    }
-
-    public FullPlanDTO getFullPlanForUser(Long userId) {
-        return getFullPlanByUserId(userId.intValue());
-    }
-
-    public List<NutritionPlan> getAllPlans() {
+    public List<NutritionPlan> getAllNutritionPlans() {
         return nutritionPlanRepository.findAll();
     }
 
+    public FullPlanDTO getFullPlanByUserId(Integer userId) {
+        try {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null) {
+                logger.warn("User with ID {} not found for full plan retrieval.", userId);
+                return null;
+            }
+
+            List<NutritionPlan> nutritionPlans = nutritionPlanRepository.findByUser(user);
+            NutritionPlan lastNutritionPlan = nutritionPlans.stream()
+                    .max(Comparator.comparing(NutritionPlan::getDateGenerated))
+                    .orElse(null);
+
+            TrainingPlan trainingPlan = trainingPlanRepository.findByUserOrderByDateGeneratedDesc(user)
+                    .stream().findFirst().orElse(null);
+
+            if (lastNutritionPlan == null && trainingPlan == null) {
+                logger.info("No nutrition or training plan found for user ID {}.", userId);
+                return null;
+            }
+
+            // Мапинг към DTO (ръчно мапиране)
+            List<MealDTO> mealDTOs = null;
+            if (lastNutritionPlan != null && lastNutritionPlan.getMeals() != null) {
+                mealDTOs = lastNutritionPlan.getMeals().stream()
+                        .map(this::convertMealToMealDTO)
+                        .collect(Collectors.toList());
+            }
+
+            List<TrainingSessionDTO> trainingSessionDTOs = null;
+            if (trainingPlan != null && trainingPlan.getTrainingSessions() != null) {
+                trainingSessionDTOs = trainingPlan.getTrainingSessions().stream()
+                        .map(this::convertTrainingSessionToTrainingSessionDTO)
+                        .collect(Collectors.toList());
+            }
+
+            return FullPlanDTO.builder()
+                    .nutritionPlanId(lastNutritionPlan != null ? lastNutritionPlan.getId() : null)
+                    .targetCalories(lastNutritionPlan != null ? lastNutritionPlan.getTargetCalories() : null)
+                    .protein(lastNutritionPlan != null ? lastNutritionPlan.getProtein() : null)
+                    .fat(lastNutritionPlan != null ? lastNutritionPlan.getFat() : null)
+                    .carbohydrates(lastNutritionPlan != null ? lastNutritionPlan.getCarbohydrates() : null)
+                    .goalName(lastNutritionPlan != null && lastNutritionPlan.getGoal() != null ? lastNutritionPlan.getGoal().getName() : null)
+                    .meals(mealDTOs) // КОРЕКЦИЯ: Използваме MealDTOs
+                    .trainingPlanId(trainingPlan != null ? trainingPlan.getId() : null)
+                    .trainingPlanDescription(getTrainingSummary(user))
+                    .trainingDaysPerWeek(trainingPlan != null ? trainingPlan.getDaysPerWeek() : null)
+                    .trainingDurationMinutes(trainingPlan != null ? trainingPlan.getDurationMinutes() : null)
+                    .trainingSessions(trainingSessionDTOs) // КОРЕКЦИЯ: Използваме TrainingSessionDTOs
+                    .build();
+
+        } catch (Exception e) {
+            logger.error("Error retrieving full plan for user ID: {}", userId, e);
+            return null;
+        }
+    }
+
+    // --- Помощни методи за преобразуване от Entity към DTO ---
+
+    private RecipeDTO convertRecipeToRecipeDTO(Recipe recipe) {
+        if (recipe == null) {
+            return null;
+        }
+        return RecipeDTO.builder()
+                .id(recipe.getId())
+                .name(recipe.getName())
+                .description(recipe.getDescription())
+                .imageUrl(recipe.getImageUrl())
+                .calories(recipe.getCalories())
+                .protein(recipe.getProtein())
+                .carbs(recipe.getCarbs())
+                .fat(recipe.getFat())
+                .isVegetarian(recipe.getIsVegetarian())
+                .containsDairy(recipe.getContainsDairy())
+                .containsNuts(recipe.getContainsNuts())
+                .containsFish(recipe.getContainsFish())
+                .containsPork(recipe.getContainsPork())
+                .tags(recipe.getTags())
+                .mealType(recipe.getMealType())
+                .instructions(recipe.getInstructions())
+                .dietTypeName(recipe.getDietType() != null ? recipe.getDietType().getName() : null)
+                .allergens(recipe.getAllergens())
+                .meatType(recipe.getMeatType())
+                .build();
+    }
+
+    private MealDTO convertMealToMealDTO(Meal meal) {
+        if (meal == null) {
+            return null;
+        }
+        RecipeDTO recipeDTO = convertRecipeToRecipeDTO(meal.getRecipe());
+
+        return MealDTO.builder()
+                .id(meal.getId())
+                .recipe(recipeDTO)
+                .mealType(meal.getMealType())
+                .portionSize(meal.getPortionSize())
+                .build();
+    }
+
+    private ExerciseDTO convertExerciseToExerciseDTO(Exercise exercise) {
+        if (exercise == null) {
+            return null;
+        }
+        return ExerciseDTO.builder()
+                .id(exercise.getId())
+                .name(exercise.getName())
+                .description(exercise.getDescription())
+                .sets(exercise.getSets())
+                .reps(exercise.getReps())
+                .durationMinutes(exercise.getDurationMinutes())
+                .type(exercise.getType())
+                .difficultyLevel(exercise.getDifficultyLevel())
+                .equipment(exercise.getEquipment())
+                .build();
+    }
+
+    private TrainingSessionDTO convertTrainingSessionToTrainingSessionDTO(TrainingSession session) {
+        if (session == null) {
+            return null;
+        }
+        List<ExerciseDTO> exerciseDTOs = null;
+        if (session.getExercises() != null) {
+            exerciseDTOs = session.getExercises().stream()
+                    .map(this::convertExerciseToExerciseDTO)
+                    .collect(Collectors.toList());
+        }
+
+        return TrainingSessionDTO.builder()
+                .id(session.getId())
+                .dayOfWeek(session.getDayOfWeek())
+                .durationMinutes(session.getDurationMinutes())
+                .exercises(exerciseDTOs)
+                .build();
+    }
+
+    public void fixMissingTrainingPlans() {
+        // This method was previously in the controller, it belongs here.
+        // You'll need to implement the actual logic for fixing missing plans,
+        // which might involve iterating through users and generating plans
+        // for those who don't have recent ones.
+        logger.info("Fixing missing training plans (implementation pending).");
+        // Example:
+        // List<User> allUsers = userRepository.findAll();
+        // for (User user : allUsers) {
+        //     // Check if user has a recent training plan
+        //     // If not, generate one: trainingPlanService.generateAndSaveTrainingPlanForUser(user);
+        // }
+    }
 }

@@ -1,11 +1,11 @@
 package com.fitnessapp.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "exercises")
 @Data
@@ -13,34 +13,30 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class Exercise {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(nullable = false)
     private String name;
-    private String dayOfWeek;
-    private String level; // Beginner, Intermediate, Advanced
-    private int sets;
-    private int reps;
-    private int restSeconds;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "video_url")
-    private String videoUrl;
+    private Integer sets;
+    private Integer reps;
+    private Integer durationMinutes;
 
-    @Column(name = "image_url")
-    private String imageUrl;
+    @Enumerated(EnumType.STRING) // Използваме enum за тип упражнение
+    private ExerciseType type;
 
-    private boolean isRequiresWeights;
-    private String bodyPart;
-    private String equipment;
-    private String exerciseType;
+    @Enumerated(EnumType.STRING) // Използваме enum за ниво на трудност
+    private DifficultyLevel difficultyLevel;
 
-    @ManyToOne
-    @JoinColumn(name = "training_plan_id")
-    @JsonIgnore
-    private TrainingPlan trainingPlan;
+    @Enumerated(EnumType.STRING) // Използваме enum за оборудване
+    private EquipmentType equipment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "training_session_id")
+    private TrainingSession trainingSession;
 }

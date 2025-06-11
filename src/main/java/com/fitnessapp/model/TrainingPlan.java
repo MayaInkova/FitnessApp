@@ -1,12 +1,15 @@
 package com.fitnessapp.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+
 @Entity
 @Table(name = "training_plans")
 @Data
@@ -14,27 +17,27 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class TrainingPlan {
-
-    @OneToMany(mappedBy = "trainingPlan", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Exercise> exercises = new ArrayList<>();
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String name;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
 
-    @Column(columnDefinition = "TEXT")
-    private String description;
+    @Column(nullable = false)
+    private LocalDate dateGenerated;
 
-    private String goal; // weight_loss, muscle_gain, maintain
+    private Integer daysPerWeek;
+    private Integer durationMinutes;
 
-    private String level; // beginner, intermediate, advanced
+    @OneToMany(mappedBy = "trainingPlan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<TrainingSession> trainingSessions = new ArrayList<>();
 
-    private boolean withWeights;
-
-    private int durationMinutes;
-
-    private int daysPerWeek;
+    public void addTrainingSession(TrainingSession session) {
+        if (session != null) {
+            trainingSessions.add(session);
+            session.setTrainingPlan(this);
+        }
+    }
 }
-

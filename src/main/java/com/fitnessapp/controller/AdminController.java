@@ -19,13 +19,13 @@ public class AdminController {
     @GetMapping("/stats")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getStatistics() {
-        return ResponseEntity.ok(" Администраторска статистика: 120 потребители, 300 режима, 45 рецепти.");
+        return ResponseEntity.ok("Администраторска статистика: 120 потребители, 300 режима, 45 рецепти.");
     }
 
     @PostMapping("/assign-role")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> assignRoleToUser(@RequestParam Integer userId, @RequestParam String role) {
         userService.assignRole(userId, role);
-        return ResponseEntity.ok(" Ролята '" + role + "' е присвоена на потребител с ID " + userId);
+        return ResponseEntity.ok("Ролята '" + role + "' е присвоена на потребител с ID " + userId);
     }
 }

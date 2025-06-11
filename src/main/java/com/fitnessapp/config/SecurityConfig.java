@@ -1,32 +1,59 @@
 package com.fitnessapp.config;
 
+import com.fitnessapp.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy; // Import за SessionCreationPolicy
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableMethodSecurity // позволява използването на @PreAuthorize
+@EnableMethodSecurity
 public class SecurityConfig {
+
+    @Autowired
+    private UserDetailsService userDetailsService;
+
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtAuthenticationFilter();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Деактивиране на CSRF за stateless API
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Важно за REST API с JWT
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Публични ендпойнти, достъпни за всички (неидентифицирани потребители)
+                        // Всичко останало под /api/ ще изисква автентикация по-долу.
                         .requestMatchers(
-                                "/api/users/register",
-                                "/api/users/login",
-                                "/api/chatbot/**", 
-                                "/api/guest/**",
-                                "/api/recipes/public/**", // Пример: публични рецепти
-                                "/api/exercises/public/**" // Пример: публични упражнения
+                                "/api/users/register", // Регистрация
+                                "/api/users/login",    // Вход
+                                "/api/chatbot/**",     // Чатбот (ако е публичен)
+                                "/api/guest/**"        // Специфични ендпойнти за гости
                         ).permitAll()
 
                         // За модератори
@@ -37,15 +64,19 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")
 
-                        // Всички останали /api/** ендпойнти, които НЕ са изброени по-горе, изискват автентикация
-                        // ПРИМЕР: /api/users/profile, /api/nutrition-plans, /api/training, etc.
-                        .requestMatchers("/api/**").authenticated() // Всички /api/ пътища, които не са permitAll, изискват автентикация
+                        // Всички останали /api/** ендпойнти изискват автентикация (включително /api/recipes, /api/exercises)
+                        .requestMatchers("/api/**").authenticated()
 
-                        // Всички други заявки извън /api/ също изискват автентикация,
-                        // освен ако не са изрично позволени по-горе
+                        // Всички други заявки извън /api/ също изискват автентикация
                         .anyRequest()
                         .authenticated()
                 );
+
+        // Добавяме нашия JWT филтър преди филтъра за потребителско име/парола
+        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+
+        // Добавяме нашия AuthenticationProvider
+        http.authenticationProvider(authenticationProvider());
 
         return http.build();
     }

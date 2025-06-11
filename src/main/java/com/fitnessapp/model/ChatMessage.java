@@ -1,7 +1,10 @@
 package com.fitnessapp.model;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -12,24 +15,20 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ChatMessage {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "session_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id", nullable = false)
     private ChatSession session;
 
-    @Enumerated(EnumType.STRING)
-    private Sender sender; // user или bot
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String messageContent;
 
-    private String message;
-
-    @Column(name = "sent_at")
+    @Column(nullable = false)
     private LocalDateTime sentAt;
 
-    public enum Sender {
-        user, bot
-    }
+    @Enumerated(EnumType.STRING) // Използваме enum за подател
+    private MessageSenderType sender;
 }

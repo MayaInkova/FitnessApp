@@ -1,7 +1,10 @@
 package com.fitnessapp.model;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "food_items")
@@ -10,17 +13,18 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class FoodItem {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(nullable = false)
     private String name;
 
-    @Column(name = "calories_per_100g")
-    private Double caloriesPer100g;
-
-    private Double proteins;
+    private Double calories;
+    private Double protein;
     private Double carbs;
-    private Double fats;
+    private Double fat;
+    private String unit;
+    private Double quantity;
+
 }

@@ -1,16 +1,16 @@
 package com.fitnessapp.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
+
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
+import com.fitnessapp.model.MealType; // Уверете се, че този импорт е коректен
 
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "recipes")
 @Data
@@ -18,38 +18,44 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 public class Recipe {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     private String name;
-    private String type; // breakfast, lunch, dinner и т.н.
-
-    @Lob
-    @Column(length = 1000)
-    private String instructions;
-
-    private String imageUrl;
-    private String videoUrl;
-
-    private double calories;
-    private double protein;
-    private double fat;
-    private double carbs;
-
-    @Lob
-    @Column(length = 1000)
     private String description;
+    private String imageUrl;
+    private Double calories;
+    private Double protein;
+    private Double carbs;
+    private Double fat;
+    private Boolean isVegetarian;
+    private Boolean containsDairy;
+    private Boolean containsNuts;
+    private Boolean containsFish;
+    private Boolean containsPork;
 
-
-    //  Set<String> tags
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "recipe_tags", joinColumns = @JoinColumn(name = "recipe_id"))
     @Column(name = "tag")
+    @Builder.Default // Добавено, за да работи builder коректно с колекции
     private Set<String> tags = new HashSet<>();
 
-    @ManyToMany(mappedBy = "recipes")
-    @JsonBackReference
-    private List<NutritionPlan> nutritionPlans = new ArrayList<>();
+    @Enumerated(EnumType.STRING)
+    private MealType mealType;
+
+    private String instructions;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "diet_type_id")
+    private DietType dietType;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "recipe_allergens", joinColumns = @JoinColumn(name = "recipe_id"))
+    @Column(name = "allergen")
+    @Builder.Default // Добавено
+    private Set<String> allergens = new HashSet<>();
+
+    @Enumerated(EnumType.STRING) // Използваме enum за тип месо
+    private MeatType meatType;
 }

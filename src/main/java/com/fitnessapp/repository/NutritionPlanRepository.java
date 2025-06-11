@@ -1,21 +1,17 @@
 package com.fitnessapp.repository;
 
-
 import com.fitnessapp.model.NutritionPlan;
+import com.fitnessapp.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-
-
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
-public interface NutritionPlanRepository extends JpaRepository<NutritionPlan, Integer> {
-
-    // Връща всички планове на потребител, подредени по ID (от най-нов към най-стар)
-    List<NutritionPlan> findAllByUserIdOrderByIdDesc(Integer userId);
-
-    // Връща само най-новия план на потребител
-    NutritionPlan findTopByUserIdOrderByIdDesc(Integer userId);
+public interface NutritionPlanRepository extends JpaRepository<NutritionPlan, Integer> { // Променено от Long на Integer
+    Optional<NutritionPlan> findByUserAndDateGenerated(User user, LocalDate dateGenerated);
+    List<NutritionPlan> findByUser(User user);
 
 }

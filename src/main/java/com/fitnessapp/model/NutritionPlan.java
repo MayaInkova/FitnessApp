@@ -1,10 +1,12 @@
 package com.fitnessapp.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,59 +17,46 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class NutritionPlan {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Integer id; // Променено от Long на Integer за консистентност
 
-    private Double calories;
-    private Double protein;
-    private Double fat;
-    private Double carbs;
-    private String goal;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    @JsonIgnoreProperties({"nutritionPlans", "trainingType", "dietType", "allergies"})
+    @OneToOne(fetch = FetchType.LAZY) // Променено на OneToOne
+    @JoinColumn(name = "user_id", nullable = false, unique = true) // user_id е уникален за всеки план
     private User user;
 
-    @OneToMany(mappedBy = "nutritionPlan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonIgnoreProperties("nutritionPlan")
-    private List<Meal> meals = new ArrayList<>();
+    @Column(nullable = false)
+    private LocalDate dateGenerated;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "nutrition_plan_recipes",
-            joinColumns = @JoinColumn(name = "nutrition_plan_id"),
-            inverseJoinColumns = @JoinColumn(name = "recipe_id")
-    )
-    @JsonIgnoreProperties("nutritionPlans")
-    private List<Recipe> recipes = new ArrayList<>();
+    private Double targetCalories;
+
+    @Column(name = "protein")
+    private Double protein;
+
+    @Column(name = "fat")
+    private Double fat;
+
+    @Column(name = "carbohydrates")
+    private Double carbohydrates;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "training_plan_id")
-    @JsonIgnoreProperties("nutritionPlans")
-    private TrainingPlan trainingPlan;
+    @JoinColumn(name = "goal_id")
+    private Goal goal;
 
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    public void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
+    @OneToMany(mappedBy = "nutritionPlan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Meal> meals = new ArrayList<>();
 
     public void addMeal(Meal meal) {
-        if (this.meals == null) {
-            this.meals = new ArrayList<>();
-        }
+        // Проверката "if (this.meals == null)" е излишна заради @Builder.Default
         this.meals.add(meal);
-        meal.setNutritionPlan(this); // за свързване обратно към плана
+        meal.setNutritionPlan(this);
     }
 
-    public void addRecipe(Recipe recipe) {
-        if (this.recipes == null) {
-            this.recipes = new ArrayList<>();
+    public void removeMeal(Meal meal) {
+        if (this.meals != null) {
+            this.meals.remove(meal);
+            meal.setNutritionPlan(null);
         }
-        this.recipes.add(recipe);
     }
 }

@@ -1,14 +1,18 @@
 package com.fitnessapp.repository;
 
+import com.fitnessapp.model.MealType;
 import com.fitnessapp.model.Recipe;
+import com.fitnessapp.model.DietType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
 import java.util.List;
+import java.util.Optional;
 
+@Repository
 public interface RecipeRepository extends JpaRepository<Recipe, Integer> {
-    List<Recipe> findByType(String type); // За филтриране по тип (закуска, обяд и т.н.)
-    List<Recipe> findTop5ByTypeIn(List<String> types);
-    List<Recipe> findTop5ByCaloriesLessThanOrderByCaloriesAsc(Double maxCalories);
-    List<Recipe> findTop5ByProteinGreaterThanOrderByProteinDesc(Double minProtein);
-    List<Recipe> findTop5ByOrderByCaloriesAsc();// fallback вариант
 
+    List<Recipe> findByMealType(MealType mealType);
+
+    List<Recipe> findByDietType(DietType dietType);
 }

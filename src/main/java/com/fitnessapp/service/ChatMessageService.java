@@ -5,7 +5,6 @@ import com.fitnessapp.repository.ChatMessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -19,11 +18,10 @@ public class ChatMessageService {
     }
 
     public ChatMessage saveMessage(ChatMessage message) {
-        message.setSentAt(LocalDateTime.now());
         return chatMessageRepository.save(message);
     }
 
     public List<ChatMessage> getBySessionId(Integer sessionId) {
-        return chatMessageRepository.findBySessionId(sessionId);
+        return chatMessageRepository.findBySession_Id(sessionId);
     }
 }

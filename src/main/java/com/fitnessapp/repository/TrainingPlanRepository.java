@@ -1,20 +1,18 @@
 package com.fitnessapp.repository;
 
 import com.fitnessapp.model.TrainingPlan;
+import com.fitnessapp.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List; // <-- Увери се, че имаш този import
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface TrainingPlanRepository extends JpaRepository<TrainingPlan, Integer> {
+public interface TrainingPlanRepository extends JpaRepository<TrainingPlan, Integer> { // Променено от Long на Integer
 
+    Optional<TrainingPlan> findByUserAndDateGenerated(User user, LocalDate dateGenerated);
 
-
-    List<TrainingPlan> findByGoalAndWithWeights(String goal, boolean withWeights);
-
-
-    List<TrainingPlan> findByGoal(String goal);
-    List<TrainingPlan> findByWithWeights(boolean withWeights);
+    List<TrainingPlan> findByUserOrderByDateGeneratedDesc(User user);
 }
