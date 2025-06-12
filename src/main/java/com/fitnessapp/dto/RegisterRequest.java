@@ -6,7 +6,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class RegisterSimpleRequest {
+public class RegisterRequest {
 
     @NotBlank(message = "Името е задължително.")
     private String fullName;

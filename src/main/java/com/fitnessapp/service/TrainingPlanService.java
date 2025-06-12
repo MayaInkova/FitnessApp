@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -53,6 +54,10 @@ public class TrainingPlanService {
 
     @Transactional
     public TrainingPlan generateAndSaveTrainingPlanForUser(User user) {
+        //  ВАЛИДАЦИЯ: Проверяваме дали всички необходими потребителски данни са налице
+        validateUserProfileForTrainingPlanGeneration(user); // Добавена валидация
+
+        //  Проверка за съществуващ план за деня
         Optional<TrainingPlan> existingPlan =
                 trainingPlanRepository.findByUserAndDateGenerated(user, LocalDate.now());
         if (existingPlan.isPresent()) {
@@ -62,9 +67,11 @@ public class TrainingPlanService {
             return existingPlan.get();
         }
 
+        //  Извличане на потребителски предпочитания
         LevelType userLevel = user.getLevel();
         TrainingType userTrainingType = user.getTrainingType();
 
+        //  Изграждане на нов TrainingPlan
         TrainingPlan trainingPlan =
                 TrainingPlan.builder()
                         .user(user)
@@ -77,8 +84,11 @@ public class TrainingPlanService {
                                 user.getTrainingDurationMinutes() != null
                                         ? user.getTrainingDurationMinutes()
                                         : getDefaultTrainingDuration(userLevel))
+                     //  Експлицитна инициализация на списъка с тренировъчни сесии
+                        .trainingSessions(new ArrayList<>())
                         .build();
 
+        //  Генериране на тренировъчни сесии
         int daysPerWeek = trainingPlan.getDaysPerWeek();
         int durationMinutesPerSession = trainingPlan.getDurationMinutes();
         Random random = new Random();
@@ -93,6 +103,7 @@ public class TrainingPlanService {
                             .durationMinutes(durationMinutesPerSession)
                             .build();
 
+            //  Избор на упражнения за сесията
             List<Exercise> availableExercises;
             List<Exercise> filteredByLevelAndType =
                     exerciseRepository.findByDifficultyLevelAndType(
@@ -101,16 +112,24 @@ public class TrainingPlanService {
             if (!filteredByLevelAndType.isEmpty()) {
                 availableExercises = filteredByLevelAndType;
             } else {
+                logger.warn("No exercises found for level {} and type {}. Trying only by type.", userLevel, userTrainingType);
                 List<Exercise> filteredByType =
                         exerciseRepository.findByType(getExerciseTypeEnum(userTrainingType));
                 if (!filteredByType.isEmpty()) {
                     availableExercises = filteredByType;
                 } else {
+                    logger.warn("No exercises found for type {}. Falling back to all exercises.", userTrainingType);
                     availableExercises = exerciseRepository.findAll();
                 }
             }
 
-            int numExercises = Math.min(availableExercises.size(), 5 + random.nextInt(4));
+            //  Добавяне на упражнения към сесията
+            if (availableExercises.isEmpty()) {
+                logger.warn("No available exercises found for training session on {}. Skipping session.", day);
+                continue; // Пропускаме тази сесия, ако няма упражнения
+            }
+
+            int numExercises = Math.min(availableExercises.size(), 5 + random.nextInt(4)); // между 5 и 8 упражнения
             Collections.shuffle(availableExercises);
 
             for (int j = 0; j < numExercises; j++) {
@@ -118,10 +137,38 @@ public class TrainingPlanService {
                     session.addExercise(availableExercises.get(j));
                 }
             }
+            // Добавяме сесията към trainingPlan чрез хелпер метода
             trainingPlan.addTrainingSession(session);
         }
 
+        //  Запазване на генерирания план
         return trainingPlanRepository.save(trainingPlan);
+    }
+
+
+    private void validateUserProfileForTrainingPlanGeneration(User user) {
+        List<String> missingFields = new ArrayList<>();
+        // Основни данни за физически изчисления
+        if (user.getGender() == null) missingFields.add("пол");
+        if (user.getAge() == null) missingFields.add("възраст");
+        if (user.getHeight() == null) missingFields.add("ръст"); // Използваме getHeight()
+        if (user.getWeight() == null) missingFields.add("тегло"); // Използваме getWeight()
+        if (user.getActivityLevel() == null) missingFields.add("ниво на активност");
+        if (user.getGoal() == null) missingFields.add("цел");
+
+        // Данни специфични за тренировъчен план
+        if (user.getTrainingType() == null) missingFields.add("тип тренировка");
+        if (user.getLevel() == null) missingFields.add("ниво на подготовка");
+        if (user.getTrainingDaysPerWeek() == null) missingFields.add("тренировъчни дни на седмица");
+        if (user.getTrainingDurationMinutes() == null) missingFields.add("продължителност на тренировка");
+
+
+        if (!missingFields.isEmpty()) {
+            String errorMessage = "Моля, попълнете всички задължителни данни за профила си (липсващи: " +
+                    String.join(", ", missingFields) +
+                    ") чрез чатбота или секция 'Профил', преди да генерирате тренировъчен план.";
+            throw new IllegalArgumentException(errorMessage);
+        }
     }
 
     private List<DayOfWeek> selectTrainingDays(int daysPerWeek) {
@@ -135,7 +182,7 @@ public class TrainingPlanService {
                         DayOfWeek.SATURDAY,
                         DayOfWeek.SUNDAY);
         Collections.shuffle(allDays);
-        return allDays.subList(0, daysPerWeek);
+        return allDays.subList(0, Math.min(daysPerWeek, allDays.size()));
     }
 
     private Integer getDefaultTrainingDays(LevelType userLevel) {
@@ -191,7 +238,8 @@ public class TrainingPlanService {
             if (existingPlan.isEmpty()) {
                 logger.info("No training plan found for user {} for today. Generating a new one.", user.getFullName());
                 try {
-                    generateAndSaveTrainingPlanForUser(user); // Generate and save a new plan
+                    validateUserProfileForTrainingPlanGeneration(user);
+                    generateAndSaveTrainingPlanForUser(user);
                 } catch (Exception e) {
                     logger.error("Failed to generate training plan for user {}: {}", user.getFullName(), e.getMessage(), e);
                 }

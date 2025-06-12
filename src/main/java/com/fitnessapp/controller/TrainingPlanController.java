@@ -4,11 +4,12 @@ import com.fitnessapp.model.TrainingPlan;
 import com.fitnessapp.service.TrainingPlanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
+
 @RestController
-@RequestMapping("/api/training")
+@RequestMapping("/api/training") // Това е базовият път за този контролер
+@CrossOrigin(origins = "*") // Разрешаване на CORS
 public class TrainingPlanController {
 
     private final TrainingPlanService trainingPlanService;
@@ -25,7 +26,9 @@ public class TrainingPlanController {
 
     @GetMapping("/recommend")
     public TrainingPlan recommend(@RequestParam String goal, @RequestParam boolean withWeights) {
-        // ТОЗИ МЕТОД ВЕЧЕ СЪЩЕСТВУВА В TrainingPlanService
+
         return trainingPlanService.getRecommended(goal, withWeights);
     }
+
+
 }

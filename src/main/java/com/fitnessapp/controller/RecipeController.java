@@ -2,6 +2,7 @@ package com.fitnessapp.controller;
 
 import com.fitnessapp.model.Recipe;
 import com.fitnessapp.model.MealType;
+import com.fitnessapp.dto.RecipeDTO;
 import com.fitnessapp.service.RecipeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -27,14 +28,14 @@ public class RecipeController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Recipe>> getAllRecipes() {
-        List<Recipe> recipes = recipeService.getAllRecipes();
+    public ResponseEntity<List<RecipeDTO>> getAllRecipes() {
+        List<RecipeDTO> recipes = recipeService.getAllRecipeDTOs();
         return ResponseEntity.ok(recipes);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Recipe> getRecipeById(@PathVariable Integer id) {
-        Optional<Recipe> recipe = recipeService.getRecipeById(id);
+    public ResponseEntity<RecipeDTO> getRecipeById(@PathVariable Integer id) {
+        Optional<RecipeDTO> recipe = recipeService.getRecipeDTOById(id);
         return recipe.map(ResponseEntity::ok)
                 .orElseGet(() -> {
                     logger.warn("Recipe with ID {} not found.", id);
@@ -42,29 +43,26 @@ public class RecipeController {
                 });
     }
 
-    // Променяме името на ендпойнта и начина на работа с MealType
-    @GetMapping("/by-meal-type/{mealTypeString}") // Използваме String от пътя
-    public ResponseEntity<List<Recipe>> getRecipesByMealType(@PathVariable String mealTypeString) {
+    @GetMapping("/by-meal-type/{mealTypeString}")
+    public ResponseEntity<List<RecipeDTO>> getRecipesByMealType(@PathVariable String mealTypeString) { // ПРОМЕНЕНО: Връща List<RecipeDTO>
         try {
-            // Преобразуваме String в MealType enum
-            MealType mealType = MealType.fromString(mealTypeString); // Извикваме fromString
-            List<Recipe> recipes = recipeService.getRecipesByMealType(mealType);
+            MealType mealType = MealType.fromString(mealTypeString);
+            List<RecipeDTO> recipes = recipeService.getRecipeDTOsByMealType(mealType); // Извиква новия метод
             return ResponseEntity.ok(recipes);
         } catch (IllegalArgumentException e) {
             logger.error("Невалиден тип хранене '{}' при търсене на рецепти: {}", mealTypeString, e.getMessage());
-            return ResponseEntity.badRequest().body(null); // Връщаме 400 Bad Request
+            return ResponseEntity.badRequest().body(null);
         } catch (Exception e) {
             logger.error("Грешка при търсене на рецепти по тип хранене '{}': {}", mealTypeString, e.getMessage(), e);
-            return ResponseEntity.status(500).body(null); // Връщаме 500 Internal Server Error
+            return ResponseEntity.status(500).body(null);
         }
     }
 
-
     @PostMapping
-    // @PreAuthorize("hasRole('ADMIN')") // Пример за сигурност
     public ResponseEntity<Recipe> createRecipe(@RequestBody Recipe recipe) {
         try {
             Recipe savedRecipe = recipeService.saveRecipe(recipe);
+
             return ResponseEntity.ok(savedRecipe);
         } catch (Exception e) {
             logger.error("Грешка при създаване на рецепта: ", e);
@@ -73,12 +71,11 @@ public class RecipeController {
     }
 
     @PutMapping("/{id}")
-    // @PreAuthorize("hasRole('ADMIN')") // Пример за сигурност
-    public ResponseEntity<Recipe> updateRecipe(@PathVariable Integer id, @RequestBody Recipe recipe) {
+    public ResponseEntity<Recipe> updateRecipe(@PathVariable Integer id, @RequestBody Recipe recipe) { // Връща Recipe Entity, ако е необходимо
         try {
             Recipe updatedRecipe = recipeService.updateRecipe(id, recipe);
             return ResponseEntity.ok(updatedRecipe);
-        } catch (RuntimeException e) { // Хващаме RuntimeException, хвърлен от service, ако рецептата не е намерена
+        } catch (RuntimeException e) {
             logger.warn("Рецепта с ID {} не е намерена за актуализация: {}", id, e.getMessage());
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
@@ -88,11 +85,11 @@ public class RecipeController {
     }
 
     @DeleteMapping("/{id}")
-    // @PreAuthorize("hasRole('ADMIN')") // Пример за сигурност
+
     public ResponseEntity<Void> deleteRecipe(@PathVariable Integer id) {
         try {
             recipeService.deleteRecipe(id);
-            return ResponseEntity.noContent().build(); // 204 No Content
+            return ResponseEntity.noContent().build();
         } catch (Exception e) {
             logger.error("Грешка при изтриване на рецепта с ID {}: ", id, e);
             return ResponseEntity.status(500).build();

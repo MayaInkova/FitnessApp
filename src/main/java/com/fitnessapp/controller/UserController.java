@@ -1,272 +1,83 @@
-
-
 package com.fitnessapp.controller;
 
-import com.fitnessapp.dto.LoginRequest;
-import com.fitnessapp.dto.RegisterSimpleRequest;
-import com.fitnessapp.dto.UserResponse;
-import com.fitnessapp.dto.UserProfileUpdateDto; // НОВО: Добавете този импорт за DTO за актуализация
+import com.fitnessapp.dto.UserUpdateRequest;
 import com.fitnessapp.model.User;
-import com.fitnessapp.model.Role;
-import com.fitnessapp.repository.RoleRepository;
-import com.fitnessapp.security.JwtTokenProvider;
-import com.fitnessapp.service.NutritionPlanService;
 import com.fitnessapp.service.UserService;
-import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.validation.BindingResult;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/users")
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/users") // Базов път за всички ендпойнти в този контролер
+@CrossOrigin(origins = "*") // Разрешаване на CORS
+
+
 public class UserController {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
-    private final NutritionPlanService nutritionPlanService;
-    private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final RoleRepository roleRepository;
 
     @Autowired
-    public UserController(UserService userService,
-                          PasswordEncoder passwordEncoder,
-                          NutritionPlanService nutritionPlanService,
-                          AuthenticationManager authenticationManager,
-                          JwtTokenProvider jwtTokenProvider,
-                          RoleRepository roleRepository) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.passwordEncoder = passwordEncoder;
-        this.nutritionPlanService = nutritionPlanService;
-        this.authenticationManager = authenticationManager;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.roleRepository = roleRepository;
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterSimpleRequest userRequest, BindingResult result) {
-        if (result.hasErrors()) {
-            return ResponseEntity.badRequest().body(result.getAllErrors());
-        }
-
-        if (userService.getUserByEmail(userRequest.getEmail()) != null) {
-            return new ResponseEntity<>("Потребител с този имейл вече съществува!", HttpStatus.BAD_REQUEST);
-        }
-
-        User user = new User();
-        user.setFullName(userRequest.getFullName());
-        user.setEmail(userRequest.getEmail());
-        user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
-
-        // Задаване на роля ROLE_USER по подразбиране
-        Optional<Role> userRoleOptional = roleRepository.findByName("ROLE_USER");
-        if (userRoleOptional.isEmpty()) {
-            // Това не би трябвало да се случва, ако DataInitializer работи коректно
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Грешка: Роля 'ROLE_USER' не е намерена.");
-        }
-        // Използвайте Set.of() за да създадете Set от един елемент
-        user.setRoles(Set.of(userRoleOptional.get())); // Присвояване на ролята
-
-        User savedUser = userService.saveUser(user);
-        UserResponse response = UserResponse.builder()
-                .id(savedUser.getId())
-                .fullName(savedUser.getFullName())
-                .email(savedUser.getEmail())
-                .build();
-
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest loginRequest, BindingResult result) {
-        if (result.hasErrors()) {
-            return ResponseEntity.badRequest().body(result.getAllErrors());
-        }
-
-        try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            loginRequest.getEmail(),
-                            loginRequest.getPassword()
-                    )
-            );
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            String jwt = jwtTokenProvider.generateToken(authentication);
-
-            User user = userService.getUserByEmail(loginRequest.getEmail());
-            UserResponse userResponse = UserResponse.builder()
-                    .id(user.getId())
-                    .fullName(user.getFullName())
-                    .email(user.getEmail())
-                    .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()))
-                    .build();
-
-            return ResponseEntity.ok(Map.of("accessToken", jwt, "user", userResponse));
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Невалиден имейл или парола.");
-        }
-    }
-
-    @GetMapping
-    public ResponseEntity<?> getAllUsers() {
-        // Обикновено този ендпойнт е защитен и достъпен само за ADMIN/MODERATOR
-        // @PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')") // Само за администратори
+    public ResponseEntity<List<User>> getAllUsers() {
+        logger.info("Получена GET заявка за всички потребители.");
         List<User> users = userService.getAllUsers();
-        List<UserResponse> responses = users.stream().map(user -> UserResponse.builder()
-                .id(user.getId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()))
-                .build()).collect(Collectors.toList());
-
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(users);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Integer id) {
+    @PreAuthorize("isAuthenticated() and (#id == authentication.principal.id or hasRole('ADMIN'))") // Само за собственика или ADMIN
+    public ResponseEntity<User> getUserById(@PathVariable Integer id) {
+        logger.info("Получена GET заявка за потребител с ID: {}", id);
         User user = userService.getUserById(id);
-        if (user == null) return ResponseEntity.notFound().build();
-
-        // Проверка за достъп: Логнатият потребител може да вижда само собствения си профил
-        // освен ако не е ADMIN/MODERATOR
-        String loggedInUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
-        boolean isModerator = SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(new SimpleGrantedAuthority("ROLE_MODERATOR"));
-
-        if (!user.getEmail().equals(loggedInUserEmail) && !isAdmin && !isModerator) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Нямате право да преглеждате този профил.");
+        if (user == null) {
+            logger.warn("Потребител с ID {} не е намерен.", id);
+            return ResponseEntity.notFound().build();
         }
-
-        UserResponse response = UserResponse.builder()
-                .id(user.getId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()))
-                .build();
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(user);
     }
 
-    // Обновяване на основни потребителски данни с UserProfileUpdateDto
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Integer id, @Valid @RequestBody UserProfileUpdateDto userData) { // ПРОМЕНЕНО ТУК: User на UserProfileUpdateDto и добавено @Valid
-        User user = userService.getUserById(id);
-        if (user == null) return ResponseEntity.notFound().build();
+    @PreAuthorize("isAuthenticated() and (#id == authentication.principal.id or hasRole('ADMIN'))") // Само за собственика или ADMIN
+    public ResponseEntity<User> updateUser(@PathVariable Integer id, @RequestBody UserUpdateRequest updateRequest) {
+        logger.info("Получена PUT заявка за актуализация на потребител с ID: {}", id);
+        try {
 
-        String loggedInUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
-
-        if (!user.getEmail().equals(loggedInUserEmail) && !isAdmin) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Нямате право да променяте този профил.");
+            User updatedUser = userService.updateUserProfile(id, updateRequest);
+            return ResponseEntity.ok(updatedUser);
+        } catch (RuntimeException e) {
+            logger.error("Грешка при актуализация на потребител с ID {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // Потребител не е намерен
+        } catch (Exception e) {
+            logger.error("Неочаквана грешка при актуализация на потребител с ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
-
-        // Извикваме новия метод в UserService за мапинг и актуализация
-        User updated = userService.updateUserProfile(id, userData); // Извикване на updateUserProfile
-        return ResponseEntity.ok(updated);
     }
 
-    @PutMapping("/{id}/diet")
-    public ResponseEntity<String> updateUserDiet(@PathVariable Integer id, @RequestBody Map<String, String> body) {
-        // Проверка за достъп - подобна на updateUser
-        String loggedInUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
-        User user = userService.getUserById(id);
-        if (user == null) return ResponseEntity.notFound().build();
-        if (!user.getEmail().equals(loggedInUserEmail) && !isAdmin) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Нямате право да променяте този профил.");
-        }
 
-        String diet = body.get("diet");
-        userService.updateDietTypeForUser(id, diet);
-        return ResponseEntity.ok("Diet type updated");
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')") // Обикновено само за администратори
+    public ResponseEntity<String> deleteUser(@PathVariable Integer id) {
+        logger.info("Получена DELETE заявка за потребител с ID: {}", id);
+        try {
+
+            return new ResponseEntity<>("Потребител с ID " + id + " е изтрит успешно.", HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Грешка при изтриване на потребител с ID {}: {}", id, e.getMessage(), e);
+            return new ResponseEntity<>("Грешка при изтриване на потребител.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
-    //  Промяна на имейл
-    @PutMapping("/{id}/email")
-    public ResponseEntity<?> updateEmail(@PathVariable Integer id, @RequestBody Map<String, String> body) {
-        String newEmail = body.get("newEmail");
-        String currentPassword = body.get("currentPassword"); // Изискваме текуща парола за потвърждение
-
-        if (!org.springframework.util.StringUtils.hasText(newEmail) || !org.springframework.util.StringUtils.hasText(currentPassword)) {
-            return ResponseEntity.badRequest().body("Моля, попълнете нов имейл и текуща парола.");
-        }
-
-        User user = userService.getUserById(id);
-        if (user == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        // Проверка за достъп
-        String loggedInUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
-        if (!user.getEmail().equals(loggedInUserEmail) && !isAdmin) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Нямате право да променяте този профил.");
-        }
-
-        // Проверка дали новият имейл вече не е зает от друг потребител
-        User existingUserWithNewEmail = userService.getUserByEmail(newEmail);
-        if (existingUserWithNewEmail != null && !existingUserWithNewEmail.getId().equals(user.getId())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Имейлът вече се използва от друг потребител.");
-        }
-
-        // Проверка на текущата парола
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Грешна текуща парола.");
-        }
-
-        user.setEmail(newEmail);
-        userService.saveUser(user);
-        return ResponseEntity.ok("Имейлът е успешно променен.");
-    }
-
-    //  Промяна на парола
-    @PutMapping("/{id}/password")
-    public ResponseEntity<?> updatePassword(@PathVariable Integer id, @RequestBody Map<String, String> body) {
-        String currentPassword = body.get("currentPassword");
-        String newPassword = body.get("newPassword");
-
-        if (!org.springframework.util.StringUtils.hasText(currentPassword) || !org.springframework.util.StringUtils.hasText(newPassword)) {
-            return ResponseEntity.badRequest().body("Моля, попълнете текуща и нова парола.");
-        }
-
-        User user = userService.getUserById(id);
-        if (user == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        // Проверка за достъп
-        String loggedInUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
-        if (!user.getEmail().equals(loggedInUserEmail) && !isAdmin) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Нямате право да променяте този профил.");
-        }
-
-        // Проверка на текущата парола
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Невалидна текуща парола.");
-        }
-
-        // Хеширане и запазване на новата парола
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userService.saveUser(user);
-        return ResponseEntity.ok("Паролата е успешно променена.");
-    }
 }

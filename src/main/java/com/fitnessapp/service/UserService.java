@@ -1,16 +1,15 @@
 package com.fitnessapp.service;
 
-import com.fitnessapp.dto.UserProfileUpdateDto;
+import com.fitnessapp.dto.UserUpdateRequest;
 import com.fitnessapp.model.ActivityLevel;
+import com.fitnessapp.model.DietType;
 import com.fitnessapp.model.GenderType;
 import com.fitnessapp.model.Goal;
 import com.fitnessapp.model.MeatPreferenceType;
 import com.fitnessapp.model.Role;
 import com.fitnessapp.model.TrainingType;
 import com.fitnessapp.model.User;
-import com.fitnessapp.model.DietType;
-import com.fitnessapp.model.MealFrequencyPreferenceType; // УВЕРЕТЕ СЕ, ЧЕ ТОЗИ ИМПОРТ Е НАЛИЦЕ!
-import com.fitnessapp.model.LevelType; // Уверете се, че този импорт е налице
+import com.fitnessapp.model.MealFrequencyPreferenceType;
 
 import com.fitnessapp.repository.ActivityLevelRepository;
 import com.fitnessapp.repository.DietTypeRepository;
@@ -24,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 @Service
 public class UserService {
@@ -65,80 +63,50 @@ public class UserService {
     }
 
     @Transactional
-    public User updateUserProfile(Integer userId, UserProfileUpdateDto userData) {
+    public User updateUserProfile(Integer userId, UserUpdateRequest updateRequest) { // КОРИГИРАНО: Име на метода
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Потребител не е намерен с ID: " + userId));
 
-        Optional.ofNullable(userData.getFullName()).ifPresent(user::setFullName);
-        Optional.ofNullable(userData.getAge()).ifPresent(user::setAge);
-        Optional.ofNullable(userData.getHeight()).ifPresent(user::setHeight);
-        Optional.ofNullable(userData.getWeight()).ifPresent(user::setWeight);
-        Optional.ofNullable(userData.getAllergies()).ifPresent(user::setAllergies);
+        // Актуализиране на основни полета
+        Optional.ofNullable(updateRequest.getFullName()).ifPresent(user::setFullName);
+        Optional.ofNullable(updateRequest.getAge()).ifPresent(user::setAge);
+        Optional.ofNullable(updateRequest.getHeight()).ifPresent(user::setHeight);
+        Optional.ofNullable(updateRequest.getWeight()).ifPresent(user::setWeight);
+        Optional.ofNullable(updateRequest.getGender()).ifPresent(user::setGender);
 
-        if (userData.getGender() != null) {
-            try {
-                GenderType genderType = GenderType.fromString(userData.getGender());
-                user.setGender(genderType);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Невалидна стойност за пол: " + userData.getGender() + ". Очаква се 'мъж' или 'жена'.", e);
-            }
+        // Актуализиране на свързани Entity обекти по ID (ActivityLevel, Goal, DietType)
+        Optional.ofNullable(updateRequest.getActivityLevelId())
+                .flatMap(activityLevelRepository::findById)
+                .ifPresent(user::setActivityLevel);
+
+        Optional.ofNullable(updateRequest.getGoalId())
+                .flatMap(goalRepository::findById)
+                .ifPresent(user::setGoal);
+
+        Optional.ofNullable(updateRequest.getDietTypeId())
+                .flatMap(dietTypeRepository::findById)
+                .ifPresent(user::setDietType);
+
+        // Актуализиране на специфични предпочитания (вече са енуми)
+        Optional.ofNullable(updateRequest.getTrainingType()).ifPresent(user::setTrainingType);
+        Optional.ofNullable(updateRequest.getTrainingDaysPerWeek()).ifPresent(user::setTrainingDaysPerWeek);
+        Optional.ofNullable(updateRequest.getTrainingDurationMinutes()).ifPresent(user::setTrainingDurationMinutes);
+        Optional.ofNullable(updateRequest.getLevel()).ifPresent(user::setLevel);
+        Optional.ofNullable(updateRequest.getMeatPreference()).ifPresent(user::setMeatPreference);
+        Optional.ofNullable(updateRequest.getConsumesDairy()).ifPresent(user::setConsumesDairy);
+        Optional.ofNullable(updateRequest.getMealFrequencyPreference()).ifPresent(user::setMealFrequencyPreference);
+
+        // За колекции като allergies и otherDietaryPreferences, ако updateRequest ги съдържа, презаписваме ги
+        if (updateRequest.getAllergies() != null) {
+            user.setAllergies(updateRequest.getAllergies());
         }
-
-        if (userData.getGoalName() != null) {
-            Goal goal = goalRepository.findByNameIgnoreCase(userData.getGoalName())
-                    .orElseThrow(() -> new RuntimeException("Цел '" + userData.getGoalName() + "' не е намерена."));
-            user.setGoal(goal);
+        if (updateRequest.getOtherDietaryPreferences() != null) {
+            user.setOtherDietaryPreferences(updateRequest.getOtherDietaryPreferences());
         }
-
-        if (userData.getActivityLevelName() != null) {
-            ActivityLevel activityLevel = activityLevelRepository.findByNameIgnoreCase(userData.getActivityLevelName())
-                    .orElseThrow(() -> new RuntimeException("Ниво на активност '" + userData.getActivityLevelName() + "' не е намерено."));
-            user.setActivityLevel(activityLevel);
-        }
-
-        if (userData.getDietTypeName() != null) {
-            DietType dietType = dietTypeRepository.findByNameIgnoreCase(userData.getDietTypeName())
-                    .orElseThrow(() -> new RuntimeException("Тип диета '" + userData.getDietTypeName() + "' не е намерен."));
-            user.setDietType(dietType);
-        }
-
-        Optional.ofNullable(userData.getConsumesDairy()).ifPresent(user::setConsumesDairy);
-
-        if (userData.getMeatPreference() != null) {
-            try {
-                MeatPreferenceType meatPreferenceType = MeatPreferenceType.fromString(userData.getMeatPreference());
-                user.setMeatPreference(meatPreferenceType);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Невалидна стойност за предпочитание за месо: " + userData.getMeatPreference() + ". Моля, изберете от 'пилешко', 'телешко', 'риба', 'свинско', 'агнешко', 'без месо', 'няма значение'.", e);
-            }
-        }
-
-        if (userData.getTrainingType() != null) {
-            try {
-                TrainingType trainingType = TrainingType.fromString(userData.getTrainingType());
-                user.setTrainingType(trainingType);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Невалидна стойност за тип тренировка: " + userData.getTrainingType() + ". Очаква се 'тежести', 'без тежести' или 'кардио'.", e);
-            }
-        }
-
-        Optional.ofNullable(userData.getTrainingDaysPerWeek()).ifPresent(user::setTrainingDaysPerWeek);
-        Optional.ofNullable(userData.getTrainingDurationMinutes()).ifPresent(user::setTrainingDurationMinutes);
-
-        if (userData.getMealFrequencyPreference() != null) {
-            try {
-                MealFrequencyPreferenceType mealFrequencyPreference = MealFrequencyPreferenceType.fromString(userData.getMealFrequencyPreference());
-                user.setMealFrequencyPreference(mealFrequencyPreference);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Невалидна стойност за предпочитание за честота на хранене: " + userData.getMealFrequencyPreference() + ".", e);
-            }
-        }
-
-        Optional.ofNullable(userData.getLevel()).ifPresent(user::setLevel);
-
 
         return userRepository.save(user);
     }
+
 
     @Transactional
     public void updateDietTypeForUser(Integer userId, String dietTypeName) {
@@ -151,6 +119,7 @@ public class UserService {
         user.setDietType(dietType);
         userRepository.save(user);
     }
+
 
     @Transactional
     public User assignRole(Integer userId, String roleName) {
