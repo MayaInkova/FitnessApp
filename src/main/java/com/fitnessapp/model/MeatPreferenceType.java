@@ -7,7 +7,7 @@ public enum MeatPreferenceType {
     PORK("свинско"),
     FISH("риба"),
     LAMB("агнешко"), // Добавих агнешко, ако го ползваш
-    NO_PREFERENCE("няма значение"); // Преименувах ALL на NO_PREFERENCE за по-голяма яснота
+    NO_PREFERENCE("няма значение");
 
     private final String displayName;
 

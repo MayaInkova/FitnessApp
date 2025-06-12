@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize; // Likely needed for admin endpoints
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
         import java.util.List;
@@ -49,7 +49,6 @@ public class NutritionPlanController {
     }
 
     @PostMapping("/generate/{userId}")
-    // @PreAuthorize("isAuthenticated() and (#userId == authentication.principal.id or hasRole('ADMIN'))") // Example security
     public ResponseEntity<?> generatePlan(@PathVariable Integer userId) {
         try {
             User user = userService.getUserById(userId);
@@ -66,15 +65,13 @@ public class NutritionPlanController {
     }
 
     @GetMapping("/{userId}")
-    // @PreAuthorize("isAuthenticated() and (#userId == authentication.principal.id or hasRole('ADMIN'))") // Example security
     public ResponseEntity<?> getNutritionPlanByUserId(@PathVariable Integer userId) {
         try {
             User user = userService.getUserById(userId);
             if (user == null) return ResponseEntity.notFound().build();
 
             List<NutritionPlan> plans = nutritionPlanService.getNutritionPlansByUser(user);
-            NutritionPlan latestPlan = plans.stream().findFirst().orElse(null); // This assumes findFirst() is the latest, consider sorting by date if not.
-
+            NutritionPlan latestPlan = plans.stream().findFirst().orElse(null);
             return latestPlan != null ? ResponseEntity.ok(latestPlan) : ResponseEntity.notFound().build();
         } catch (Exception e) {
             logger.error("Грешка при вземане на план по потребител: ", e);
@@ -83,7 +80,7 @@ public class NutritionPlanController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')") // This endpoint should likely be admin-only
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAllNutritionPlans() {
         try {
             List<NutritionPlan> plans = nutritionPlanService.getAllNutritionPlans();
@@ -95,7 +92,6 @@ public class NutritionPlanController {
     }
 
     @GetMapping("/history/{userId}")
-    // @PreAuthorize("isAuthenticated() and (#userId == authentication.principal.id or hasRole('ADMIN'))") // Example security
     public ResponseEntity<?> getPlanHistory(@PathVariable Integer userId) {
         try {
             User user = userService.getUserById(userId);
@@ -112,7 +108,6 @@ public class NutritionPlanController {
     }
 
     @GetMapping("/weekly/{userId}")
-    // @PreAuthorize("isAuthenticated() and (#userId == authentication.principal.id or hasRole('ADMIN'))") // Example security
     public ResponseEntity<?> generateWeeklyPlan(@PathVariable Integer userId) {
         try {
             User user = userService.getUserById(userId);
@@ -120,7 +115,6 @@ public class NutritionPlanController {
                 return ResponseEntity.status(403).body("Само за регистрирани потребители.");
             }
 
-            // Note: This endpoint generates both plans, similar to /generate/{userId}
             NutritionPlan nutritionPlan = nutritionPlanService.generateNutritionPlan(user);
             TrainingPlan trainingPlan = trainingPlanService.generateAndSaveTrainingPlanForUser(user);
 
@@ -132,7 +126,6 @@ public class NutritionPlanController {
     }
 
     @GetMapping("/full")
-    // @PreAuthorize("isAuthenticated() and (#userId == authentication.principal.id or hasRole('ADMIN'))") // Example security
     public ResponseEntity<?> getFullPlan(@RequestParam Integer userId) {
         try {
             logger.info("В getFullPlan: userId = {}, Type = {}", userId, userId.getClass().getName());
@@ -172,7 +165,6 @@ public class NutritionPlanController {
     @PreAuthorize("hasRole('ADMIN')") // Admin-only endpoint
     public ResponseEntity<?> fixTrainingPlans() {
         try {
-            // КОРИГЕНА ЛОГИКА: Извикваме метода от TrainingPlanService
             trainingPlanService.fixMissingTrainingPlans();
             return ResponseEntity.ok("Липсващите тренировъчни планове са успешно генерирани.");
         } catch (Exception e) {

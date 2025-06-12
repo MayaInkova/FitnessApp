@@ -3,9 +3,9 @@ package com.fitnessapp.model; // или com.fitnessapp.model.enums
 public enum LevelType {
     BEGINNER,
     INTERMEDIATE,
-    ADVANCED; // Добавете точка и запетая, ако следват методи
+    ADVANCED;
 
-    // Метод за преобразуване на стринг към LevelType
+    // преобразуване на стринг към LevelType
     public static LevelType fromString(String text) {
         if (text == null || text.trim().isEmpty()) {
             throw new IllegalArgumentException("Текстовата стойност за LevelType не може да бъде празна.");

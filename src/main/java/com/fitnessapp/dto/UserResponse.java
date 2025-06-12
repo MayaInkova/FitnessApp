@@ -10,5 +10,5 @@ public class UserResponse {
     private Integer id;
     private String fullName;
     private String email;
-    private Set<String> roles; // Предполагаме, че това са имената на ролите (String)
+    private Set<String> roles;
 }

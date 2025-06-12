@@ -29,6 +29,6 @@ public class ChatMessage {
     @Column(nullable = false)
     private LocalDateTime sentAt;
 
-    @Enumerated(EnumType.STRING) // Използваме enum за подател
+    @Enumerated(EnumType.STRING)
     private MessageSenderType sender;
 }

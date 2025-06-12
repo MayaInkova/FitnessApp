@@ -1,10 +1,10 @@
 package com.fitnessapp.service;
 
 import com.fitnessapp.dto.FullPlanDTO;
-import com.fitnessapp.dto.MealDTO; // Added import
-import com.fitnessapp.dto.RecipeDTO; // Added import
-import com.fitnessapp.dto.TrainingSessionDTO; // Added import
-import com.fitnessapp.dto.ExerciseDTO; // Added import
+import com.fitnessapp.dto.MealDTO;
+import com.fitnessapp.dto.RecipeDTO;
+import com.fitnessapp.dto.TrainingSessionDTO;
+import com.fitnessapp.dto.ExerciseDTO;
 
 import com.fitnessapp.model.*;
 import com.fitnessapp.repository.NutritionPlanRepository;
@@ -68,18 +68,20 @@ public class NutritionPlanService {
         NutritionPlan nutritionPlan = new NutritionPlan();
         nutritionPlan.setUser(user);
         nutritionPlan.setTargetCalories(targetCalories);
-        // Note: Protein, Fat, Carbs are not calculated here, but in the bot after the plan is generated.
-        // Or they can be calculated based on the selected recipes.
 
-        if (chosenBreakfast != null) nutritionPlan.addMeal(Meal.builder().recipe(chosenBreakfast).mealType(MealType.BREAKFAST).portionSize(1.0).build());
-        if (chosenLunch != null) nutritionPlan.addMeal(Meal.builder().recipe(chosenLunch).mealType(MealType.LUNCH).portionSize(1.0).build());
-        if (chosenDinner != null) nutritionPlan.addMeal(Meal.builder().recipe(chosenDinner).mealType(MealType.DINNER).portionSize(1.0).build());
 
-        // Assuming user.getMealFrequencyPreference() returns a String like "3_main_2_snacks"
-        // You might need to adjust this based on the actual enum value in User
+        if (chosenBreakfast != null)
+            nutritionPlan.addMeal(Meal.builder().recipe(chosenBreakfast).mealType(MealType.BREAKFAST).portionSize(1.0).build());
+        if (chosenLunch != null)
+            nutritionPlan.addMeal(Meal.builder().recipe(chosenLunch).mealType(MealType.LUNCH).portionSize(1.0).build());
+        if (chosenDinner != null)
+            nutritionPlan.addMeal(Meal.builder().recipe(chosenDinner).mealType(MealType.DINNER).portionSize(1.0).build());
+
         if (user.getMealFrequencyPreference() != null && user.getMealFrequencyPreference().name().equals("THREE_TIMES_DAILY")) { // Changed to match MealFrequencyPreferenceType enum
-            if (chosenSnack1 != null) nutritionPlan.addMeal(Meal.builder().recipe(chosenSnack1).mealType(MealType.SNACK).portionSize(1.0).build());
-            if (chosenSnack2 != null) nutritionPlan.addMeal(Meal.builder().recipe(chosenSnack2).mealType(MealType.SNACK).portionSize(1.0).build());
+            if (chosenSnack1 != null)
+                nutritionPlan.addMeal(Meal.builder().recipe(chosenSnack1).mealType(MealType.SNACK).portionSize(1.0).build());
+            if (chosenSnack2 != null)
+                nutritionPlan.addMeal(Meal.builder().recipe(chosenSnack2).mealType(MealType.SNACK).portionSize(1.0).build());
         }
 
         return nutritionPlanRepository.save(nutritionPlan);
@@ -99,29 +101,28 @@ public class NutritionPlanService {
         Boolean consumesDairy = user.getConsumesDairy();
 
         return recipes.stream().filter(recipe -> {
-            // Filtering by DietType
+
             if (recipe.getDietType() != null && !dietType.isEmpty() && !recipe.getDietType().getName().equalsIgnoreCase(dietType)) {
                 return false;
             }
-            // Filtering by Allergens
+
             if (recipe.getAllergens() != null && recipe.getAllergens().stream().anyMatch(allergies::contains)) {
                 return false;
             }
 
-            // Filtering by MeatPreference
+
             if (("none".equals(meatPref) || "без месо".equalsIgnoreCase(meatPref)) && recipe.getMeatType() != null && !"none".equalsIgnoreCase(recipe.getMeatType().name())) {
                 return false; // If the user is "no meat", exclude recipes with a meat type other than "none"
             }
             if (("vegetarian".equals(meatPref) || "вегетарианска".equalsIgnoreCase(meatPref)) && Boolean.FALSE.equals(recipe.getIsVegetarian())) {
                 return false; // If the user is vegetarian, exclude non-vegetarian recipes
             }
-            // If the user has a specific meat preference (not "none" or "vegetarian")
-            // and the recipe has a MeatType that does not match, exclude it.
+
             if (!meatPref.isEmpty() && !"none".equals(meatPref) && !"vegetarian".equals(meatPref) && recipe.getMeatType() != null && !meatPref.equalsIgnoreCase(recipe.getMeatType().name())) {
                 return false;
             }
 
-            // Filtering by ConsumesDairy
+
             if (Boolean.FALSE.equals(consumesDairy) && Boolean.TRUE.equals(recipe.getContainsDairy())) {
                 return false;
             }
@@ -158,7 +159,7 @@ public class NutritionPlanService {
 
     @Transactional
     public NutritionPlan saveNutritionPlan(NutritionPlan plan) {
-        // Ensure the user is a managed Entity before saving the plan
+
         if (plan.getUser() != null && plan.getUser().getId() != null) {
             User managedUser = userRepository.findById(plan.getUser().getId())
                     .orElseThrow(() -> new IllegalArgumentException("User with ID " + plan.getUser().getId() + " not found."));
@@ -194,7 +195,7 @@ public class NutritionPlanService {
                 return null;
             }
 
-            // Мапинг към DTO (ръчно мапиране)
+
             List<MealDTO> mealDTOs = null;
             if (lastNutritionPlan != null && lastNutritionPlan.getMeals() != null) {
                 mealDTOs = lastNutritionPlan.getMeals().stream()
@@ -310,16 +311,8 @@ public class NutritionPlanService {
     }
 
     public void fixMissingTrainingPlans() {
-        // This method was previously in the controller, it belongs here.
-        // You'll need to implement the actual logic for fixing missing plans,
-        // which might involve iterating through users and generating plans
-        // for those who don't have recent ones.
         logger.info("Fixing missing training plans (implementation pending).");
-        // Example:
-        // List<User> allUsers = userRepository.findAll();
-        // for (User user : allUsers) {
-        //     // Check if user has a recent training plan
-        //     // If not, generate one: trainingPlanService.generateAndSaveTrainingPlanForUser(user);
-        // }
     }
 }
+
+

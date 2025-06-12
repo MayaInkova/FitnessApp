@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.DayOfWeek; // Добавете този импорт
+import java.time.DayOfWeek;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +34,7 @@ public class TrainingSession {
     @OneToMany(mappedBy = "trainingSession", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Exercise> exercises = new ArrayList<>();
 
-    // Helper method to add exercises
+
     public void addExercise(Exercise exercise) {
         if (exercise != null) {
             exercises.add(exercise);

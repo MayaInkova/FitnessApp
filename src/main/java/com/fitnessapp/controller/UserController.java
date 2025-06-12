@@ -115,7 +115,6 @@ public class UserController {
                     .id(user.getId())
                     .fullName(user.getFullName())
                     .email(user.getEmail())
-                    // Добавете и ролите тук, ако искате фронт-ендът да ги знае веднага
                     .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()))
                     .build();
 
@@ -135,8 +134,7 @@ public class UserController {
                 .id(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                // Добавете ролите, ако този ендпойнт е само за админи
-                // .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()))
+                .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()))
                 .build()).collect(Collectors.toList());
 
         return ResponseEntity.ok(responses);
@@ -161,7 +159,6 @@ public class UserController {
                 .id(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                // Включете ролите в отговора, ако е необходимо
                 .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()))
                 .build();
 
@@ -182,7 +179,7 @@ public class UserController {
         }
 
         // Извикваме новия метод в UserService за мапинг и актуализация
-        User updated = userService.updateUserProfile(id, userData); // ПРОМЕНЕНО ТУК: Извикване на updateUserProfile
+        User updated = userService.updateUserProfile(id, userData); // Извикване на updateUserProfile
         return ResponseEntity.ok(updated);
     }
 
@@ -202,7 +199,7 @@ public class UserController {
         return ResponseEntity.ok("Diet type updated");
     }
 
-    // НОВ МЕТОД: Промяна на имейл
+    //  Промяна на имейл
     @PutMapping("/{id}/email")
     public ResponseEntity<?> updateEmail(@PathVariable Integer id, @RequestBody Map<String, String> body) {
         String newEmail = body.get("newEmail");
@@ -240,7 +237,7 @@ public class UserController {
         return ResponseEntity.ok("Имейлът е успешно променен.");
     }
 
-    // НОВ МЕТОД: Промяна на парола
+    //  Промяна на парола
     @PutMapping("/{id}/password")
     public ResponseEntity<?> updatePassword(@PathVariable Integer id, @RequestBody Map<String, String> body) {
         String currentPassword = body.get("currentPassword");

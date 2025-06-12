@@ -26,12 +26,12 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Потребител с имейл: " + email + " не е намерен."));
 
-        // Преобразувайте ролите на вашия потребител в GrantedAuthority
+
         Collection<? extends GrantedAuthority> authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority(role.getName()))
                 .collect(Collectors.toList());
 
-        // Върнете UserDetails обект (Spring Security-товия User)
+
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(), // Вече е хеширана

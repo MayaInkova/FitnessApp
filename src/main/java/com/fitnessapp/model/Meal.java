@@ -5,9 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-// Добавен импорт за самостоятелния MealType
-import com.fitnessapp.model.MealType; // <-- Добавете този ред
+import com.fitnessapp.model.MealType;
 
 @Entity
 @Table(name = "meals")
@@ -18,7 +16,7 @@ import com.fitnessapp.model.MealType; // <-- Добавете този ред
 public class Meal {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id; // Уверете се, че е Integer или Long, според репозитория
+    private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "nutrition_plan_id")

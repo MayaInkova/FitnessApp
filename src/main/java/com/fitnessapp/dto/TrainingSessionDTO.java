@@ -14,7 +14,6 @@ import java.util.List;
 @Builder
 public class TrainingSessionDTO {
     private Integer id;
-    // Няма нужда от trainingPlanId тук, тъй като е вложен в TrainingPlanDTO
     private DayOfWeek dayOfWeek;
     private Integer durationMinutes;
     private List<ExerciseDTO> exercises; // Влагаме ExerciseDTO

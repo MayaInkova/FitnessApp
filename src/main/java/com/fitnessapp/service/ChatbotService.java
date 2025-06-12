@@ -19,7 +19,7 @@ public class ChatbotService {
     private final NutritionPlanService nutritionPlanService;
     private final TrainingPlanService trainingPlanService;
     private final UserRepository userRepository;
-    private final MealRepository mealRepository; // Не се използва директно тук, но е инжектиран
+    private final MealRepository mealRepository;
     private final DietTypeRepository dietTypeRepository;
     private final ActivityLevelRepository activityLevelRepository;
     private final GoalRepository goalRepository;
@@ -46,30 +46,30 @@ public class ChatbotService {
         this.roleRepository = roleRepository;
     }
 
-    // Клас за състоянието на сесията (вече публичен)
+    // Клас за състоянието на сесията
     public static class SessionState {
         String state = "ASK_DIET_EXPLANATION"; // Начално състояние
         String email;
         String fullName;
-        String dietType; // Име на DietType
+        String dietType;
         Double weight;
         Double height;
         Integer age;
-        String gender; // String представяне на GenderType
-        String goal; // Име на Goal
-        String activityLevel; // Име на ActivityLevel
-        String meatPreference; // String представяне на MeatPreferenceType
+        String gender;
+        String goal;
+        String activityLevel;
+        String meatPreference;
         Boolean consumesDairy;
-        String trainingType; // String представяне на TrainingType
+        String trainingType;
         Set<String> allergies = new HashSet<>();
         Set<String> otherDietaryPreferences = new HashSet<>();
         Integer trainingDaysPerWeek;
         Integer trainingDurationMinutes;
-        String level; // String представяне на LevelType
-        String mealFrequencyPreference; // String представяне на MealFrequencyPreferenceType (например "3", "4" или "3 пъти дневно")
+        String level;
+        String mealFrequencyPreference;
 
         // Добавени полета, които се използват в ChatbotController
-        public Integer userId; // КОРИГИРАНО: За потребителския ID, ако е влязъл
+        public Integer userId; // За потребителския ID, ако е влязъл
         public boolean isGuest = true; // Дали е гост потребител
         public boolean planGenerated = false; // Флаг дали планът вече е генериран за сесията
     }
@@ -143,7 +143,6 @@ public class ChatbotService {
         user.setFullName(session.fullName);
 
         // Задаваме временна парола (трябва да се хешира)
-        // В реално приложение, паролата би била подадена от потребителя и хеширана при регистрация.
         user.setPassword("temporary_password_hashed"); // Моля, заменете с хеширана парола в реално приложение
 
         // Извличане на обектите от репозиториите
@@ -159,7 +158,7 @@ public class ChatbotService {
         user.setWeight(session.weight);
         user.setHeight(session.height);
 
-        // КОРИГИРАНО: Преобразуване на String към GenderType
+        //  Преобразуване на String към GenderType
         if (session.gender != null) {
             try {
                 user.setGender(GenderType.fromString(session.gender));
@@ -179,7 +178,7 @@ public class ChatbotService {
 
         user.setConsumesDairy(session.consumesDairy);
 
-        // КОРИГИРАНО: Преобразуване на String към TrainingType
+        //  Преобразуване на String към TrainingType
         if (session.trainingType != null) {
             try {
                 user.setTrainingType(TrainingType.fromString(session.trainingType));
@@ -193,7 +192,7 @@ public class ChatbotService {
         user.setTrainingDaysPerWeek(session.trainingDaysPerWeek);
         user.setTrainingDurationMinutes(session.trainingDurationMinutes);
 
-        // КОРИГИРАНО: Преобразуване на String към LevelType
+        //  Преобразуване на String към LevelType
         if (session.level != null) {
             try {
                 user.setLevel(LevelType.fromString(session.level));
@@ -202,7 +201,7 @@ public class ChatbotService {
             }
         }
 
-        // КОРИГИРАНО: Преобразуване на String към MealFrequencyPreferenceType
+        //  Преобразуване на String към MealFrequencyPreferenceType
         if (session.mealFrequencyPreference != null) {
             try {
                 String displayString;
@@ -213,9 +212,6 @@ public class ChatbotService {
                     case "5": displayString = "5 пъти дневно"; break;
                     case "6": displayString = "6 пъти дневно"; break;
                     default:
-                        // Ако имате други дефиниции, добавете ги тук.
-                        // Например, ако '3_main' е валидно, трябва да се преобразува.
-                        // За момента, ако не е число, ще хвърли грешка.
                         throw new IllegalArgumentException("Невалидна честота на хранене в сесията: " + session.mealFrequencyPreference);
                 }
                 user.setMealFrequencyPreference(MealFrequencyPreferenceType.fromString(displayString));
@@ -275,7 +271,7 @@ public class ChatbotService {
                 dietName = "Standard";
                 break;
             case "протеинова":
-                dietName = "High-Protein"; // Предполагам, че имате такъв тип диета или Standard
+                dietName = "High-Protein";
                 break;
             case "кето":
                 dietName = "Keto";
@@ -391,16 +387,16 @@ public class ChatbotService {
                 activityLevelName = "Sedentary";
                 break;
             case "леко":
-                activityLevelName = "Lightly Active"; // Корекция: "Light" -> "Lightly Active"
+                activityLevelName = "Lightly Active";
                 break;
             case "умерено":
-                activityLevelName = "Moderately Active"; // Корекция: "Moderate" -> "Moderately Active"
+                activityLevelName = "Moderately Active";
                 break;
             case "активно":
-                activityLevelName = "Very Active"; // Корекция: "Active" -> "Very Active"
+                activityLevelName = "Very Active";
                 break;
             case "много активно":
-                activityLevelName = "Extra Active"; // Корекция: "Very Active" -> "Extra Active"
+                activityLevelName = "Extra Active";
                 break;
             default:
                 return "Не разбрах нивото на активност. Моля, изберете: **малко / леко / умерено / активно / много активно**";
@@ -420,7 +416,7 @@ public class ChatbotService {
         List<String> validPreferences = Arrays.asList("пилешко", "телешко", "риба", "свинско", "агнешко", "без месо", "няма значение");
 
         if (validPreferences.contains(input)) {
-            // КОРИГИРАНО: Съхраняваме оригиналния входен стринг, който `fromString` методът може да обработи.
+            //  Съхраняваме оригиналния входен стринг, който `fromString` методът може да обработи.
             session.meatPreference = input;
             session.state = "ASK_DAIRY_PREFERENCE";
             return "Консумирате ли млечни продукти? (да / не)";

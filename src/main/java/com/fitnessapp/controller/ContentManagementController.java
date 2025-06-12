@@ -41,7 +41,7 @@ public class ContentManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteGoal(@PathVariable Integer id) {
         goalService.deleteGoal(id);
-        return ResponseEntity.ok("✅ Целта е изтрита.");
+        return ResponseEntity.ok(" Целта е изтрита.");
     }
 
     // === РЕЦЕПТИ ===

@@ -125,7 +125,6 @@ public class UserService {
         Optional.ofNullable(userData.getTrainingDaysPerWeek()).ifPresent(user::setTrainingDaysPerWeek);
         Optional.ofNullable(userData.getTrainingDurationMinutes()).ifPresent(user::setTrainingDurationMinutes);
 
-        // КОРЕКЦИЯ ТУК: Преобразуване на String в MealFrequencyPreferenceType
         if (userData.getMealFrequencyPreference() != null) {
             try {
                 MealFrequencyPreferenceType mealFrequencyPreference = MealFrequencyPreferenceType.fromString(userData.getMealFrequencyPreference());

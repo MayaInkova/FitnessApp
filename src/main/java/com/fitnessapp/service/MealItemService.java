@@ -26,7 +26,6 @@ public class MealItemService {
     }
 
     public List<MealItem> getMealItemsByMealId(Integer mealId) {
-        // КОРИГИРАНО: Използвай findByMeal_Id, както е дефинирано в Repository
         return mealItemRepository.findByMeal_Id(mealId);
     }
 

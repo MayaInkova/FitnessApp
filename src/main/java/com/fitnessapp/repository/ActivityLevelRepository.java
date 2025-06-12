@@ -6,8 +6,7 @@ import java.util.Optional;
 
 public interface ActivityLevelRepository extends JpaRepository<ActivityLevel, Integer> {
 
-    // Добавете този метод, ако не съществува
+
     Optional<ActivityLevel> findByName(String name);
-    // Добавете този метод, ако не съществува (за case-insensitive търсене)
     Optional<ActivityLevel> findByNameIgnoreCase(String name);
 }

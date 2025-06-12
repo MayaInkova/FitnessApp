@@ -14,13 +14,13 @@ public class FullPlanDTO {
     private Double protein;
     private Double fat;
     private Double carbohydrates;
-    private String goalName; // Име на целта, а не целия обект
-    private List<MealDTO> meals; // Влагаме MealDTO, а не Meal Entity
+    private String goalName;
+    private List<MealDTO> meals;
 
     // Training Plan Details
     private Integer trainingPlanId; // ID на тренировъчния план
-    private String trainingPlanDescription; // Описание на тренировъчния план, ако има
+    private String trainingPlanDescription;
     private Integer trainingDaysPerWeek;
     private Integer trainingDurationMinutes;
-    private List<TrainingSessionDTO> trainingSessions; // Влагаме TrainingSessionDTO, а не TrainingSession Entity
+    private List<TrainingSessionDTO> trainingSessions;
 }

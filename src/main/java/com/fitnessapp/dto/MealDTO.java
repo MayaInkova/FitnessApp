@@ -12,7 +12,6 @@ import com.fitnessapp.model.MealType; // Използваме MealType enum
 @Builder
 public class MealDTO {
     private Integer id;
-    // Няма нужда от nutritionPlanId тук, тъй като MealDTO е вложен в NutritionPlanDTO
     private RecipeDTO recipe; // Влагаме RecipeDTO
     private MealType mealType; // Използваме enum
     private Double portionSize;

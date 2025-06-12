@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface TrainingPlanRepository extends JpaRepository<TrainingPlan, Integer> { // Променено от Long на Integer
+public interface TrainingPlanRepository extends JpaRepository<TrainingPlan, Integer> {
 
     Optional<TrainingPlan> findByUserAndDateGenerated(User user, LocalDate dateGenerated);
 

@@ -7,7 +7,7 @@ public enum MealType {
     BREAKFAST("Закуска"),
     LUNCH("Обяд"),
     DINNER("Вечеря"),
-    SNACK("Снак"); // Добавете всички ваши типове хранения
+    SNACK("Снак");
 
     private final String displayValue;
 
@@ -23,11 +23,10 @@ public enum MealType {
     @JsonCreator // Тази анотация е полезна за десериализация от JSON
     public static MealType fromString(String text) {
         for (MealType b : MealType.values()) {
-            // Сравняваме с displayValue за по-гъвкаво съвпадение
+            // Сравняваме с displayValue за по-гъвкаво съвпадениe
             if (b.displayValue.equalsIgnoreCase(text)) {
                 return b;
             }
-            // Може да добавите и сравнение с name() ако очаквате ENUM_NAME_CAPS
             if (b.name().equalsIgnoreCase(text)) {
                 return b;
             }

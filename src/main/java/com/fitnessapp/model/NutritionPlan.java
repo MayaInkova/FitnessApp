@@ -19,10 +19,10 @@ import java.util.List;
 public class NutritionPlan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id; // Променено от Long на Integer за консистентност
+    private Integer id;
 
-    @OneToOne(fetch = FetchType.LAZY) // Променено на OneToOne
-    @JoinColumn(name = "user_id", nullable = false, unique = true) // user_id е уникален за всеки план
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
     @Column(nullable = false)
@@ -48,7 +48,6 @@ public class NutritionPlan {
     private List<Meal> meals = new ArrayList<>();
 
     public void addMeal(Meal meal) {
-        // Проверката "if (this.meals == null)" е излишна заради @Builder.Default
         this.meals.add(meal);
         meal.setNutritionPlan(this);
     }

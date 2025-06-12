@@ -13,10 +13,10 @@ import com.fitnessapp.model.TrainingType;
 import com.fitnessapp.repository.TrainingPlanRepository;
 import com.fitnessapp.repository.ExerciseRepository;
 import com.fitnessapp.repository.TrainingSessionRepository;
-import com.fitnessapp.repository.UserRepository; // Added import for UserRepository
+import com.fitnessapp.repository.UserRepository;
 
-import org.slf4j.Logger; // Added import
-import org.slf4j.LoggerFactory; // Added import
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,23 +32,23 @@ import java.util.Random;
 @Service
 public class TrainingPlanService {
 
-    private static final Logger logger = LoggerFactory.getLogger(TrainingPlanService.class); // Added logger
+    private static final Logger logger = LoggerFactory.getLogger(TrainingPlanService.class);
 
     private final TrainingPlanRepository trainingPlanRepository;
     private final ExerciseRepository exerciseRepository;
     private final TrainingSessionRepository trainingSessionRepository;
-    private final UserRepository userRepository; // Added UserRepository for fixMissingTrainingPlans
+    private final UserRepository userRepository;
 
     @Autowired
     public TrainingPlanService(
             TrainingPlanRepository trainingPlanRepository,
             ExerciseRepository exerciseRepository,
             TrainingSessionRepository trainingSessionRepository,
-            UserRepository userRepository) { // Added UserRepository to constructor
+            UserRepository userRepository) {
         this.trainingPlanRepository = trainingPlanRepository;
         this.exerciseRepository = exerciseRepository;
         this.trainingSessionRepository = trainingSessionRepository;
-        this.userRepository = userRepository; // Initialize
+        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -182,13 +182,11 @@ public class TrainingPlanService {
         };
     }
 
-    // НОВ МЕТОД: fixMissingTrainingPlans (преместен от контролера и направен public)
     @Transactional
     public void fixMissingTrainingPlans() {
         logger.info("Starting to fix missing training plans.");
-        List<User> allUsers = userRepository.findAll(); // Assuming you have userRepository injected
+        List<User> allUsers = userRepository.findAll();
         for (User user : allUsers) {
-            // Check if user has a recent training plan (e.g., for today)
             Optional<TrainingPlan> existingPlan = trainingPlanRepository.findByUserAndDateGenerated(user, LocalDate.now());
             if (existingPlan.isEmpty()) {
                 logger.info("No training plan found for user {} for today. Generating a new one.", user.getFullName());

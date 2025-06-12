@@ -26,7 +26,6 @@ public class MealService {
     }
 
     public List<Meal> getMealsByPlanId(Integer planId) {
-        // КОРИГИРАНО: Използвай findByNutritionPlan_Id, както е дефинирано в Repository
         return mealRepository.findByNutritionPlan_Id(planId);
     }
 

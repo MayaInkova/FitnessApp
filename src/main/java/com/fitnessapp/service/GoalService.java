@@ -37,7 +37,6 @@ public class GoalService {
 
         existing.setName(updatedGoal.getName());
         existing.setDescription(updatedGoal.getDescription());
-        // Добавете .setCalorieModifier(), ако го имате в DTO и е необходимо
         if (updatedGoal.getCalorieModifier() != null) {
             existing.setCalorieModifier(updatedGoal.getCalorieModifier());
         }

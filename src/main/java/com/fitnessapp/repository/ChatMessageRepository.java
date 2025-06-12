@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Integer> {
-    List<ChatMessage> findBySession_Id(Integer sessionId); // THIS IS THE CORRECTED METHOD
+    List<ChatMessage> findBySession_Id(Integer sessionId);
 }

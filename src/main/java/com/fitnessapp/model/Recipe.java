@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.HashSet;
 import java.util.Set;
-import com.fitnessapp.model.MealType; // Уверете се, че този импорт е коректен
+import com.fitnessapp.model.MealType;
 
 @Entity
 @Table(name = "recipes")
@@ -56,6 +56,6 @@ public class Recipe {
     @Builder.Default // Добавено
     private Set<String> allergens = new HashSet<>();
 
-    @Enumerated(EnumType.STRING) // Използваме enum за тип месо
+    @Enumerated(EnumType.STRING)
     private MeatType meatType;
 }

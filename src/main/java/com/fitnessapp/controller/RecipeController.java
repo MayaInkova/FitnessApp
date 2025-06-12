@@ -14,7 +14,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/recipes")
-@CrossOrigin(origins = "*") // Allow requests from any origin (consider specific origin for production)
+@CrossOrigin(origins = "*")
 public class RecipeController {
 
     private static final Logger logger = LoggerFactory.getLogger(RecipeController.class);
@@ -42,7 +42,7 @@ public class RecipeController {
                 });
     }
 
-    // КОРЕКЦИЯ ТУК: Променяме името на ендпойнта и начина на работа с MealType
+    // Променяме името на ендпойнта и начина на работа с MealType
     @GetMapping("/by-meal-type/{mealTypeString}") // Използваме String от пътя
     public ResponseEntity<List<Recipe>> getRecipesByMealType(@PathVariable String mealTypeString) {
         try {
@@ -59,8 +59,6 @@ public class RecipeController {
         }
     }
 
-    // Можете да добавите и други CRUD операции (POST, PUT, DELETE), ако са необходими
-    // Примери (могат да изискват @PreAuthorize):
 
     @PostMapping
     // @PreAuthorize("hasRole('ADMIN')") // Пример за сигурност

@@ -19,8 +19,8 @@ public class ExerciseDTO {
     private Integer sets;
     private Integer reps;
     private Integer durationMinutes;
-    private ExerciseType type; // Използваме enum
-    private DifficultyLevel difficultyLevel; // Използваме enum
-    private EquipmentType equipment; // Използваме enum
-    // Няма нужда от trainingSessionId тук, тъй като ExerciseDTO е вложен в TrainingSessionDTO
+    private ExerciseType type;
+    private DifficultyLevel difficultyLevel;
+    private EquipmentType equipment;
+
 }

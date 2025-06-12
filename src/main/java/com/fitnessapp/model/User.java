@@ -88,7 +88,7 @@ public class User {
     @Builder.Default
     private Set<Role> roles = new HashSet<>();
 
-    // НОВИ: OneToOne връзки към TrainingPlan и NutritionPlan
+    //  OneToOne връзки към TrainingPlan и NutritionPlan
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private TrainingPlan trainingPlan;
 

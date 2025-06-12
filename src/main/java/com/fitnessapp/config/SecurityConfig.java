@@ -52,7 +52,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/users/register", // Регистрация
                                 "/api/users/login",    // Вход
-                                "/api/chatbot/**",     // Чатбот (ако е публичен)
+                                "/api/chatbot/**",     // Чатбот
                                 "/api/guest/**"        // Специфични ендпойнти за гости
                         ).permitAll()
 

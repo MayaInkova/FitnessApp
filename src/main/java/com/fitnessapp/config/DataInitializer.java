@@ -1,7 +1,7 @@
 package com.fitnessapp.config;
 
-import com.fitnessapp.model.*; // Включва всички енъми и класове
-        import com.fitnessapp.repository.*; // Включва всички репозитории
+import com.fitnessapp.model.*;
+        import com.fitnessapp.repository.*;
         import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;

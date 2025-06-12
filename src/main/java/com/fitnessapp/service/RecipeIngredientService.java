@@ -22,7 +22,6 @@ public class RecipeIngredientService {
     }
 
     public List<RecipeIngredient> getByRecipeId(Integer recipeId) {
-        // КОРИГИРАНО: Използвай findByRecipe_Id, както е дефинирано в Repository
         return recipeIngredientRepository.findByRecipe_Id(recipeId);
     }
 

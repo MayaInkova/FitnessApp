@@ -27,13 +27,13 @@ public class Exercise {
     private Integer reps;
     private Integer durationMinutes;
 
-    @Enumerated(EnumType.STRING) // Използваме enum за тип упражнение
+    @Enumerated(EnumType.STRING)
     private ExerciseType type;
 
-    @Enumerated(EnumType.STRING) // Използваме enum за ниво на трудност
+    @Enumerated(EnumType.STRING)
     private DifficultyLevel difficultyLevel;
 
-    @Enumerated(EnumType.STRING) // Използваме enum за оборудване
+    @Enumerated(EnumType.STRING)
     private EquipmentType equipment;
 
     @ManyToOne(fetch = FetchType.LAZY)
