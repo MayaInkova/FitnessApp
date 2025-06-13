@@ -16,5 +16,5 @@ public class TrainingSessionDTO {
     private Integer id;
     private DayOfWeek dayOfWeek;
     private Integer durationMinutes;
-    private List<ExerciseDTO> exercises; // Влагаме ExerciseDTO
+    private List<ExerciseDTO> exercises;
 }

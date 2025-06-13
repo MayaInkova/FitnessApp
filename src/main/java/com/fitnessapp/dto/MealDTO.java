@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.fitnessapp.model.MealType; // Използваме MealType enum
+import com.fitnessapp.model.MealType;
 
 @Data
 @NoArgsConstructor
@@ -12,7 +12,7 @@ import com.fitnessapp.model.MealType; // Използваме MealType enum
 @Builder
 public class MealDTO {
     private Integer id;
-    private RecipeDTO recipe; // Влагаме RecipeDTO
-    private MealType mealType; // Използваме enum
+    private RecipeDTO recipe;
+    private MealType mealType;
     private Double portionSize;
 }

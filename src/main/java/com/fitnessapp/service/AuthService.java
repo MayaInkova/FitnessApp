@@ -29,7 +29,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
 
-    // КОРИГИРАНО: Добавен конструктор за инжекция на всички private final полета
+
     @Autowired
     public AuthService(UserRepository userRepository,
                        RoleRepository roleRepository,
@@ -101,5 +101,3 @@ public class AuthService {
                 .build();
     }
 }
-
-

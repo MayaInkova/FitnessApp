@@ -1,6 +1,7 @@
 package com.fitnessapp.controller;
 
 import com.fitnessapp.dto.UserUpdateRequest;
+import com.fitnessapp.dto.UserResponseDTO;
 import com.fitnessapp.model.User;
 import com.fitnessapp.service.UserService;
 import org.slf4j.Logger;
@@ -12,10 +13,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/users") // Базов път за всички ендпойнти в този контролер
-@CrossOrigin(origins = "*") // Разрешаване на CORS
+@RequestMapping("/api/users")
+@CrossOrigin(origins = "*")
 
 
 public class UserController {
@@ -31,31 +33,32 @@ public class UserController {
 
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')") // Само за администратори
-    public ResponseEntity<List<User>> getAllUsers() {
+    public ResponseEntity<List<UserResponseDTO>> getAllUsers() { // Променен тип на връщане на DTO
         logger.info("Получена GET заявка за всички потребители.");
-        List<User> users = userService.getAllUsers();
+        List<UserResponseDTO> users = userService.getAllUsersDTO(); // Извиква новия метод
         return ResponseEntity.ok(users);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated() and (#id == authentication.principal.id or hasRole('ADMIN'))") // Само за собственика или ADMIN
-    public ResponseEntity<User> getUserById(@PathVariable Integer id) {
+    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable Integer id) {
         logger.info("Получена GET заявка за потребител с ID: {}", id);
-        User user = userService.getUserById(id);
-        if (user == null) {
+        Optional<UserResponseDTO> userDTO = userService.getUserByIdDTO(id);
+        if (userDTO.isEmpty()) {
             logger.warn("Потребител с ID {} не е намерен.", id);
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(userDTO.get()); // Връщаме DTO
     }
+
 
     @PutMapping("/{id}")
     @PreAuthorize("isAuthenticated() and (#id == authentication.principal.id or hasRole('ADMIN'))") // Само за собственика или ADMIN
-    public ResponseEntity<User> updateUser(@PathVariable Integer id, @RequestBody UserUpdateRequest updateRequest) {
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Integer id, @RequestBody UserUpdateRequest updateRequest) { // Променен тип на връщане на DTO
         logger.info("Получена PUT заявка за актуализация на потребител с ID: {}", id);
         try {
 
-            User updatedUser = userService.updateUserProfile(id, updateRequest);
+            UserResponseDTO updatedUser = userService.updateUserProfile(id, updateRequest);
             return ResponseEntity.ok(updatedUser);
         } catch (RuntimeException e) {
             logger.error("Грешка при актуализация на потребител с ID {}: {}", id, e.getMessage());
@@ -66,9 +69,8 @@ public class UserController {
         }
     }
 
-
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')") // Обикновено само за администратори
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> deleteUser(@PathVariable Integer id) {
         logger.info("Получена DELETE заявка за потребител с ID: {}", id);
         try {

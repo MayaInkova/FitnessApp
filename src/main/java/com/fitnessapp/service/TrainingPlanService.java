@@ -1,34 +1,23 @@
 package com.fitnessapp.service;
 
-
-import com.fitnessapp.model.Exercise;
-import com.fitnessapp.model.TrainingPlan;
-import com.fitnessapp.model.TrainingSession;
-import com.fitnessapp.model.User;
-import com.fitnessapp.model.DifficultyLevel;
-import com.fitnessapp.model.ExerciseType;
-import com.fitnessapp.model.LevelType;
-import com.fitnessapp.model.TrainingType;
-
-import com.fitnessapp.repository.TrainingPlanRepository;
+import com.fitnessapp.dto.ExerciseDTO;
+import com.fitnessapp.dto.TrainingPlanDTO;
+import com.fitnessapp.dto.TrainingSessionDTO;
+import com.fitnessapp.model.*;
 import com.fitnessapp.repository.ExerciseRepository;
+import com.fitnessapp.repository.TrainingPlanRepository;
 import com.fitnessapp.repository.TrainingSessionRepository;
 import com.fitnessapp.repository.UserRepository;
-
+import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class TrainingPlanService {
@@ -41,11 +30,10 @@ public class TrainingPlanService {
     private final UserRepository userRepository;
 
     @Autowired
-    public TrainingPlanService(
-            TrainingPlanRepository trainingPlanRepository,
-            ExerciseRepository exerciseRepository,
-            TrainingSessionRepository trainingSessionRepository,
-            UserRepository userRepository) {
+    public TrainingPlanService(TrainingPlanRepository trainingPlanRepository,
+                               ExerciseRepository exerciseRepository,
+                               TrainingSessionRepository trainingSessionRepository,
+                               UserRepository userRepository) {
         this.trainingPlanRepository = trainingPlanRepository;
         this.exerciseRepository = exerciseRepository;
         this.trainingSessionRepository = trainingSessionRepository;
@@ -54,212 +42,220 @@ public class TrainingPlanService {
 
     @Transactional
     public TrainingPlan generateAndSaveTrainingPlanForUser(User user) {
-        //  ВАЛИДАЦИЯ: Проверяваме дали всички необходими потребителски данни са налице
-        validateUserProfileForTrainingPlanGeneration(user); // Добавена валидация
+        validateUserProfileForTrainingPlanGeneration(user);
 
-        //  Проверка за съществуващ план за деня
         Optional<TrainingPlan> existingPlan =
                 trainingPlanRepository.findByUserAndDateGenerated(user, LocalDate.now());
         if (existingPlan.isPresent()) {
-            logger.info(
-                    "Existing training plan found for user {}. Returning existing plan.",
-                    user.getFullName());
+            logger.info("Existing training plan found for user {}. Returning existing plan.", user.getFullName());
             return existingPlan.get();
         }
 
-        //  Извличане на потребителски предпочитания
         LevelType userLevel = user.getLevel();
         TrainingType userTrainingType = user.getTrainingType();
 
-        //  Изграждане на нов TrainingPlan
-        TrainingPlan trainingPlan =
-                TrainingPlan.builder()
-                        .user(user)
-                        .dateGenerated(LocalDate.now())
-                        .daysPerWeek(
-                                user.getTrainingDaysPerWeek() != null
-                                        ? user.getTrainingDaysPerWeek()
-                                        : getDefaultTrainingDays(userLevel))
-                        .durationMinutes(
-                                user.getTrainingDurationMinutes() != null
-                                        ? user.getTrainingDurationMinutes()
-                                        : getDefaultTrainingDuration(userLevel))
-                     //  Експлицитна инициализация на списъка с тренировъчни сесии
-                        .trainingSessions(new ArrayList<>())
-                        .build();
+        TrainingPlan trainingPlan = TrainingPlan.builder()
+                .user(user)
+                .dateGenerated(LocalDate.now())
+                .daysPerWeek(Optional.ofNullable(user.getTrainingDaysPerWeek()).orElse(getDefaultTrainingDays(userLevel)))
+                .durationMinutes(Optional.ofNullable(user.getTrainingDurationMinutes()).orElse(getDefaultTrainingDuration(userLevel)))
+                .trainingSessions(new ArrayList<>()) // Инициализираме празен списък
+                .build();
 
-        //  Генериране на тренировъчни сесии
+        // *** КОРИГИРАН РЕД: Запазете TrainingPlan ПЪРВО, за да получи ID ***
+        trainingPlan = trainingPlanRepository.save(trainingPlan);
+
         int daysPerWeek = trainingPlan.getDaysPerWeek();
         int durationMinutesPerSession = trainingPlan.getDurationMinutes();
         Random random = new Random();
 
-        List<DayOfWeek> selectedTrainingDays = selectTrainingDays(daysPerWeek);
+        List<DayOfWeek> selectedDays = selectTrainingDays(daysPerWeek);
 
-        for (DayOfWeek day : selectedTrainingDays) {
-            TrainingSession session =
-                    TrainingSession.builder()
-                            .trainingPlan(trainingPlan)
-                            .dayOfWeek(day)
-                            .durationMinutes(durationMinutesPerSession)
-                            .build();
+        for (DayOfWeek day : selectedDays) {
+            TrainingSession session = TrainingSession.builder()
+                    .dayOfWeek(day)
+                    .durationMinutes(durationMinutesPerSession)
+                    .trainingPlan(trainingPlan) // Сега trainingPlan има ID и е постоянен обект
+                    .build();
 
-            //  Избор на упражнения за сесията
-            List<Exercise> availableExercises;
-            List<Exercise> filteredByLevelAndType =
-                    exerciseRepository.findByDifficultyLevelAndType(
-                            getDifficultyLevelEnum(userLevel), getExerciseTypeEnum(userTrainingType));
-
-            if (!filteredByLevelAndType.isEmpty()) {
-                availableExercises = filteredByLevelAndType;
-            } else {
-                logger.warn("No exercises found for level {} and type {}. Trying only by type.", userLevel, userTrainingType);
-                List<Exercise> filteredByType =
-                        exerciseRepository.findByType(getExerciseTypeEnum(userTrainingType));
-                if (!filteredByType.isEmpty()) {
-                    availableExercises = filteredByType;
-                } else {
-                    logger.warn("No exercises found for type {}. Falling back to all exercises.", userTrainingType);
-                    availableExercises = exerciseRepository.findAll();
-                }
+            List<Exercise> exercises = getExercisesForUser(userLevel, userTrainingType);
+            if (exercises.isEmpty()) {
+                logger.warn("No available exercises for {}. Skipping session.", day);
+                continue;
             }
 
-            //  Добавяне на упражнения към сесията
-            if (availableExercises.isEmpty()) {
-                logger.warn("No available exercises found for training session on {}. Skipping session.", day);
-                continue; // Пропускаме тази сесия, ако няма упражнения
+            Collections.shuffle(exercises);
+            int count = Math.min(exercises.size(), 5 + random.nextInt(4));
+            for (int i = 0; i < count; i++) {
+                session.addExercise(exercises.get(i));
             }
 
-            int numExercises = Math.min(availableExercises.size(), 5 + random.nextInt(4)); // между 5 и 8 упражнения
-            Collections.shuffle(availableExercises);
-
-            for (int j = 0; j < numExercises; j++) {
-                if (j < availableExercises.size()) {
-                    session.addExercise(availableExercises.get(j));
-                }
-            }
-            // Добавяме сесията към trainingPlan чрез хелпер метода
-            trainingPlan.addTrainingSession(session);
+            // Запазете сесията. Тя вече коректно препраща към запазения TrainingPlan.
+            trainingSessionRepository.save(session);
+            trainingPlan.addTrainingSession(session); // Добавяме запазената сесия към списъка в плана
         }
 
-        //  Запазване на генерирания план
+        // Финално запазване на плана, за да се гарантира, че колекцията от сесии е запазена (ако няма каскадни опции)
+        // Но основният проблем с TransientPropertyValueException е решен от горното запазване на trainingPlan.
         return trainingPlanRepository.save(trainingPlan);
     }
 
+    private List<Exercise> getExercisesForUser(LevelType level, TrainingType type) {
+        DifficultyLevel diff = getDifficultyLevelEnum(level);
+        ExerciseType exType = getExerciseTypeEnum(type);
+
+        List<Exercise> filtered = exerciseRepository.findByDifficultyLevelAndType(diff, exType);
+        if (!filtered.isEmpty()) return filtered;
+
+        List<Exercise> byType = exerciseRepository.findByType(exType);
+        if (!byType.isEmpty()) return byType;
+
+        return exerciseRepository.findAll();
+    }
 
     private void validateUserProfileForTrainingPlanGeneration(User user) {
-        List<String> missingFields = new ArrayList<>();
-        // Основни данни за физически изчисления
-        if (user.getGender() == null) missingFields.add("пол");
-        if (user.getAge() == null) missingFields.add("възраст");
-        if (user.getHeight() == null) missingFields.add("ръст"); // Използваме getHeight()
-        if (user.getWeight() == null) missingFields.add("тегло"); // Използваме getWeight()
-        if (user.getActivityLevel() == null) missingFields.add("ниво на активност");
-        if (user.getGoal() == null) missingFields.add("цел");
+        List<String> missing = new ArrayList<>();
+        if (user.getGender() == null) missing.add("пол");
+        if (user.getAge() == null) missing.add("възраст");
+        if (user.getHeight() == null) missing.add("ръст");
+        if (user.getWeight() == null) missing.add("тегло");
+        if (user.getActivityLevel() == null) missing.add("ниво на активност");
+        if (user.getGoal() == null) missing.add("цел");
+        if (user.getTrainingType() == null) missing.add("тип тренировка");
+        if (user.getLevel() == null) missing.add("ниво на подготовка");
+        if (user.getTrainingDaysPerWeek() == null) missing.add("тренировъчни дни");
+        if (user.getTrainingDurationMinutes() == null) missing.add("продължителност");
 
-        // Данни специфични за тренировъчен план
-        if (user.getTrainingType() == null) missingFields.add("тип тренировка");
-        if (user.getLevel() == null) missingFields.add("ниво на подготовка");
-        if (user.getTrainingDaysPerWeek() == null) missingFields.add("тренировъчни дни на седмица");
-        if (user.getTrainingDurationMinutes() == null) missingFields.add("продължителност на тренировка");
-
-
-        if (!missingFields.isEmpty()) {
-            String errorMessage = "Моля, попълнете всички задължителни данни за профила си (липсващи: " +
-                    String.join(", ", missingFields) +
-                    ") чрез чатбота или секция 'Профил', преди да генерирате тренировъчен план.";
-            throw new IllegalArgumentException(errorMessage);
+        if (!missing.isEmpty()) {
+            throw new IllegalArgumentException("Попълнете липсващите полета: " + String.join(", ", missing));
         }
     }
 
-    private List<DayOfWeek> selectTrainingDays(int daysPerWeek) {
-        List<DayOfWeek> allDays =
-                Arrays.asList(
-                        DayOfWeek.MONDAY,
-                        DayOfWeek.TUESDAY,
-                        DayOfWeek.WEDNESDAY,
-                        DayOfWeek.THURSDAY,
-                        DayOfWeek.FRIDAY,
-                        DayOfWeek.SATURDAY,
-                        DayOfWeek.SUNDAY);
-        Collections.shuffle(allDays);
-        return allDays.subList(0, Math.min(daysPerWeek, allDays.size()));
+    private List<DayOfWeek> selectTrainingDays(int days) {
+        List<DayOfWeek> daysList = Arrays.asList(DayOfWeek.values());
+        Collections.shuffle(daysList);
+        return daysList.subList(0, Math.min(days, 7));
     }
 
-    private Integer getDefaultTrainingDays(LevelType userLevel) {
-        if (userLevel == null) {
-            return 3;
-        }
-        return switch (userLevel) {
+    private int getDefaultTrainingDays(LevelType level) {
+        return switch (level) {
             case BEGINNER -> 3;
             case INTERMEDIATE -> 4;
             case ADVANCED -> 5;
+            default -> 3;
         };
     }
 
-    private Integer getDefaultTrainingDuration(LevelType userLevel) {
-        if (userLevel == null) {
-            return 60;
-        }
-        return switch (userLevel) {
+    private int getDefaultTrainingDuration(LevelType level) {
+        return switch (level) {
             case BEGINNER -> 45;
             case INTERMEDIATE -> 60;
             case ADVANCED -> 75;
+            default -> 60;
         };
     }
 
-    private DifficultyLevel getDifficultyLevelEnum(LevelType levelType) {
-        if (levelType == null) {
-            return DifficultyLevel.BEGINNER;
-        }
-        return switch (levelType) {
+    private DifficultyLevel getDifficultyLevelEnum(LevelType level) {
+        return switch (level) {
             case BEGINNER -> DifficultyLevel.BEGINNER;
             case INTERMEDIATE -> DifficultyLevel.INTERMEDIATE;
             case ADVANCED -> DifficultyLevel.ADVANCED;
         };
     }
 
-    private ExerciseType getExerciseTypeEnum(TrainingType trainingType) {
-        if (trainingType == null) {
-            return ExerciseType.WEIGHTS;
-        }
-        return switch (trainingType) {
+    private ExerciseType getExerciseTypeEnum(TrainingType type) {
+        return switch (type) {
             case WEIGHTS -> ExerciseType.WEIGHTS;
             case BODYWEIGHT -> ExerciseType.BODYWEIGHT;
             case CARDIO -> ExerciseType.CARDIO;
         };
     }
 
+    public TrainingPlanDTO convertTrainingPlanToDTO(TrainingPlan plan) {
+        if (plan == null) return null;
+        Hibernate.initialize(plan.getUser());
+        Hibernate.initialize(plan.getTrainingSessions());
+
+        List<TrainingSessionDTO> sessionDTOs = plan.getTrainingSessions().stream()
+                .map(this::convertSessionToDTO)
+                .collect(Collectors.toList());
+
+        return TrainingPlanDTO.builder()
+                .id(plan.getId())
+                .dateGenerated(plan.getDateGenerated())
+                .daysPerWeek(plan.getDaysPerWeek())
+                .durationMinutes(plan.getDurationMinutes())
+                .userId(plan.getUser().getId())
+                .userEmail(plan.getUser().getEmail())
+                .trainingSessions(sessionDTOs)
+                .build();
+    }
+
+    private TrainingSessionDTO convertSessionToDTO(TrainingSession session) {
+        Hibernate.initialize(session.getExercises());
+
+        List<ExerciseDTO> exerciseDTOs = session.getExercises().stream()
+                .map(ex -> ExerciseDTO.builder()
+                        .id(ex.getId())
+                        .name(ex.getName())
+                        .description(ex.getDescription())
+                        .sets(ex.getSets())
+                        .reps(ex.getReps())
+                        .durationMinutes(ex.getDurationMinutes())
+                        .type(ex.getType())
+                        .difficultyLevel(ex.getDifficultyLevel())
+                        .equipment(ex.getEquipment())
+                        .build())
+                .collect(Collectors.toList());
+
+        return TrainingSessionDTO.builder()
+                .id(session.getId())
+                .dayOfWeek(session.getDayOfWeek())
+                .durationMinutes(session.getDurationMinutes())
+                .exercises(exerciseDTOs)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TrainingPlanDTO> getAllTrainingPlansDTO() {
+        return trainingPlanRepository.findAll().stream()
+                .map(this::convertTrainingPlanToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public TrainingPlanDTO generateAndSaveTrainingPlanForUserDTO(User user) {
+        TrainingPlan plan = generateAndSaveTrainingPlanForUser(user);
+        return convertTrainingPlanToDTO(plan);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TrainingPlanDTO> getTrainingPlansByUserDTO(User user) {
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User with ID " + user.getId() + " not found."));
+        return trainingPlanRepository.findByUserOrderByDateGeneratedDesc(managedUser).stream()
+                .map(this::convertTrainingPlanToDTO)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public void fixMissingTrainingPlans() {
-        logger.info("Starting to fix missing training plans.");
-        List<User> allUsers = userRepository.findAll();
-        for (User user : allUsers) {
-            Optional<TrainingPlan> existingPlan = trainingPlanRepository.findByUserAndDateGenerated(user, LocalDate.now());
-            if (existingPlan.isEmpty()) {
-                logger.info("No training plan found for user {} for today. Generating a new one.", user.getFullName());
+        logger.info("Fixing missing training plans...");
+        userRepository.findAll().forEach(user -> {
+            if (trainingPlanRepository.findByUserAndDateGenerated(user, LocalDate.now()).isEmpty()) {
                 try {
-                    validateUserProfileForTrainingPlanGeneration(user);
-                    generateAndSaveTrainingPlanForUser(user);
+                    TrainingPlan plan = generateAndSaveTrainingPlanForUser(user);
+                    logger.info("Generated plan for user: {}", user.getEmail());
                 } catch (Exception e) {
-                    logger.error("Failed to generate training plan for user {}: {}", user.getFullName(), e.getMessage(), e);
+                    logger.error("Error for {}: {}", user.getEmail(), e.getMessage());
                 }
-            } else {
-                logger.info("Training plan already exists for user {} for today.", user.getFullName());
             }
-        }
-        logger.info("Finished fixing missing training plans.");
+        });
     }
 
-    public List<TrainingPlan> getAll() {
-        return trainingPlanRepository.findAll();
-    }
-
-    public TrainingPlan getRecommended(String goal, boolean withWeights) {
-        logger.warn("getRecommended method is called but not fully implemented.");
+    @Transactional(readOnly = true)
+    public TrainingPlanDTO getRecommendedTrainingPlanDTO(String goal, boolean withWeights) {
+        logger.warn("Not implemented: getRecommendedTrainingPlanDTO");
         return null;
-    }
-
-    public List<TrainingPlan> getTrainingPlansByUser(User user) {
-        return trainingPlanRepository.findByUserOrderByDateGeneratedDesc(user);
     }
 }

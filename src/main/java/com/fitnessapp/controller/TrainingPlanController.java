@@ -1,15 +1,16 @@
 package com.fitnessapp.controller;
 
-import com.fitnessapp.model.TrainingPlan;
+import com.fitnessapp.dto.TrainingPlanDTO; // Added import for TrainingPlanDTO
 import com.fitnessapp.service.TrainingPlanService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity; // For better response handling
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 
 @RestController
-@RequestMapping("/api/training") // Това е базовият път за този контролер
-@CrossOrigin(origins = "*") // Разрешаване на CORS
+@RequestMapping("/api/training") // This is the base path for this controller
+@CrossOrigin(origins = "*") // Allow CORS from all origins
 public class TrainingPlanController {
 
     private final TrainingPlanService trainingPlanService;
@@ -19,16 +20,20 @@ public class TrainingPlanController {
         this.trainingPlanService = trainingPlanService;
     }
 
+
     @GetMapping("/all")
-    public List<TrainingPlan> getAll() {
-        return trainingPlanService.getAll();
+    public ResponseEntity<List<TrainingPlanDTO>> getAll() { // Changed return type to DTO
+        List<TrainingPlanDTO> plans = trainingPlanService.getAllTrainingPlansDTO(); // Call DTO-returning method
+        return ResponseEntity.ok(plans);
     }
+
 
     @GetMapping("/recommend")
-    public TrainingPlan recommend(@RequestParam String goal, @RequestParam boolean withWeights) {
-
-        return trainingPlanService.getRecommended(goal, withWeights);
+    public ResponseEntity<TrainingPlanDTO> recommend(@RequestParam String goal, @RequestParam boolean withWeights) {
+        TrainingPlanDTO recommendedPlan = trainingPlanService.getRecommendedTrainingPlanDTO(goal, withWeights);
+        if (recommendedPlan == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(recommendedPlan);
     }
-
-
 }

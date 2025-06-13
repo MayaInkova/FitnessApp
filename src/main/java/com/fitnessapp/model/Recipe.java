@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode; // Добавете EqualsAndHashCode
 import lombok.NoArgsConstructor;
 
 
@@ -38,7 +39,7 @@ public class Recipe {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "recipe_tags", joinColumns = @JoinColumn(name = "recipe_id"))
     @Column(name = "tag")
-    @Builder.Default // Добавено, за да работи builder коректно с колекции
+    @Builder.Default
     private Set<String> tags = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
@@ -48,12 +49,13 @@ public class Recipe {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diet_type_id")
+    @EqualsAndHashCode.Exclude // ИЗКЛЮЧЕТЕ
     private DietType dietType;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "recipe_allergens", joinColumns = @JoinColumn(name = "recipe_id"))
     @Column(name = "allergen")
-    @Builder.Default // Добавено
+    @Builder.Default
     private Set<String> allergens = new HashSet<>();
 
     @Enumerated(EnumType.STRING)

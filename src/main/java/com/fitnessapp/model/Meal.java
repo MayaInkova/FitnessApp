@@ -1,15 +1,13 @@
 package com.fitnessapp.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import com.fitnessapp.model.MealType;
 
 @Entity
 @Table(name = "meals")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -27,8 +25,20 @@ public class Meal {
     private Recipe recipe;
 
     @Enumerated(EnumType.STRING)
-    private MealType mealType; // Вече използва самостоятелния MealType
+    private MealType mealType;
 
     private Double portionSize;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Meal meal = (Meal) o;
+        return id != null && id.equals(meal.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31;
+    }
 }

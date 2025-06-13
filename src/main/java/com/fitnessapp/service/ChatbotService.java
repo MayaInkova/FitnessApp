@@ -1,7 +1,7 @@
 package com.fitnessapp.service;
 
 import com.fitnessapp.model.*;
-        import com.fitnessapp.repository.MealRepository;
+import com.fitnessapp.repository.MealRepository;
 import com.fitnessapp.repository.UserRepository;
 import com.fitnessapp.repository.DietTypeRepository;
 import com.fitnessapp.repository.ActivityLevelRepository;
@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-        import java.util.stream.Collectors;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatbotService {
@@ -68,18 +68,17 @@ public class ChatbotService {
         String level;
         String mealFrequencyPreference;
 
-        // Добавени полета, които се използват в ChatbotController
-        public Integer userId; // За потребителския ID, ако е влязъл
-        public boolean isGuest = true; // Дали е гост потребител
-        public boolean planGenerated = false; // Флаг дали планът вече е генериран за сесията
+        public Integer userId;
+        public boolean isGuest = true;
+        public boolean planGenerated = false;
     }
 
-    // Метод за извличане или създаване на сесия
+
     public SessionState getOrCreateSession(String sessionId) {
         return sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
     }
 
-    // Метод за нулиране на сесията
+
     private void resetSession(String sessionId) {
         sessionMap.put(sessionId, new SessionState());
     }
@@ -125,13 +124,13 @@ public class ChatbotService {
         return response;
     }
 
-    // Метод за проверка дали сесията е готова за генериране на план
+
     public boolean isReadyToGeneratePlan(String sessionId) {
         SessionState session = sessionMap.get(sessionId);
         return session != null && "DONE".equals(session.state);
     }
 
-    // Метод за генериране на план за хранене и тренировки, връщащ NutritionPlan
+
     public NutritionPlan generatePlan(String sessionId) {
         SessionState session = sessionMap.get(sessionId);
         if (session == null || !"DONE".equals(session.state)) {
@@ -142,10 +141,10 @@ public class ChatbotService {
         user.setEmail(session.email);
         user.setFullName(session.fullName);
 
-        // Задаваме временна парола (трябва да се хешира)
-        user.setPassword("temporary_password_hashed"); // Моля, заменете с хеширана парола в реално приложение
 
-        // Извличане на обектите от репозиториите
+        user.setPassword("temporary_password_hashed");
+
+
         user.setDietType(dietTypeRepository.findByNameIgnoreCase(session.dietType)
                 .orElseThrow(() -> new RuntimeException("DietType не е намерен: " + session.dietType)));
         user.setActivityLevel(activityLevelRepository.findByNameIgnoreCase(session.activityLevel)
@@ -153,12 +152,12 @@ public class ChatbotService {
         user.setGoal(goalRepository.findByNameIgnoreCase(session.goal)
                 .orElseThrow(() -> new RuntimeException("Goal не е намерен: " + session.goal)));
 
-        // Попълване на останалите данни
+
         user.setAge(session.age);
         user.setWeight(session.weight);
         user.setHeight(session.height);
 
-        //  Преобразуване на String към GenderType
+
         if (session.gender != null) {
             try {
                 user.setGender(GenderType.fromString(session.gender));
@@ -167,7 +166,7 @@ public class ChatbotService {
             }
         }
 
-        // КОРИГИРАНО: Преобразуване на String към MeatPreferenceType
+
         if (session.meatPreference != null) {
             try {
                 user.setMeatPreference(MeatPreferenceType.fromString(session.meatPreference));
@@ -178,7 +177,7 @@ public class ChatbotService {
 
         user.setConsumesDairy(session.consumesDairy);
 
-        //  Преобразуване на String към TrainingType
+
         if (session.trainingType != null) {
             try {
                 user.setTrainingType(TrainingType.fromString(session.trainingType));
@@ -192,7 +191,7 @@ public class ChatbotService {
         user.setTrainingDaysPerWeek(session.trainingDaysPerWeek);
         user.setTrainingDurationMinutes(session.trainingDurationMinutes);
 
-        //  Преобразуване на String към LevelType
+
         if (session.level != null) {
             try {
                 user.setLevel(LevelType.fromString(session.level));
@@ -201,7 +200,7 @@ public class ChatbotService {
             }
         }
 
-        //  Преобразуване на String към MealFrequencyPreferenceType
+
         if (session.mealFrequencyPreference != null) {
             try {
                 String displayString;
@@ -221,12 +220,12 @@ public class ChatbotService {
         }
 
 
-        // Задаваме роля по подразбиране (напр. ROLE_USER)
+
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseThrow(() -> new RuntimeException("ROLE_USER не е намерен!"));
         user.setRoles(Set.of(userRole));
 
-        // Запазваме потребителя
+
         User savedUser = userRepository.save(user);
 
         // Генерираме и запазваме плана за хранене и връщаме NutritionPlan

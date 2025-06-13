@@ -1,17 +1,28 @@
 package com.fitnessapp.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor; // Добавено NoArgsConstructor за Lombok
+import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
-@NoArgsConstructor // Добра практика за DTOs, особено ако Lombok го ползва
+@NoArgsConstructor
+@Builder // Добавен Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class NutritionPlanDTO {
-    private Integer id; // ID е Integer
-    private Double calories;
+    private Integer id;
+    private LocalDate dateGenerated;
+    private Double targetCalories;
     private Double protein;
     private Double fat;
-    private Double carbs;
-    private String goalName; // Име на целта (String)
+    private Double carbohydrates;
+    private String goalName;
+    private Integer userId;
+    private String userEmail;
+    private List<MealDTO> meals;
 }

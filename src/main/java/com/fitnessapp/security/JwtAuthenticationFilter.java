@@ -5,62 +5,82 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component; // ДОБАВЕН ИМПОРТ ЗА @Component
-import org.springframework.util.StringUtils;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component // ***ДОБАВЕНО: Указва на Spring, че това е компонент и трябва да бъде управляван bean***
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     @Autowired
-    private JwtTokenProvider tokenProvider;
+    private JwtTokenProvider jwtTokenProvider;
 
     @Autowired
     private CustomUserDetailsService customUserDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-        try {
-            String jwt = getJwtFromRequest(request);
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+        // Извличане на токена от хедъра на заявката
+        String header = request.getHeader("Authorization");
+        String jwt = null;
+        String userEmail = null;
 
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                String username = tokenProvider.getUsernameFromJWT(jwt);
+        if (header != null && header.startsWith("Bearer ")) {
+            jwt = header.substring(7); // Извличане на самия токен (без "Bearer ")
+            try {
+                userEmail = jwtTokenProvider.getUsernameFromJWT(jwt);
+            } catch (Exception e) {
+                // Логване на грешката, като се подава самият обект на изключението 'e'
+                logger.error("Невалиден JWT токен или проблем при извличане на имейл.", e);
+            }
+        }
 
-                UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+        // Ако имейл е извлечен и няма текуща автентикация в контекста
+        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = customUserDetailsService.loadUserByUsername(userEmail);
 
+            // Валидиране на токена: Премахнат е аргументът userDetails, за да съответства на сигнатурата
+            if (jwtTokenProvider.validateToken(jwt)) {
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
+                // Настройване на автентикацията в контекста за сигурност
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                logger.debug("Автентикация успешна за потребител: {}", username);
-            } else {
-                logger.debug("Няма валиден JWT токен или токенът е невалиден.");
             }
-        } catch (Exception ex) {
-            logger.error("Неуспешна автентикация на потребител в JWT филтъра: {}", ex.getMessage(), ex);
         }
 
+        // Продължаване на филтърната верига
         filterChain.doFilter(request, response);
     }
 
-    private String getJwtFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        // Логваме пълния URI, за да проверим дали има контекст път
+        String requestURI = request.getRequestURI();
+        String contextPath = request.getContextPath(); // Вземаме контекст пътя (ако има такъв)
+        String pathWithoutContext = requestURI.substring(contextPath.length()); // Път без контекст
+
+        // Изключваме пътищата, които не изискват JWT автентикация
+        boolean shouldSkip = pathWithoutContext.startsWith("/api/auth/");
+
+        if (shouldSkip) {
+            logger.info("Skipping JWT authentication for path: {} (Full URI: {})", pathWithoutContext, requestURI);
+        } else {
+            logger.info("Applying JWT authentication for path: {} (Full URI: {})", pathWithoutContext, requestURI);
         }
-        return null;
+        return shouldSkip;
     }
 }

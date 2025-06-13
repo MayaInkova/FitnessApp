@@ -22,5 +22,4 @@ public class ExerciseDTO {
     private ExerciseType type;
     private DifficultyLevel difficultyLevel;
     private EquipmentType equipment;
-
 }

@@ -8,8 +8,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class FullPlanDTO {
-    // Nutrition Plan Details
-    private Integer nutritionPlanId; // ID на хранителния план
+    private Integer nutritionPlanId;
     private Double targetCalories;
     private Double protein;
     private Double fat;
@@ -17,8 +16,7 @@ public class FullPlanDTO {
     private String goalName;
     private List<MealDTO> meals;
 
-    // Training Plan Details
-    private Integer trainingPlanId; // ID на тренировъчния план
+    private Integer trainingPlanId;
     private String trainingPlanDescription;
     private Integer trainingDaysPerWeek;
     private Integer trainingDurationMinutes;

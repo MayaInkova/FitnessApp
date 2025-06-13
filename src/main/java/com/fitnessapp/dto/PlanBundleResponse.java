@@ -6,10 +6,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
+
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class PlanBundleResponse {
-    private NutritionPlan nutritionPlan;
-    private TrainingPlan trainingPlan;
+    private NutritionPlanDTO nutritionPlan;
+    private TrainingPlanDTO trainingPlan;
 }

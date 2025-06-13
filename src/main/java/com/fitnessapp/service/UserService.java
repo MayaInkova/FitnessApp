@@ -1,6 +1,8 @@
 package com.fitnessapp.service;
 
 import com.fitnessapp.dto.UserUpdateRequest;
+import com.fitnessapp.dto.UserResponseDTO; // Import the new DTO
+
 import com.fitnessapp.model.ActivityLevel;
 import com.fitnessapp.model.DietType;
 import com.fitnessapp.model.GenderType;
@@ -19,10 +21,12 @@ import com.fitnessapp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.hibernate.Hibernate; // Import Hibernate for lazy loading initialization
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -46,35 +50,84 @@ public class UserService {
         this.goalRepository = goalRepository;
     }
 
+    /**
+     * Saves a user entity to the database.
+     * @param user The User entity to save.
+     * @return The saved User entity.
+     */
     public User saveUser(User user) {
         return userRepository.save(user);
     }
 
-    public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email).orElse(null);
+    /**
+     * Retrieves a user entity by email.
+     * This method is intended for internal service use where a User entity is required.
+     * @param email The email of the user.
+     * @return An Optional containing the User entity if found, otherwise empty.
+     */
+    @Transactional(readOnly = true)
+    public Optional<User> getUserByEmail(String email) { // Renamed from getUserByEmailDTO to return Entity
+        return userRepository.findByEmail(email);
     }
 
-    public User getUserById(Integer id) {
+    /**
+     * Retrieves a user entity by ID.
+     * This method is intended for internal service use where a User entity is required.
+     * @param id The ID of the user.
+     * @return The User entity if found, otherwise null. (Changed from Optional to match original)
+     */
+    @Transactional(readOnly = true)
+    public User getUserById(Integer id) { // Re-added to return User entity
         return userRepository.findById(id).orElse(null);
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    /**
+     * Retrieves a user by email and converts it to a UserResponseDTO.
+     * Initializes lazy-loaded collections before mapping to DTO.
+     * This method is intended for API responses.
+     * @param email The email of the user.
+     * @return An Optional containing UserResponseDTO if found, otherwise empty.
+     */
+    @Transactional(readOnly = true)
+    public Optional<UserResponseDTO> getUserByEmailDTO(String email) {
+        return userRepository.findByEmail(email)
+                .map(this::convertUserToUserResponseDTO);
     }
 
+    /**
+     * Retrieves a user by ID and converts it to a UserResponseDTO.
+     * Initializes lazy-loaded collections before mapping to DTO.
+     * This method is intended for API responses.
+     * @param id The ID of the user.
+     * @return An Optional containing UserResponseDTO if found, otherwise empty.
+     */
+    @Transactional(readOnly = true)
+    public Optional<UserResponseDTO> getUserByIdDTO(Integer id) {
+        return userRepository.findById(id)
+                .map(this::convertUserToUserResponseDTO);
+    }
+
+
+
+    @Transactional(readOnly = true)
+    public List<UserResponseDTO> getAllUsersDTO() {
+        return userRepository.findAll().stream()
+                .map(this::convertUserToUserResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+
     @Transactional
-    public User updateUserProfile(Integer userId, UserUpdateRequest updateRequest) { // КОРИГИРАНО: Име на метода
+    public UserResponseDTO updateUserProfile(Integer userId, UserUpdateRequest updateRequest) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Потребител не е намерен с ID: " + userId));
 
-        // Актуализиране на основни полета
+
         Optional.ofNullable(updateRequest.getFullName()).ifPresent(user::setFullName);
         Optional.ofNullable(updateRequest.getAge()).ifPresent(user::setAge);
         Optional.ofNullable(updateRequest.getHeight()).ifPresent(user::setHeight);
         Optional.ofNullable(updateRequest.getWeight()).ifPresent(user::setWeight);
         Optional.ofNullable(updateRequest.getGender()).ifPresent(user::setGender);
-
-        // Актуализиране на свързани Entity обекти по ID (ActivityLevel, Goal, DietType)
         Optional.ofNullable(updateRequest.getActivityLevelId())
                 .flatMap(activityLevelRepository::findById)
                 .ifPresent(user::setActivityLevel);
@@ -87,7 +140,7 @@ public class UserService {
                 .flatMap(dietTypeRepository::findById)
                 .ifPresent(user::setDietType);
 
-        // Актуализиране на специфични предпочитания (вече са енуми)
+
         Optional.ofNullable(updateRequest.getTrainingType()).ifPresent(user::setTrainingType);
         Optional.ofNullable(updateRequest.getTrainingDaysPerWeek()).ifPresent(user::setTrainingDaysPerWeek);
         Optional.ofNullable(updateRequest.getTrainingDurationMinutes()).ifPresent(user::setTrainingDurationMinutes);
@@ -96,7 +149,6 @@ public class UserService {
         Optional.ofNullable(updateRequest.getConsumesDairy()).ifPresent(user::setConsumesDairy);
         Optional.ofNullable(updateRequest.getMealFrequencyPreference()).ifPresent(user::setMealFrequencyPreference);
 
-        // За колекции като allergies и otherDietaryPreferences, ако updateRequest ги съдържа, презаписваме ги
         if (updateRequest.getAllergies() != null) {
             user.setAllergies(updateRequest.getAllergies());
         }
@@ -104,9 +156,9 @@ public class UserService {
             user.setOtherDietaryPreferences(updateRequest.getOtherDietaryPreferences());
         }
 
-        return userRepository.save(user);
+        User updatedUser = userRepository.save(user);
+        return convertUserToUserResponseDTO(updatedUser); // Convert to DTO before returning
     }
-
 
     @Transactional
     public void updateDietTypeForUser(Integer userId, String dietTypeName) {
@@ -119,7 +171,6 @@ public class UserService {
         user.setDietType(dietType);
         userRepository.save(user);
     }
-
 
     @Transactional
     public User assignRole(Integer userId, String roleName) {
@@ -135,5 +186,48 @@ public class UserService {
         user.getRoles().add(role);
 
         return userRepository.save(user);
+    }
+
+    private UserResponseDTO convertUserToUserResponseDTO(User user) {
+        if (user == null) return null;
+
+        Hibernate.initialize(user.getActivityLevel());
+        Hibernate.initialize(user.getGoal());
+        Hibernate.initialize(user.getDietType());
+        Hibernate.initialize(user.getAllergies());
+        Hibernate.initialize(user.getOtherDietaryPreferences());
+        Hibernate.initialize(user.getNutritionPlan());
+        Hibernate.initialize(user.getTrainingPlan());
+
+        return UserResponseDTO.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .age(user.getAge())
+                .height(user.getHeight())
+                .weight(user.getWeight())
+                .gender(user.getGender())
+                .activityLevelId(user.getActivityLevel() != null ? user.getActivityLevel().getId() : null)
+                .activityLevelName(user.getActivityLevel() != null ? user.getActivityLevel().getName() : null)
+                .goalId(user.getGoal() != null ? user.getGoal().getId() : null)
+                .goalName(user.getGoal() != null ? user.getGoal().getName() : null)
+                .dietTypeId(user.getDietType() != null ? user.getDietType().getId() : null)
+                .dietTypeName(user.getDietType() != null ? user.getDietType().getName() : null)
+                .trainingType(user.getTrainingType() != null ? user.getTrainingType().name() : null)
+                .trainingDaysPerWeek(user.getTrainingDaysPerWeek())
+                .trainingDurationMinutes(user.getTrainingDurationMinutes())
+                .level(user.getLevel())
+                .allergies(user.getAllergies())
+                .otherDietaryPreferences(user.getOtherDietaryPreferences())
+                .meatPreference(user.getMeatPreference())
+                .consumesDairy(user.getConsumesDairy())
+                .mealFrequencyPreference(user.getMealFrequencyPreference())
+                .roles(user.getRoles().stream()
+                        .map(Role::getName)
+                        .collect(Collectors.toSet()))
+
+                .nutritionPlanId(user.getNutritionPlan() != null ? user.getNutritionPlan().getId() : null)
+                .trainingPlanId(user.getTrainingPlan() != null ? user.getTrainingPlan().getId() : null)
+                .build();
     }
 }

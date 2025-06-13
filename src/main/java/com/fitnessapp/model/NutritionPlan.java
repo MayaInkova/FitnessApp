@@ -11,7 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "nutrition_plans")
+@Table(name = "nutrition_plans", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "dateGenerated"})
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,8 +23,8 @@ public class NutritionPlan {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY) // Променено на ManyToOne, тъй като потребителят може да има много планове
+    @JoinColumn(name = "user_id", nullable = false) // Премахнато unique = true
     private User user;
 
     @Column(nullable = false)

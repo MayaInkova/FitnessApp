@@ -2,7 +2,7 @@ package com.fitnessapp.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
-import lombok.*;
+import lombok.*; // Добавете EqualsAndHashCode
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -35,33 +35,35 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
-
     private Integer age;
-    private Double height; // Ръст в сантиметри
-    private Double weight; // Тегло в килограми
+    private Double height;
+    private Double weight;
 
     @Enumerated(EnumType.STRING)
     private GenderType gender;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "activity_level_id")
+    @EqualsAndHashCode.Exclude // ИЗКЛЮЧЕТЕ
     private ActivityLevel activityLevel;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "goal_id")
+    @EqualsAndHashCode.Exclude // ИЗКЛЮЧЕТЕ
     private Goal goal;
 
     @Enumerated(EnumType.STRING)
     private TrainingType trainingType;
 
     private Integer trainingDaysPerWeek;
-    private Integer trainingDurationMinutes; // в минути
+    private Integer trainingDurationMinutes;
 
     @Enumerated(EnumType.STRING)
-    private LevelType level; // Beginner, Intermediate, Advanced
+    private LevelType level;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diet_type_id")
+    @EqualsAndHashCode.Exclude // ИЗКЛЮЧЕТЕ
     private DietType dietType;
 
     @ElementCollection(fetch = FetchType.LAZY)
@@ -73,7 +75,7 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private MeatPreferenceType meatPreference;
 
-    private Boolean consumesDairy; // Дали консумира млечни продукти
+    private Boolean consumesDairy;
 
     @Enumerated(EnumType.STRING)
     private MealFrequencyPreferenceType mealFrequencyPreference;
@@ -84,22 +86,23 @@ public class User implements UserDetails {
     @Builder.Default
     private Set<String> otherDietaryPreferences = new HashSet<>();
 
-    @ManyToMany(fetch = FetchType.EAGER) // Бързо зареждане на ролите
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     @Builder.Default
+    @EqualsAndHashCode.Exclude // ИЗКЛЮЧЕТЕ, ако има проблеми, макар и EAGER
     private Set<Role> roles = new HashSet<>();
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @EqualsAndHashCode.Exclude // *** ТАЗИ Е НАЙ-ВАЖНА ***
     private NutritionPlan nutritionPlan;
 
-
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @EqualsAndHashCode.Exclude // *** ТАЗИ СЪЩО Е ВАЖНА ***
     private TrainingPlan trainingPlan;
-
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
