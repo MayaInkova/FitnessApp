@@ -26,7 +26,7 @@ public class Recipe {
     private String description;
     private String imageUrl;
 
-    // Добавено поле за калории
+
     private Double calories;
 
     private Double protein;
@@ -51,7 +51,7 @@ public class Recipe {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diet_type_id")
-    @EqualsAndHashCode.Exclude // Изключено от EqualsAndHashCode
+    @EqualsAndHashCode.Exclude
     private DietType dietType;
 
     @ElementCollection(fetch = FetchType.EAGER)

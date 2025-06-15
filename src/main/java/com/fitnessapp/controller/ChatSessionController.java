@@ -49,7 +49,7 @@ public class ChatSessionController {
             return ResponseEntity.status(404).body(null); // Връщаме 404 Not Found
         } catch (Exception e) {
             logger.error("Възникна грешка при стартиране на чат сесия за потребител ID {}: {}", userId, e.getMessage(), e);
-            return ResponseEntity.status(500).body(null); // Връщаме 500 Internal Server Error
+            return ResponseEntity.status(500).body(null);
         }
     }
 

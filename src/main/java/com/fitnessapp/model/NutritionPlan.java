@@ -23,8 +23,8 @@ public class NutritionPlan {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY) // Променено на ManyToOne, тъй като потребителят може да има много планове
-    @JoinColumn(name = "user_id", nullable = false) // Премахнато unique = true
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(nullable = false)

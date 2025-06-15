@@ -25,7 +25,7 @@ public class TrainingSession {
     @JoinColumn(name = "training_plan_id", nullable = false)
     private TrainingPlan trainingPlan;
 
-    @Enumerated(EnumType.STRING) // Използваме ENUM за DayOfWeek
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private DayOfWeek dayOfWeek;
 

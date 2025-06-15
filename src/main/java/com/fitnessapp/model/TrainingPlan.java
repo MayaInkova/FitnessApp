@@ -32,11 +32,11 @@ public class TrainingPlan {
     private Integer durationMinutes;
 
     @OneToMany(mappedBy = "trainingPlan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Builder.Default // Lombok ще инициализира това при изграждане
+    @Builder.Default
     private List<TrainingSession> trainingSessions = new ArrayList<>();
 
     public void addTrainingSession(TrainingSession session) {
-        // Допълнителна защита, макар че @Builder.Default трябва да осигури инициализация
+
         if (this.trainingSessions == null) {
             this.trainingSessions = new ArrayList<>();
         }

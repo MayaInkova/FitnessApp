@@ -1,7 +1,7 @@
 package com.fitnessapp.dto;
 
 public class GoalRequest {
-    private String goal; // Име на целта
+    private String goal;
 
     public String getGoal() {
         return goal;

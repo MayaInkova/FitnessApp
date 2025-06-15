@@ -22,7 +22,7 @@ public class ContentManagementController {
     @Autowired
     private RecipeService recipeService;
 
-    // === ЦЕЛИ ===
+
 
     @GetMapping("/goals")
     @PreAuthorize("hasRole('ADMIN')")
@@ -44,7 +44,6 @@ public class ContentManagementController {
         return ResponseEntity.ok(" Целта е изтрита.");
     }
 
-    // === РЕЦЕПТИ ===
 
     @GetMapping("/recipes")
     @PreAuthorize("hasRole('ADMIN')")
@@ -56,7 +55,7 @@ public class ContentManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteRecipe(@PathVariable Integer id) {
         recipeService.deleteRecipe(id);
-        return ResponseEntity.ok("✅ Рецептата е изтрита.");
+        return ResponseEntity.ok(" Рецептата е изтрита.");
     }
 
     @PutMapping("/recipes/{id}")

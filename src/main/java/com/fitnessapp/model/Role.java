@@ -19,5 +19,5 @@ public class Role {
     private Integer id;
 
     @Column(nullable = false, unique = true)
-    private String name; // Например "ROLE_USER", "ROLE_ADMIN", "ROLE_MODERATOR"
+    private String name;
 }

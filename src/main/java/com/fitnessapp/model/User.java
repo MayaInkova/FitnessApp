@@ -2,7 +2,7 @@ package com.fitnessapp.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
-import lombok.*; // Добавете EqualsAndHashCode
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -49,7 +49,7 @@ public class User implements UserDetails {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "goal_id")
-    @EqualsAndHashCode.Exclude // ИЗКЛЮЧЕТЕ
+    @EqualsAndHashCode.Exclude
     private Goal goal;
 
     @Enumerated(EnumType.STRING)

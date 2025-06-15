@@ -1,4 +1,4 @@
-package com.fitnessapp.security; // Уверете се, че това е правилният пакет
+package com.fitnessapp.security;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

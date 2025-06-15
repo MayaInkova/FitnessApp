@@ -32,15 +32,15 @@ public class UserController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')") // Само за администратори
-    public ResponseEntity<List<UserResponseDTO>> getAllUsers() { // Променен тип на връщане на DTO
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
         logger.info("Получена GET заявка за всички потребители.");
-        List<UserResponseDTO> users = userService.getAllUsersDTO(); // Извиква новия метод
+        List<UserResponseDTO> users = userService.getAllUsersDTO();
         return ResponseEntity.ok(users);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated() and (#id == authentication.principal.id or hasRole('ADMIN'))") // Само за собственика или ADMIN
+    @PreAuthorize("isAuthenticated() and (#id == authentication.principal.id or hasRole('ADMIN'))")
     public ResponseEntity<UserResponseDTO> getUserById(@PathVariable Integer id) {
         logger.info("Получена GET заявка за потребител с ID: {}", id);
         Optional<UserResponseDTO> userDTO = userService.getUserByIdDTO(id);
@@ -48,12 +48,12 @@ public class UserController {
             logger.warn("Потребител с ID {} не е намерен.", id);
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(userDTO.get()); // Връщаме DTO
+        return ResponseEntity.ok(userDTO.get());
     }
 
 
     @PutMapping("/{id}")
-    @PreAuthorize("isAuthenticated() and (#id == authentication.principal.id or hasRole('ADMIN'))") // Само за собственика или ADMIN
+    @PreAuthorize("isAuthenticated() and (#id == authentication.principal.id or hasRole('ADMIN'))")
     public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Integer id, @RequestBody UserUpdateRequest updateRequest) { // Променен тип на връщане на DTO
         logger.info("Получена PUT заявка за актуализация на потребител с ID: {}", id);
         try {

@@ -22,14 +22,14 @@ public class MealController {
         this.mealService = mealService;
     }
 
-    //  Създаване на хранене
+
     @PostMapping
     public ResponseEntity<?> createMeal(@RequestBody Meal meal) {
         Meal savedMeal = mealService.saveMeal(meal);
         return ResponseEntity.ok(savedMeal);
     }
 
-    //  Връщане на всички хранения
+
     @GetMapping
     public ResponseEntity<List<Meal>> getAllMeals() {
         return ResponseEntity.ok(mealService.getAllMeals());
@@ -41,7 +41,6 @@ public class MealController {
         return ResponseEntity.ok(mealService.getMealsByPlanId(planId));
     }
 
-    //  Изтриване на хранене
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteMeal(@PathVariable Integer id) {
         mealService.deleteMeal(id);

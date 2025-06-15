@@ -9,8 +9,8 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("/api/training") // This is the base path for this controller
-@CrossOrigin(origins = "*") // Allow CORS from all origins
+@RequestMapping("/api/training")
+@CrossOrigin(origins = "*")
 public class TrainingPlanController {
 
     private final TrainingPlanService trainingPlanService;
@@ -22,8 +22,8 @@ public class TrainingPlanController {
 
 
     @GetMapping("/all")
-    public ResponseEntity<List<TrainingPlanDTO>> getAll() { // Changed return type to DTO
-        List<TrainingPlanDTO> plans = trainingPlanService.getAllTrainingPlansDTO(); // Call DTO-returning method
+    public ResponseEntity<List<TrainingPlanDTO>> getAll() {
+        List<TrainingPlanDTO> plans = trainingPlanService.getAllTrainingPlansDTO();
         return ResponseEntity.ok(plans);
     }
 

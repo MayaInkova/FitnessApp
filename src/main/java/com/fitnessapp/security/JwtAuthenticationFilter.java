@@ -42,7 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 userEmail = jwtTokenProvider.getUsernameFromJWT(jwt);
             } catch (Exception e) {
-                logger.error("❌ Невалиден JWT токен или проблем при извличане на имейл", e);
+                logger.error(" Невалиден JWT токен или проблем при извличане на имейл", e);
             }
         }
 
@@ -69,9 +69,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/chatbot/");
 
         if (shouldSkip) {
-            logger.info("🔓 Skipping JWT authentication for path: {} (Full URI: {})", path, requestURI);
+            logger.info(" Skipping JWT authentication for path: {} (Full URI: {})", path, requestURI);
         } else {
-            logger.info("🔐 Applying JWT authentication for path: {} (Full URI: {})", path, requestURI);
+            logger.info(" Applying JWT authentication for path: {} (Full URI: {})", path, requestURI);
         }
         return shouldSkip;
     }

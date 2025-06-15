@@ -15,8 +15,8 @@ public class NutritionPlanRequest {
     private Integer age;
     private Double height;
     private Double weight;
-    private String goalName; // Използваме името на целта от Goal Entity
-    private String gender; // GenderType enum ще бъде преобразуван от/към String
-    private String dietTypeName; // DietType Entity име
+    private String goalName;
+    private String gender;
+    private String dietTypeName;
 
 }

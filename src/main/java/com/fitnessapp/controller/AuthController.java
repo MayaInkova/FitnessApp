@@ -6,7 +6,7 @@ import com.fitnessapp.dto.RegisterRequest;
 import com.fitnessapp.model.User;
 import com.fitnessapp.service.AuthService;
 import com.fitnessapp.service.GuestService;
-import com.fitnessapp.security.JwtTokenProvider;   // ← правилният импорт
+import com.fitnessapp.security.JwtTokenProvider;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -28,7 +28,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final GuestService guestService;
-    private final JwtTokenProvider jwtTokenProvider;   // ← инжектираме го
+    private final JwtTokenProvider jwtTokenProvider;
 
 
     @PostMapping("/register")
@@ -65,13 +65,13 @@ public class AuthController {
 
     @PostMapping("/guest")
     public ResponseEntity<Map<String, String>> guestLogin() {
-        // 1) създаваме гост-потребител
+        //  създаваме гост-потребител
         User guest = guestService.createGuest();
 
-        // 2) издаваме JWT (24 ч)
+        //  издаваме JWT (24 ч)
         String token = jwtTokenProvider.generateToken(guest, Duration.ofHours(24));
 
-        // 3) отговаряме
+        //  отговаряме
         return ResponseEntity.ok(Map.of(
                 "token",  token,
                 "userId", guest.getId().toString(),

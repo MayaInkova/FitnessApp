@@ -67,7 +67,7 @@ public class ChatbotService {
         String  level;
         String  mealFrequencyPreference;
 
-        /* мета-инфо за сесията */
+
         public Integer  userId       = null;
         public boolean  isGuest      = true;
         public boolean  planGenerated= false;
@@ -83,10 +83,10 @@ public class ChatbotService {
         SessionState s = sessionMap.get(sessionId);
         if (s == null) throw new IllegalStateException("Сесията не е намерена");
 
-        /* много опростен пример – само текст; може да се доразвие */
+
         List<Map<String, String>> meals = new ArrayList<>();
 
-        /* breakfast */
+
         meals.add(Map.of(
                 "meal",         "Закуска",
                 "description",  switch (Optional.ofNullable(s.dietType).orElse("Стандартна")) {
@@ -97,7 +97,7 @@ public class ChatbotService {
                 }
         ));
 
-        /* lunch */
+
         meals.add(Map.of(
                 "meal",        "Обяд",
                 "description", switch (Optional.ofNullable(s.dietType).orElse("Стандартна")) {
@@ -108,7 +108,6 @@ public class ChatbotService {
                 }
         ));
 
-        /* dinner */
         meals.add(Map.of(
                 "meal",        "Вечеря",
                 "description", switch (Optional.ofNullable(s.dietType).orElse("Стандартна")) {
@@ -189,15 +188,15 @@ public class ChatbotService {
             throw new IllegalStateException("Сесията не е готова за генериране на план или не е намерена.");
         }
 
-        // Създаване на нов User обект от данните в сесията
+
         User user = new User();
         user.setEmail(session.email);
         user.setFullName(session.fullName);
 
-        // Временно задаване на парола (трябва да се подобри за реална употреба)
+
         user.setPassword("temporary_password_hashed");
 
-        // Извличане на обекти от базата данни въз основа на имената, съхранени в сесията
+
         user.setDietType(dietTypeRepository.findByNameIgnoreCase(session.dietType)
                 .orElseThrow(() -> new RuntimeException("DietType не е намерен: " + session.dietType)));
         user.setActivityLevel(activityLevelRepository.findByNameIgnoreCase(session.activityLevel)
@@ -205,12 +204,11 @@ public class ChatbotService {
         user.setGoal(goalRepository.findByNameIgnoreCase(session.goal)
                 .orElseThrow(() -> new RuntimeException("Goal не е намерен: " + session.goal)));
 
-        // Задаване на основните физически данни
+
         user.setAge(session.age);
         user.setWeight(session.weight);
         user.setHeight(session.height);
 
-        // Обработка на специфични типове данни с преобразуване от String
         if (session.gender != null) {
             try {
                 user.setGender(GenderType.fromString(session.gender));

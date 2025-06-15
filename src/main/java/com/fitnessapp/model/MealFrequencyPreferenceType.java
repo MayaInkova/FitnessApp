@@ -22,7 +22,6 @@ public enum MealFrequencyPreferenceType {
         return displayValue;
     }
 
-    // НОВ МЕТОД: fromString за преобразуване на String в enum
     @JsonCreator
     public static MealFrequencyPreferenceType fromString(String text) {
         for (MealFrequencyPreferenceType b : MealFrequencyPreferenceType.values()) {

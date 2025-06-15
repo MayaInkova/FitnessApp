@@ -45,7 +45,7 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
 
-        // Initialize Roles
+
         if (roleRepository.count() == 0) {
             roleRepository.save(Role.builder().name("ROLE_USER").build());
             roleRepository.save(Role.builder().name("ROLE_ADMIN").build());
@@ -53,7 +53,7 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("Ролите са попълнени!");
         }
 
-        // Initialize Diet Types - Names are now unified with ChatbotService
+
         if (dietTypeRepository.count() == 0) {
             dietTypeRepository.save(DietType.builder()
                     .name("Протеинова")
@@ -75,7 +75,7 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("Типовете диети са попълнени!");
         }
 
-        // Initialize Activity Levels
+
         if (activityLevelRepository.count() == 0) {
             activityLevelRepository.save(ActivityLevel.builder()
                     .name("Заседнал").description("Малко или никакво упражнение").multiplier(1.2).build());
@@ -90,7 +90,7 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("Нивата на активност са попълнени!");
         }
 
-        // Initialize Goals
+
         if (goalRepository.count() == 0) {
             goalRepository.save(Goal.builder().name("Отслабване").description("Създайте калориен дефицит за отслабване.").calorieModifier(-500.0).build());
             goalRepository.save(Goal.builder().name("Наддаване на тегло").description("Създайте калориен излишък за наддаване на тегло.").calorieModifier(500.0).build());
@@ -98,15 +98,15 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("Целите са попълнени!");
         }
 
-        // Example Recipes - USING UNIFIED NAMES AND INCLUDING CALORIES
+
         if (recipeRepository.count() == 0) {
-            // Retrieve DietType objects by their unified names
+
             DietType balancedDiet = dietTypeRepository.findByName("Балансирана").orElse(null);
             DietType vegetarianDiet = dietTypeRepository.findByName("Вегетарианска").orElse(null);
             DietType veganDiet = dietTypeRepository.findByName("Веган").orElse(null);
             DietType paleoDiet = dietTypeRepository.findByName("Палео").orElse(null);
 
-            // Add example recipes, linked to these diet types
+
             if (balancedDiet != null) {
                 recipeRepository.save(Recipe.builder()
                         .name("Овесена каша с плодове")
@@ -154,7 +154,7 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("Рецептите са попълнени!");
         }
 
-        // Initialize Exercises
+
         if (exerciseRepository.count() == 0) {
             exerciseRepository.save(Exercise.builder()
                     .name("Клякания със собствено тегло")

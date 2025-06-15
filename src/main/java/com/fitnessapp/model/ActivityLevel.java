@@ -19,7 +19,7 @@ public class ActivityLevel {
     private Integer id;
 
     @Column(unique = true, nullable = false)
-    private String name; // Например: "Sedentary", "Light", "Moderate", "Active", "Very Active"
-    private String description; // Кратко описание, ако е необходимо
-    private Double multiplier; // Множител за калории (напр. 1.2 за Sedentary, 1.375 за Light и т.н.)
+    private String name;
+    private String description;
+    private Double multiplier;
 }
