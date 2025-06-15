@@ -4,13 +4,12 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.EqualsAndHashCode; // Добавете EqualsAndHashCode
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 
 import java.util.HashSet;
 import java.util.Set;
-import com.fitnessapp.model.MealType;
 
 @Entity
 @Table(name = "recipes")
@@ -26,7 +25,10 @@ public class Recipe {
     private String name;
     private String description;
     private String imageUrl;
+
+    // Добавено поле за калории
     private Double calories;
+
     private Double protein;
     private Double carbs;
     private Double fat;
@@ -49,7 +51,7 @@ public class Recipe {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diet_type_id")
-    @EqualsAndHashCode.Exclude // ИЗКЛЮЧЕТЕ
+    @EqualsAndHashCode.Exclude // Изключено от EqualsAndHashCode
     private DietType dietType;
 
     @ElementCollection(fetch = FetchType.EAGER)

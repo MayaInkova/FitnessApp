@@ -45,56 +45,116 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
 
-
+        // Initialize Roles
         if (roleRepository.count() == 0) {
             roleRepository.save(Role.builder().name("ROLE_USER").build());
             roleRepository.save(Role.builder().name("ROLE_ADMIN").build());
             roleRepository.save(Role.builder().name("ROLE_MODERATOR").build());
-            System.out.println("Роли попълнени!");
+            System.out.println("Ролите са попълнени!");
         }
 
-
+        // Initialize Diet Types - Names are now unified with ChatbotService
         if (dietTypeRepository.count() == 0) {
             dietTypeRepository.save(DietType.builder()
-                    .name("Standard").description("Balanced diet including all food groups.").build());
+                    .name("Протеинова")
+                    .description("Богата на протеини, ниска на въглехидрати.")
+                    .build());
             dietTypeRepository.save(DietType.builder()
-                    .name("Vegetarian").description("Plant-based diet, no meat, poultry, or fish.").build());
+                    .name("Кето")
+                    .description("Кетогенна диета с високо съдържание на мазнини и ниско съдържание на въглехидрати.").build());
             dietTypeRepository.save(DietType.builder()
-                    .name("Vegan").description("Strictly plant-based, no animal products including dairy and eggs.").build());
-            System.out.println("Типове диети попълнени!");
+                    .name("Балансирана").description("Балансирана диета, включваща всички хранителни групи.").build()); // Corrected from "Стандартна"
+            dietTypeRepository.save(DietType.builder()
+                    .name("Вегетарианска").description("Растителна диета, без месо, птици или риба.").build());
+            dietTypeRepository.save(DietType.builder()
+                    .name("Веган").description("Строго растителна диета, без животински продукти, включително млечни продукти и яйца.").build()); // Corrected from "Веганска"
+            dietTypeRepository.save(DietType.builder() // Added "Палео"
+                    .name("Палео")
+                    .description("Фокусира се върху храни, достъпни за палеолитните хора (месо, риба, зеленчуци, плодове, ядки, семена), изключва зърнени култури, бобови растения, млечни продукти и преработени храни.")
+                    .build());
+            System.out.println("Типовете диети са попълнени!");
         }
 
+        // Initialize Activity Levels
         if (activityLevelRepository.count() == 0) {
             activityLevelRepository.save(ActivityLevel.builder()
-                    .name("Sedentary").description("Little or no exercise").multiplier(1.2).build());
+                    .name("Заседнал").description("Малко или никакво упражнение").multiplier(1.2).build());
             activityLevelRepository.save(ActivityLevel.builder()
-                    .name("Lightly Active").description("Light exercise/sports 1-3 days/week").multiplier(1.375).build());
+                    .name("Леко активен").description("Леки упражнения/спорт 1-3 дни/седмица").multiplier(1.375).build());
             activityLevelRepository.save(ActivityLevel.builder()
-                    .name("Moderately Active").description("Moderate exercise/sports 3-5 days/week").multiplier(1.55).build());
+                    .name("Умерено активен").description("Умерени упражнения/спорт 3-5 дни/седмица").multiplier(1.55).build());
             activityLevelRepository.save(ActivityLevel.builder()
-                    .name("Very Active").description("Hard exercise/sports 6-7 days a week").multiplier(1.725).build());
+                    .name("Много активен").description("Интензивни упражнения/спорт 6-7 дни в седмицата").multiplier(1.725).build());
             activityLevelRepository.save(ActivityLevel.builder()
-                    .name("Extra Active").description("Very hard exercise/physical job").multiplier(1.9).build());
-            System.out.println("Нива на активност попълнени!");
+                    .name("Изключително активен").description("Много интензивни упражнения/физическа работа").multiplier(1.9).build());
+            System.out.println("Нивата на активност са попълнени!");
         }
 
+        // Initialize Goals
         if (goalRepository.count() == 0) {
-            goalRepository.save(Goal.builder().name("Lose Weight").description("Create a calorie deficit to lose weight.").calorieModifier(-500.0).build());
-            goalRepository.save(Goal.builder().name("Gain Weight").description("Create a calorie surplus to gain weight.").calorieModifier(500.0).build());
-            goalRepository.save(Goal.builder().name("Maintain Weight").description("Maintain current weight.").calorieModifier(0.0).build());
-            System.out.println("Цели попълнени!");
+            goalRepository.save(Goal.builder().name("Отслабване").description("Създайте калориен дефицит за отслабване.").calorieModifier(-500.0).build());
+            goalRepository.save(Goal.builder().name("Наддаване на тегло").description("Създайте калориен излишък за наддаване на тегло.").calorieModifier(500.0).build());
+            goalRepository.save(Goal.builder().name("Поддържане на тегло").description("Поддържане на текущото тегло.").calorieModifier(0.0).build());
+            System.out.println("Целите са попълнени!");
         }
 
-
+        // Example Recipes - USING UNIFIED NAMES AND INCLUDING CALORIES
         if (recipeRepository.count() == 0) {
-            DietType std  = dietTypeRepository.findByName("Standard").orElse(null);
-            DietType veg  = dietTypeRepository.findByName("Vegetarian").orElse(null);
-            DietType vegan = dietTypeRepository.findByName("Vegan").orElse(null);
+            // Retrieve DietType objects by their unified names
+            DietType balancedDiet = dietTypeRepository.findByName("Балансирана").orElse(null);
+            DietType vegetarianDiet = dietTypeRepository.findByName("Вегетарианска").orElse(null);
+            DietType veganDiet = dietTypeRepository.findByName("Веган").orElse(null);
+            DietType paleoDiet = dietTypeRepository.findByName("Палео").orElse(null);
 
+            // Add example recipes, linked to these diet types
+            if (balancedDiet != null) {
+                recipeRepository.save(Recipe.builder()
+                        .name("Овесена каша с плодове")
+                        .description("Здравословна закуска.")
+                        .calories(300.0)
+                        .protein(10.0)
+                        .carbs(50.0)
+                        .fat(8.0)
+                        .isVegetarian(true)
+                        .containsDairy(true)
+                        .mealType(MealType.BREAKFAST)
+                        .instructions("Сварете овесена каша, добавете плодове.")
+                        .build());
+            }
+            if (veganDiet != null) {
+                recipeRepository.save(Recipe.builder()
+                        .name("Салата Киноа с авокадо")
+                        .description("Лека и засищаща веган салата.")
+                        .calories(450.0)
+                        .protein(15.0)
+                        .carbs(60.0)
+                        .fat(20.0)
+                        .isVegetarian(true)
+                        .containsDairy(false)
+                        .mealType(MealType.LUNCH)
+                        .instructions("Сварете киноа, смесете с нарязани зеленчуци и авокадо.")
+                        .build());
+            }
+            if (paleoDiet != null) {
+                recipeRepository.save(Recipe.builder()
+                        .name("Печено пиле със сладки картофи")
+                        .description("Богато на протеини и комплексни въглехидрати.")
+                        .calories(600.0)
+                        .protein(45.0)
+                        .carbs(40.0)
+                        .fat(30.0)
+                        .isVegetarian(false)
+                        .containsDairy(false)
+                        .meatType(MeatType.CHICKEN)
+                        .mealType(MealType.DINNER)
+                        .instructions("Изпечете пилешки бутчета със сладки картофи и подправки.")
+                        .build());
+            }
 
-            System.out.println("Рецепти попълнени!");
+            System.out.println("Рецептите са попълнени!");
         }
 
+        // Initialize Exercises
         if (exerciseRepository.count() == 0) {
             exerciseRepository.save(Exercise.builder()
                     .name("Клякания със собствено тегло")
@@ -141,12 +201,12 @@ public class DataInitializer implements CommandLineRunner {
                     .equipment(EquipmentType.GYM_EQUIPMENT)
                     .build());
 
-            System.out.println("Упражнения попълнени!");
+            System.out.println("Упражненията са попълнени!");
         }
 
 
         if (userRepository.count() == 0) {
-            System.out.println("Потребители попълнени!");
+            System.out.println("Потребителите са попълнени!");
         }
     }
 }

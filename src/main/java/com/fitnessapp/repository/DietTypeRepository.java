@@ -9,4 +9,5 @@ public interface DietTypeRepository extends JpaRepository<DietType, Integer> {
 
     Optional<DietType> findByName(String name);
     Optional<DietType> findByNameIgnoreCase(String name);
+
 }

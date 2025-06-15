@@ -1,7 +1,7 @@
 package com.fitnessapp.config;
 
-import com.fitnessapp.security.JwtAuthenticationFilter;
 import com.fitnessapp.security.JwtAuthenticationEntryPoint;
+import com.fitnessapp.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,40 +18,56 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true) // Разрешаване на @PreAuthorize
+@EnableMethodSecurity(prePostEnabled = true)   // позволява @PreAuthorize и др.
 public class SecurityConfig {
 
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationFilter jwtFilter;
+    private final JwtAuthenticationEntryPoint unauthorizedHandler;
 
     @Autowired
-    private JwtAuthenticationEntryPoint unauthorizedHandler;
+    public SecurityConfig(JwtAuthenticationFilter jwtFilter,
+                          JwtAuthenticationEntryPoint unauthorizedHandler) {
+        this.jwtFilter = jwtFilter;
+        this.unauthorizedHandler = unauthorizedHandler;
+    }
+
+    /* ---------- Bean-ове ---------- */
 
     @Bean
     public PasswordEncoder passwordEncoder() {
+        // 10 е дефолтният strength; при нужда можеш да го повишиш
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration cfg) throws Exception {
+        return cfg.getAuthenticationManager();
     }
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
+
                 .csrf(csrf -> csrf.disable())
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorize -> authorize
-                        // ***ВАЖНО: ПОСТАВЯМЕ /api/auth/** ПЪРВО И С .permitAll()***
-                        .requestMatchers("/api/auth/**").permitAll()
-                        // Всички останали заявки изискват автентикация, освен ако не са изрично позволени по-долу
+
+
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
+
+
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**").permitAll()     // регистрация / login / guest
+                        .requestMatchers("/api/chatbot/**").permitAll()  // демо чат без логин
                         .anyRequest().authenticated()
                 );
 
-        // Добавяне на JWT филтъра преди UsernamePasswordAuthenticationFilter
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

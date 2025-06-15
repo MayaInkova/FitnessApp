@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder // Добавен Builder за удобство
 public class ChatMessageRequest {
-    private Integer sessionId; // ChatSession entity има Integer ID
+    private String sessionId; // ChatSession entity има Integer ID
     private String message;
     private String dietTypeName;
     private String sender;

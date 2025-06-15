@@ -33,53 +33,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        // Извличане на токена от хедъра на заявката
         String header = request.getHeader("Authorization");
         String jwt = null;
         String userEmail = null;
 
         if (header != null && header.startsWith("Bearer ")) {
-            jwt = header.substring(7); // Извличане на самия токен (без "Bearer ")
+            jwt = header.substring(7);
             try {
                 userEmail = jwtTokenProvider.getUsernameFromJWT(jwt);
             } catch (Exception e) {
-                // Логване на грешката, като се подава самият обект на изключението 'e'
-                logger.error("Невалиден JWT токен или проблем при извличане на имейл.", e);
+                logger.error("❌ Невалиден JWT токен или проблем при извличане на имейл", e);
             }
         }
 
-        // Ако имейл е извлечен и няма текуща автентикация в контекста
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = customUserDetailsService.loadUserByUsername(userEmail);
-
-            // Валидиране на токена: Премахнат е аргументът userDetails, за да съответства на сигнатурата
             if (jwtTokenProvider.validateToken(jwt)) {
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                // Настройване на автентикацията в контекста за сигурност
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }
 
-        // Продължаване на филтърната верига
         filterChain.doFilter(request, response);
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        // Логваме пълния URI, за да проверим дали има контекст път
         String requestURI = request.getRequestURI();
-        String contextPath = request.getContextPath(); // Вземаме контекст пътя (ако има такъв)
-        String pathWithoutContext = requestURI.substring(contextPath.length()); // Път без контекст
+        String contextPath = request.getContextPath();
+        String path = requestURI.substring(contextPath.length());
 
-        // Изключваме пътищата, които не изискват JWT автентикация
-        boolean shouldSkip = pathWithoutContext.startsWith("/api/auth/");
+        boolean shouldSkip = path.startsWith("/api/auth/")
+                || path.startsWith("/api/chatbot/");
 
         if (shouldSkip) {
-            logger.info("Skipping JWT authentication for path: {} (Full URI: {})", pathWithoutContext, requestURI);
+            logger.info("🔓 Skipping JWT authentication for path: {} (Full URI: {})", path, requestURI);
         } else {
-            logger.info("Applying JWT authentication for path: {} (Full URI: {})", pathWithoutContext, requestURI);
+            logger.info("🔐 Applying JWT authentication for path: {} (Full URI: {})", path, requestURI);
         }
         return shouldSkip;
     }

@@ -3,59 +3,79 @@ package com.fitnessapp.controller;
 import com.fitnessapp.dto.LoginRequest;
 import com.fitnessapp.dto.LoginResponse;
 import com.fitnessapp.dto.RegisterRequest;
-import com.fitnessapp.service.AuthService; // Уверете се, че AuthService е импортиран
+import com.fitnessapp.model.User;
+import com.fitnessapp.service.AuthService;
+import com.fitnessapp.service.GuestService;
+import com.fitnessapp.security.JwtTokenProvider;   // ← правилният импорт
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid; // За валидация на DTO-та (ако използвате)
+import java.time.Duration;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth") // Базов път за всички ендпойнти в този контролер
+@RequestMapping("/api/auth")
 @CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 public class AuthController {
 
-    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
-
-    @Autowired
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
+    private final GuestService guestService;
+    private final JwtTokenProvider jwtTokenProvider;   // ← инжектираме го
 
 
-    @PostMapping("/register") // Пълен път ще бъде /api/auth/register
-    public ResponseEntity<String> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
-        logger.info("Получена заявка за регистрация на потребител с имейл: {}", registerRequest.getEmail());
+    @PostMapping("/register")
+    public ResponseEntity<String> registerUser(@Valid @RequestBody RegisterRequest req) {
+        log.info("Регистрация – email: {}", req.getEmail());
         try {
-            authService.registerUser(registerRequest);
-            return new ResponseEntity<>("Потребител регистриран успешно!", HttpStatus.OK);
-        } catch (RuntimeException e) {
-            logger.error("Грешка при регистрация на потребител {}: {}", registerRequest.getEmail(), e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST); // Напр. ако имейлът е вече зает
-        } catch (Exception e) {
-            logger.error("Неочаквана грешка при регистрация на потребител {}: {}", registerRequest.getEmail(), e.getMessage(), e);
-            return new ResponseEntity<>("Възникна грешка при регистрация.", HttpStatus.INTERNAL_SERVER_ERROR);
+            authService.registerUser(req);
+            return ResponseEntity.ok("Потребител регистриран успешно!");
+        } catch (RuntimeException ex) {
+            log.error("Регистрация – грешка: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Регистрация – неочаквана грешка", ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Възникна грешка при регистрация.");
         }
     }
 
-    @PostMapping("/login") // Пълен път ще бъде /api/auth/login
-    public ResponseEntity<LoginResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        logger.info("Получена заявка за вход на потребител с имейл: {}", loginRequest.getEmail());
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest req) {
+        log.info("Вход – email: {}", req.getEmail());
         try {
-            LoginResponse response = authService.authenticateUser(loginRequest);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            logger.error("Грешка при вход на потребител {}: {}", loginRequest.getEmail(), e.getMessage());
-            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED); // За невалидни credential-и
-        } catch (Exception e) {
-            logger.error("Неочаквана грешка при вход на потребител {}: {}", loginRequest.getEmail(), e.getMessage(), e);
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.ok(authService.authenticateUser(req));
+        } catch (RuntimeException ex) {
+            log.error("Вход – грешка: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        } catch (Exception ex) {
+            log.error("Вход – неочаквана грешка", ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
+
+    @PostMapping("/guest")
+    public ResponseEntity<Map<String, String>> guestLogin() {
+        // 1) създаваме гост-потребител
+        User guest = guestService.createGuest();
+
+        // 2) издаваме JWT (24 ч)
+        String token = jwtTokenProvider.generateToken(guest, Duration.ofHours(24));
+
+        // 3) отговаряме
+        return ResponseEntity.ok(Map.of(
+                "token",  token,
+                "userId", guest.getId().toString(),
+                "role",   "GUEST"
+        ));
+    }
 }
