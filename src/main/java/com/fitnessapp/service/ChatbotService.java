@@ -1,12 +1,7 @@
 package com.fitnessapp.service;
 
 import com.fitnessapp.model.*;
-import com.fitnessapp.repository.MealRepository;
-import com.fitnessapp.repository.UserRepository;
-import com.fitnessapp.repository.DietTypeRepository;
-import com.fitnessapp.repository.ActivityLevelRepository;
-import com.fitnessapp.repository.GoalRepository;
-import com.fitnessapp.repository.RoleRepository;
+import com.fitnessapp.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,96 +11,129 @@ import java.util.stream.Collectors;
 @Service
 public class ChatbotService {
 
-    private final NutritionPlanService nutritionPlanService;
-    private final TrainingPlanService trainingPlanService;
-    private final UserRepository userRepository;
-    private final MealRepository mealRepository;
-    private final DietTypeRepository dietTypeRepository;
+
+    private final NutritionPlanService   nutritionPlanService;
+    private final TrainingPlanService    trainingPlanService;
+    private final UserRepository         userRepository;
+    private final MealRepository         mealRepository;
+    private final DietTypeRepository     dietTypeRepository;
     private final ActivityLevelRepository activityLevelRepository;
-    private final GoalRepository goalRepository;
-    private final RoleRepository roleRepository;
+    private final GoalRepository         goalRepository;
+    private final RoleRepository         roleRepository;
 
     private final Map<String, SessionState> sessionMap = new HashMap<>();
 
     @Autowired
     public ChatbotService(NutritionPlanService nutritionPlanService,
-                          TrainingPlanService trainingPlanService,
-                          UserRepository userRepository,
-                          MealRepository mealRepository,
-                          DietTypeRepository dietTypeRepository,
+                          TrainingPlanService  trainingPlanService,
+                          UserRepository       userRepository,
+                          MealRepository       mealRepository,
+                          DietTypeRepository   dietTypeRepository,
                           ActivityLevelRepository activityLevelRepository,
-                          GoalRepository goalRepository,
-                          RoleRepository roleRepository) {
-        this.nutritionPlanService = nutritionPlanService;
-        this.trainingPlanService = trainingPlanService;
-        this.userRepository = userRepository;
-        this.mealRepository = mealRepository;
-        this.dietTypeRepository = dietTypeRepository;
-        this.activityLevelRepository = activityLevelRepository;
-        this.goalRepository = goalRepository;
-        this.roleRepository = roleRepository;
+                          GoalRepository       goalRepository,
+                          RoleRepository       roleRepository) {
+
+        this.nutritionPlanService   = nutritionPlanService;
+        this.trainingPlanService    = trainingPlanService;
+        this.userRepository         = userRepository;
+        this.mealRepository         = mealRepository;
+        this.dietTypeRepository     = dietTypeRepository;
+        this.activityLevelRepository= activityLevelRepository;
+        this.goalRepository         = goalRepository;
+        this.roleRepository         = roleRepository;
     }
 
-    /**
-     * Клас за състоянието на сесията на чатбота.
-     * Съхранява всички данни, събрани от потребителя по време на разговора,
-     * както и текущото състояние на бота.
-     */
     public static class SessionState {
-        String state = "ASK_DIET_EXPLANATION"; // Начално състояние
-        String email;
-        String fullName;
-        String dietType;
-        Double weight;
-        Double height;
+        /** текущ етап на “формата” */
+        public String state = "ASK_DIET_EXPLANATION";
+
+        /* събрани данни */
+        String  email;
+        String  fullName;
+        String  dietType;
+        Double  weight;
+        Double  height;
         Integer age;
-        String gender;
-        String goal;
-        String activityLevel;
-        String meatPreference;
+        String  gender;
+        String  goal;
+        String  activityLevel;
+        String  meatPreference;
         Boolean consumesDairy;
-        String trainingType;
-        Set<String> allergies = new HashSet<>();
-        Set<String> otherDietaryPreferences = new HashSet<>();
+        String  trainingType;
+        Set<String> allergies              = new HashSet<>();
+        Set<String> otherDietaryPreferences= new HashSet<>();
         Integer trainingDaysPerWeek;
         Integer trainingDurationMinutes;
-        String level;
-        String mealFrequencyPreference;
+        String  level;
+        String  mealFrequencyPreference;
 
-        public Integer userId;
-        public boolean isGuest = true; // Флаг дали потребителят е гост или регистриран
-        public boolean planGenerated = false; // Флаг дали планът е генериран за текущата сесия
+        /* мета-инфо за сесията */
+        public Integer  userId       = null;
+        public boolean  isGuest      = true;
+        public boolean  planGenerated= false;
     }
 
-    /**
-     * Връща състоянието на сесията за даден ID на сесията или създава нова, ако не съществува.
-     * @param sessionId Уникален идентификатор на сесията.
-     * @return Текущото или новосъздаденото състояние на сесията.
-     */
+
     public SessionState getOrCreateSession(String sessionId) {
         return sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
     }
 
-    /**
-     * Изчиства (нулира) състоянието на сесията за даден ID на сесията,
-     * започвайки нов разговор.
-     * @param sessionId Уникален идентификатор на сесията.
-     */
+
+    public Map<String, Object> generateDemoPlan(String sessionId) {
+        SessionState s = sessionMap.get(sessionId);
+        if (s == null) throw new IllegalStateException("Сесията не е намерена");
+
+        /* много опростен пример – само текст; може да се доразвие */
+        List<Map<String, String>> meals = new ArrayList<>();
+
+        /* breakfast */
+        meals.add(Map.of(
+                "meal",         "Закуска",
+                "description",  switch (Optional.ofNullable(s.dietType).orElse("Стандартна")) {
+                    case "Кето"        -> "Омлет от 3 яйца със спанак и авокадо";
+                    case "Веган"       -> "Овес с ядково мляко + боровинки";
+                    case "Вегетарианска" -> "Кисело мляко с гранола и плод";
+                    default            -> "Овесени ядки с банан и мед";
+                }
+        ));
+
+        /* lunch */
+        meals.add(Map.of(
+                "meal",        "Обяд",
+                "description", switch (Optional.ofNullable(s.dietType).orElse("Стандартна")) {
+                    case "Кето"        -> "Салата със сьомга, маслини и зехтин";
+                    case "Веган"       -> "Будa боул с киноа, нахут и зеленчуци";
+                    case "Вегетарианска" -> "Пълнозърнеста пита + яйчна салата";
+                    default            -> "Пилешко филе с кафяв ориз и броколи";
+                }
+        ));
+
+        /* dinner */
+        meals.add(Map.of(
+                "meal",        "Вечеря",
+                "description", switch (Optional.ofNullable(s.dietType).orElse("Стандартна")) {
+                    case "Кето"        -> "Телешки стек + зелен бейби спанак";
+                    case "Веган"       -> "Леща яхния с морков и целина";
+                    case "Вегетарианска" -> "Фритата със зеленчуци и сирене";
+                    default            -> "Сьомга на фурна + аспержи";
+                }
+        ));
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("day",   "Понеделник");
+        result.put("meals", meals);
+        return result;
+    }
+
     private void resetSession(String sessionId) {
         sessionMap.put(sessionId, new SessionState());
     }
 
-    /**
-     * Обработва входящи съобщения от потребителя и връща отговор.
-     * Това е основният метод за взаимодействие с чатбота.
-     * @param sessionId Уникален идентификатор на сесията.
-     * @param message Входящото съобщение от потребителя.
-     * @return Отговорът на чатбота.
-     */
+
     public String processMessage(String sessionId, String message) {
         SessionState session = sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
 
-        // Проверка за команда за рестарт
+
         if (message.equalsIgnoreCase("рестарт")) {
             resetSession(sessionId);
             return "Здравейте! Аз съм вашият личен асистент за фитнес и хранене. Готови ли сте да създадем вашия персонализиран план? Първо, искате ли да научите повече за различните типове диети? (да / не)";
@@ -148,24 +176,13 @@ public class ChatbotService {
         return response;
     }
 
-    /**
-     * Проверява дали сесията е достигнала състояние, в което планът може да бъде генериран.
-     * @param sessionId Уникален идентификатор на сесията.
-     * @return true, ако планът е готов за генериране, в противен случай false.
-     */
+
     public boolean isReadyToGeneratePlan(String sessionId) {
         SessionState session = sessionMap.get(sessionId);
         return session != null && "DONE".equals(session.state);
     }
 
-    /**
-     * Генерира и запазва план за хранене и тренировки за потребителя,
-     * използвайки събраните данни от сесията.
-     * @param sessionId Уникален идентификатор на сесията.
-     * @return Генерираният NutritionPlan.
-     * @throws IllegalStateException Ако сесията не е готова за генериране на план.
-     * @throws RuntimeException Ако възникне проблем с намирането на данни в базата данни или невалидни типове.
-     */
+
     public NutritionPlan generatePlan(String sessionId) {
         SessionState session = sessionMap.get(sessionId);
         if (session == null || !"DONE".equals(session.state)) {
@@ -281,12 +298,7 @@ public class ChatbotService {
         return nutritionPlan; // Връщаме генерирания план за хранене
     }
 
-    /**
-     * Обработва отговора на въпроса дали потребителят иска информация за диетите.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя.
-     * @return Отговорът на чатбота.
-     */
+
     private String handleDietExplanation(SessionState session, String message) {
         if (message.trim().equalsIgnoreCase("да")) {
             session.state = "ASK_DIET_TYPE";
@@ -315,13 +327,7 @@ public class ChatbotService {
         }
     }
 
-    /**
-     * Обработва въвеждането на предпочитан тип диета.
-     * Включва мапинг на синоними към основните имена на диетите в базата данни.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (избор на диета).
-     * @return Отговорът на чатбота или подкана за повторен избор.
-     */
+
     private String handleDietTypeInput(SessionState session, String message) {
         String input = message.trim().toLowerCase();
         String dietNameInDb; // Името, което търсим в базата данни
@@ -369,12 +375,7 @@ public class ChatbotService {
         return "Възникна вътрешен проблем: Диетичен тип '" + dietNameInDb + "' не е намерен в системата. Моля, свържете се с поддръжката или опитайте 'рестарт'.";
     }
 
-    /**
-     * Обработва въвеждането на теглото на потребителя.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (тегло).
-     * @return Отговорът на чатбота или подкана за повторен вход.
-     */
+
     private String handleWeightInput(SessionState session, String message) {
         try {
             double weight = Double.parseDouble(message);
@@ -389,12 +390,7 @@ public class ChatbotService {
         }
     }
 
-    /**
-     * Обработва въвеждането на ръста на потребителя.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (ръст).
-     * @return Отговорът на чатбота или подкана за повторен вход.
-     */
+
     private String handleHeightInput(SessionState session, String message) {
         try {
             double height = Double.parseDouble(message);
@@ -409,12 +405,7 @@ public class ChatbotService {
         }
     }
 
-    /**
-     * Обработва въвеждането на възрастта на потребителя.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (възраст).
-     * @return Отговорът на чатбота или подкана за повторен вход.
-     */
+
     private String handleAgeInput(SessionState session, String message) {
         try {
             int age = Integer.parseInt(message);
@@ -429,12 +420,7 @@ public class ChatbotService {
         }
     }
 
-    /**
-     * Обработва въвеждането на пола на потребителя.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (пол).
-     * @return Отговорът на чатбота или подкана за повторен вход.
-     */
+
     private String handleGenderInput(SessionState session, String message) {
         String input = message.trim().toLowerCase();
         if (input.equals("мъж") || input.equals("жена")) {
@@ -446,13 +432,7 @@ public class ChatbotService {
         }
     }
 
-    /**
-     * Обработва въвеждането на фитнес целта на потребителя.
-     * Включва мапинг на синоними към основните имена на целите в базата данни.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (фитнес цел).
-     * @return Отговорът на чатбота или подкана за повторен избор.
-     */
+
     private String handleGoalInput(SessionState session, String message) {
         String input = message.trim().toLowerCase();
         String goalName;
@@ -491,13 +471,7 @@ public class ChatbotService {
         return "Възникна вътрешен проблем: Цел '" + goalName + "' не е намерена в системата. Моля, свържете се с поддръжката или опитайте 'рестарт'.";
     }
 
-    /**
-     * Обработва въвеждането на нивото на активност на потребителя.
-     * Включва мапинг на синоними към основните имена на нивата в базата данни.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (ниво на активност).
-     * @return Отговорът на чатбота или подкана за повторен избор.
-     */
+
     private String handleActivityLevelInput(SessionState session, String message) {
         String input = message.trim().toLowerCase();
         String level;
@@ -538,12 +512,7 @@ public class ChatbotService {
         return "Възникна вътрешен проблем: Ниво на активност '" + level + "' не е намерено в системата. Моля, свържете се с поддръжката или опитайте 'рестарт'.";
     }
 
-    /**
-     * Обработва предпочитанията на потребителя за консумация на месо.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (предпочитания за месо).
-     * @return Отговорът на чатбота или подкана за повторен избор.
-     */
+
     private String handleMeatPreference(SessionState session, String message) {
         String input = message.trim().toLowerCase();
         List<String> validPreferences = Arrays.asList("пилешко", "телешко", "риба", "свинско", "агнешко", "без месо", "няма значение");
@@ -557,12 +526,7 @@ public class ChatbotService {
         }
     }
 
-    /**
-     * Обработва отговора на потребителя относно консумацията на млечни продукти.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя ('да' или 'не').
-     * @return Отговорът на чатбота или подкана за повторен вход.
-     */
+
     private String handleDairy(SessionState session, String message) {
         String input = message.trim().toLowerCase();
         if (input.equals("да")) {
@@ -578,12 +542,7 @@ public class ChatbotService {
         }
     }
 
-    /**
-     * Обработва предпочитанията на потребителя за тип тренировка.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (тип тренировка).
-     * @return Отговорът на чатбота или подкана за повторен избор.
-     */
+
     private String handleTrainingType(SessionState session, String message) {
         String input = message.trim().toLowerCase();
         List<String> validTypes = Arrays.asList("тежести", "без тежести", "кардио");
@@ -596,12 +555,7 @@ public class ChatbotService {
         }
     }
 
-    /**
-     * Обработва информацията за хранителни алергии на потребителя.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (алергии).
-     * @return Отговорът на чатбота.
-     */
+
     private String handleAllergies(SessionState session, String message) {
         String input = message.trim();
         if (input.equalsIgnoreCase("не") || input.isEmpty()) {
@@ -616,12 +570,7 @@ public class ChatbotService {
         return "Имате ли други специални хранителни предпочитания или ограничения (напр. 'без захар', 'нискомаслено', 'без соя')? Моля, избройте ги, разделени със запетая, или напишете 'не'.";
     }
 
-    /**
-     * Обработва информацията за други диетични предпочитания на потребителя.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (други предпочитания).
-     * @return Отговорът на чатбота.
-     */
+
     private String handleOtherDietaryPreferences(SessionState session, String message) {
         String input = message.trim();
         if (input.equalsIgnoreCase("не") || input.isEmpty()) {
@@ -636,12 +585,7 @@ public class ChatbotService {
         return "Колко дни в седмицата планирате да тренирате? (число от 1 до 7)";
     }
 
-    /**
-     * Обработва въвеждането на броя тренировъчни дни в седмицата.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (брой дни).
-     * @return Отговорът на чатбота или подкана за повторен вход.
-     */
+
     private String handleTrainingDaysPerWeek(SessionState session, String message) {
         try {
             int days = Integer.parseInt(message);
@@ -657,12 +601,7 @@ public class ChatbotService {
         }
     }
 
-    /**
-     * Обработва въвеждането на продължителността на тренировката в минути.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (продължителност).
-     * @return Отговорът на чатбота или подкана за повторен вход.
-     */
+
     private String handleTrainingDurationMinutes(SessionState session, String message) {
         try {
             int duration = Integer.parseInt(message);
@@ -678,12 +617,7 @@ public class ChatbotService {
         }
     }
 
-    /**
-     * Обработва въвеждането на фитнес нивото на потребителя.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (ниво).
-     * @return Отговорът на чатбота или подкана за повторен избор.
-     */
+
     private String handleLevel(SessionState session, String message) {
         String input = message.trim().toLowerCase();
         List<String> validLevels = Arrays.asList("начинаещ", "средно напреднал", "напреднал");
@@ -696,12 +630,7 @@ public class ChatbotService {
         }
     }
 
-    /**
-     * Обработва въвеждането на предпочитаната честота на хранене.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (честота).
-     * @return Отговорът на чатбота или подкана за повторен вход.
-     */
+
     private String handleMealFrequency(SessionState session, String message) {
         String input = message.trim();
         try {
@@ -718,12 +647,7 @@ public class ChatbotService {
         }
     }
 
-    /**
-     * Обработва въвеждането на имейл адреса на потребителя.
-     * @param session Текущото състояние на сесията.
-     * @param message Съобщението от потребителя (имейл).
-     * @return Отговорът на чатбота или подкана за повторен вход.
-     */
+
     private String handleEmail(SessionState session, String message) {
         String email = message.trim();
         // Проста валидация на имейл формат

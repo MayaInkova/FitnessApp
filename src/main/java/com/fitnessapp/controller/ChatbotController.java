@@ -13,67 +13,87 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/chatbot")
 @CrossOrigin(origins = "http://localhost:5173")
-
 public class ChatbotController {
 
     private final ChatbotService chatbotService;
-    private static final Logger logger = LoggerFactory.getLogger(ChatbotController.class);
+    private static final Logger log = LoggerFactory.getLogger(ChatbotController.class);
 
     public ChatbotController(ChatbotService chatbotService) {
         this.chatbotService = chatbotService;
     }
 
     @PostMapping("/message")
-    public ResponseEntity<?> handleMessage(@RequestBody ChatMessageRequest request) {
+    public ResponseEntity<?> handleMessage(@RequestBody ChatMessageRequest req) {
+
         try {
-            String sessionId = String.valueOf(request.getSessionId()); // 🔁 преобразуване към String
-            logger.info("Получено съобщение: {}", request.getMessage());
 
-            ChatbotService.SessionState session = chatbotService.getOrCreateSession(sessionId);
+            String sessionId = String.valueOf(req.getSessionId());
+            log.info("📨  [{}] {}", sessionId, req.getMessage());
 
-            if (session.userId == null && request.getUserId() != null) {
-                session.userId = request.getUserId();
-                session.isGuest = false;
+
+            ChatbotService.SessionState s = chatbotService.getOrCreateSession(sessionId);
+
+            if (s.userId == null && req.getUserId() != null) {   // вече логнат
+                s.userId  = req.getUserId();
+                s.isGuest = false;
+            }
+            if (req.getUserId() == null) {                       // още е гост
+                s.isGuest = true;
             }
 
-            if (request.getUserId() == null) {
-                session.isGuest = true;
-            }
 
-            String result = chatbotService.processMessage(sessionId, request.getMessage());
+            String reply = chatbotService.processMessage(sessionId, req.getMessage());
 
-            if (!session.planGenerated && chatbotService.isReadyToGeneratePlan(sessionId)) {
-                session.planGenerated = true;
 
-                if (session.isGuest) {
-                    return ResponseEntity.ok(Map.of("type", "demo_plan_redirect"));
+            if (!s.planGenerated && chatbotService.isReadyToGeneratePlan(sessionId)) {
+                s.planGenerated = true;          // за да не влизаме пак тук
+
+
+                if (s.isGuest) {
+                    Map<String, Object> demoPlan = chatbotService.generateDemoPlan(sessionId); // <-- нов метод
+                    return ResponseEntity.ok(Map.of(
+                            "type", "demo_plan",
+                            "plan", demoPlan
+                    ));
                 }
 
+
                 NutritionPlan plan = chatbotService.generatePlan(sessionId);
-                return ResponseEntity.ok(Map.of("type", "plan", "plan", plan));
+                return ResponseEntity.ok(Map.of(
+                        "type", "plan",
+                        "plan", plan
+                ));
             }
 
-            return ResponseEntity.ok(Map.of("type", "text", "message", result));
 
-        } catch (Exception e) {
-            logger.error("Грешка при обработка на съобщението", e);
-            return ResponseEntity.status(500).body("Грешка при обработка на съобщението: " + e.getMessage());
+            return ResponseEntity.ok(Map.of(
+                    "type",    "text",
+                    "message", reply
+            ));
+
+        } catch (Exception ex) {
+            log.error(" Грешка при обработка на съобщението", ex);
+            return ResponseEntity.status(500).body(
+                    "Грешка при обработка на съобщението: " + ex.getMessage()
+            );
         }
     }
+
 
     @GetMapping("/status/{sessionId}")
     public ResponseEntity<?> getSessionStatus(@PathVariable String sessionId) {
         try {
-            ChatbotService.SessionState session = chatbotService.getOrCreateSession(sessionId);
+            ChatbotService.SessionState s = chatbotService.getOrCreateSession(sessionId);
             return ResponseEntity.ok(Map.of(
-                    "sessionId", sessionId,
-                    "isGuest", session.isGuest,
-                    "userId", session.userId,
-                    "planGenerated", session.planGenerated
+                    "sessionId",     sessionId,
+                    "isGuest",       s.isGuest,
+                    "userId",        s.userId,
+                    "planGenerated", s.planGenerated,
+                    "state",         s.state          // за дебъг
             ));
-        } catch (Exception e) {
-            logger.error("Грешка при проверка на състоянието на сесията", e);
-            return ResponseEntity.status(500).body("Грешка: " + e.getMessage());
+        } catch (Exception ex) {
+            log.error(" Грешка при проверка на състоянието", ex);
+            return ResponseEntity.status(500).body("Грешка: " + ex.getMessage());
         }
     }
 }
