@@ -38,7 +38,6 @@ public class SecurityConfig {
         this.unauthorizedHandler = unauthorizedHandler;
     }
 
-    /* ---------- Bean-ове ---------- */
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -50,8 +49,6 @@ public class SecurityConfig {
             AuthenticationConfiguration cfg) throws Exception {
         return cfg.getAuthenticationManager();
     }
-
-    /* ---------- CORS ---------- */
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -68,7 +65,6 @@ public class SecurityConfig {
         return source;
     }
 
-    /* ---------- Security filter chain ---------- */
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -82,14 +78,10 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
-                        // публични: регистрация / вход / guest-токен
-                        .requestMatchers("/api/auth/**").permitAll()
 
-                        //  позволяваме чат бота за всички (гости и логнати)
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/chatbot/message").permitAll()
                         .requestMatchers("/api/chatbot/status/**").permitAll()
-
-                        // всичко останало изисква JWT
                         .anyRequest().authenticated()
                 );
 

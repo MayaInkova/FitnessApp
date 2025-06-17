@@ -65,8 +65,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String contextPath = request.getContextPath();
         String path = requestURI.substring(contextPath.length());
 
-        boolean shouldSkip = path.startsWith("/api/auth/")
-                || path.startsWith("/api/chatbot/");
+        // Променено: /api/chatbot/ вече не се пропуска от JWT филтъра
+        boolean shouldSkip = path.startsWith("/api/auth/");
 
         if (shouldSkip) {
             logger.info(" Skipping JWT authentication for path: {} (Full URI: {})", path, requestURI);

@@ -1,8 +1,15 @@
 package com.fitnessapp.service;
 
+import com.fitnessapp.dto.FullPlanDTO;
+import com.fitnessapp.dto.MealDTO;
+import com.fitnessapp.dto.TrainingSessionDTO;
+import com.fitnessapp.dto.ExerciseDTO; // Добавено
 import com.fitnessapp.model.*;
 import com.fitnessapp.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder; // Добавено
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -11,199 +18,245 @@ import java.util.stream.Collectors;
 @Service
 public class ChatbotService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ChatbotService.class);
 
-    private final NutritionPlanService   nutritionPlanService;
-    private final TrainingPlanService    trainingPlanService;
-    private final UserRepository         userRepository;
-    private final MealRepository         mealRepository;
-    private final DietTypeRepository     dietTypeRepository;
+    private final NutritionPlanService nutritionPlanService;
+    private final TrainingPlanService trainingPlanService;
+    private final UserRepository userRepository;
+    private final DietTypeRepository dietTypeRepository;
     private final ActivityLevelRepository activityLevelRepository;
-    private final GoalRepository         goalRepository;
-    private final RoleRepository         roleRepository;
+    private final GoalRepository goalRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder; // Добавено за хеширане на пароли
 
     private final Map<String, SessionState> sessionMap = new HashMap<>();
 
     @Autowired
     public ChatbotService(NutritionPlanService nutritionPlanService,
-                          TrainingPlanService  trainingPlanService,
-                          UserRepository       userRepository,
-                          MealRepository       mealRepository,
-                          DietTypeRepository   dietTypeRepository,
+                          TrainingPlanService trainingPlanService,
+                          UserRepository userRepository,
+                          DietTypeRepository dietTypeRepository,
                           ActivityLevelRepository activityLevelRepository,
-                          GoalRepository       goalRepository,
-                          RoleRepository       roleRepository) {
-
-        this.nutritionPlanService   = nutritionPlanService;
-        this.trainingPlanService    = trainingPlanService;
-        this.userRepository         = userRepository;
-        this.mealRepository         = mealRepository;
-        this.dietTypeRepository     = dietTypeRepository;
-        this.activityLevelRepository= activityLevelRepository;
-        this.goalRepository         = goalRepository;
-        this.roleRepository         = roleRepository;
+                          GoalRepository goalRepository,
+                          RoleRepository roleRepository,
+                          PasswordEncoder passwordEncoder) { // Добавен PasswordEncoder
+        this.nutritionPlanService = nutritionPlanService;
+        this.trainingPlanService = trainingPlanService;
+        this.userRepository = userRepository;
+        this.dietTypeRepository = dietTypeRepository;
+        this.activityLevelRepository = activityLevelRepository;
+        this.goalRepository = goalRepository;
+        this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder; // Инжектиране на PasswordEncoder
     }
 
     public static class SessionState {
-        /** текущ етап на “формата” */
+        /**
+         * текущ етап на “формата”
+         */
         public String state = "ASK_DIET_EXPLANATION";
 
         /* събрани данни */
-        String  email;
-        String  fullName;
-        String  dietType;
-        Double  weight;
-        Double  height;
+        String email; // Може да се използва за гост акаунти
+        String fullName; // Може да се използва за гост акаунти
+        String dietType;
+        Double weight;
+        Double height;
         Integer age;
-        String  gender;
-        String  goal;
-        String  activityLevel;
-        String  meatPreference;
+        String gender;
+        String goal;
+        String activityLevel;
+        String meatPreference;
         Boolean consumesDairy;
-        String  trainingType;
-        Set<String> allergies              = new HashSet<>();
-        Set<String> otherDietaryPreferences= new HashSet<>();
+        String trainingType;
+        Set<String> allergies = new HashSet<>();
+        Set<String> otherDietaryPreferences = new HashSet<>();
         Integer trainingDaysPerWeek;
         Integer trainingDurationMinutes;
-        String  level;
-        String  mealFrequencyPreference;
+        String level;
+        String mealFrequencyPreference;
 
-
-        public Integer  userId       = null;
-        public boolean  isGuest      = true;
-        public boolean  planGenerated= false;
+        public Integer userId = null; // ID на потребителя, ако е логнат
+        public boolean isGuest = true; // Флаг дали е гост или регистриран потребител
+        public boolean planGenerated = false; // Показва дали планът е генериран за тази сесия
     }
-
 
     public SessionState getOrCreateSession(String sessionId) {
         return sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
     }
 
+    // Метод за задаване на userId и isGuest при старт на сесия
+    public void setSessionUser(String sessionId, Integer userId, boolean isGuest) {
+        SessionState session = getOrCreateSession(sessionId);
+        session.userId = userId;
+        session.isGuest = isGuest;
+        logger.info("Сесия {} - userId: {}, isGuest: {}", sessionId, userId, isGuest);
+    }
 
+    // Метод за генериране на демо план (за GuestSummary.js)
     public Map<String, Object> generateDemoPlan(String sessionId) {
         SessionState s = sessionMap.get(sessionId);
-        if (s == null) throw new IllegalStateException("Сесията не е намерена");
-
+        if (s == null) {
+            // Ако сесията не е намерена, може би е изтекла или е директен достъп
+            // В този случай, може да върнете празен или базов демо план
+            // или да пренасочите потребителя да започне отначало.
+            // За целите на демото ще върнем базов план.
+            s = new SessionState(); // Създаваме временна сесия за демото, ако няма налична
+            s.dietType = "Балансирана"; // Задаваме базова диета за демото
+            logger.warn("Сесия не е намерена за ID: {}. Генерирам базов демо план.", sessionId);
+        } else {
+            logger.info("Генерирам демо план за сесия: {} с диета: {}", sessionId, s.dietType);
+        }
 
         List<Map<String, String>> meals = new ArrayList<>();
 
-
+        // Примерни ястия, базирани на събраната диета
         meals.add(Map.of(
-                "meal",         "Закуска",
-                "description",  switch (Optional.ofNullable(s.dietType).orElse("Стандартна")) {
-                    case "Кето"        -> "Омлет от 3 яйца със спанак и авокадо";
-                    case "Веган"       -> "Овес с ядково мляко + боровинки";
+                "meal", "Закуска",
+                "description", switch (Optional.ofNullable(s.dietType).orElse("Балансирана")) {
+                    case "Кето" -> "Омлет от 3 яйца със спанак и авокадо";
+                    case "Веган" -> "Овесени ядки с ядково мляко и боровинки";
                     case "Вегетарианска" -> "Кисело мляко с гранола и плод";
-                    default            -> "Овесени ядки с банан и мед";
-                }
-        ));
-
-
-        meals.add(Map.of(
-                "meal",        "Обяд",
-                "description", switch (Optional.ofNullable(s.dietType).orElse("Стандартна")) {
-                    case "Кето"        -> "Салата със сьомга, маслини и зехтин";
-                    case "Веган"       -> "Будa боул с киноа, нахут и зеленчуци";
-                    case "Вегетарианска" -> "Пълнозърнеста пита + яйчна салата";
-                    default            -> "Пилешко филе с кафяв ориз и броколи";
+                    default -> "Овесени ядки с банан и мед"; // Балансирана
                 }
         ));
 
         meals.add(Map.of(
-                "meal",        "Вечеря",
-                "description", switch (Optional.ofNullable(s.dietType).orElse("Стандартна")) {
-                    case "Кето"        -> "Телешки стек + зелен бейби спанак";
-                    case "Веган"       -> "Леща яхния с морков и целина";
+                "meal", "Обяд",
+                "description", switch (Optional.ofNullable(s.dietType).orElse("Балансирана")) {
+                    case "Кето" -> "Салата със сьомга, маслини и зехтин";
+                    case "Веган" -> "Будa боул с киноа, нахут и зеленчуци";
+                    case "Вегетарианска" -> "Пълнозърнеста пита с яйчна салата";
+                    default -> "Пилешко филе с кафяв ориз и броколи"; // Балансирана
+                }
+        ));
+
+        meals.add(Map.of(
+                "meal", "Вечеря",
+                "description", switch (Optional.ofNullable(s.dietType).orElse("Балансирана")) {
+                    case "Кето" -> "Телешки стек със зелен бейби спанак";
+                    case "Веган" -> "Леща яхния с морков и целина";
                     case "Вегетарианска" -> "Фритата със зеленчуци и сирене";
-                    default            -> "Сьомга на фурна + аспержи";
+                    default -> "Сьомга на фурна с аспержи"; // Балансирана
                 }
         ));
 
         Map<String, Object> result = new HashMap<>();
-        result.put("day",   "Понеделник");
+        result.put("day", "Понеделник");
         result.put("meals", meals);
+
+        // Добавяне на примерни тренировъчни сесии за демо план
+        List<Map<String, String>> trainingSessions = new ArrayList<>();
+        trainingSessions.add(Map.of(
+                "name", "Тренировка за цяло тяло",
+                "description", "Комплекс от основни упражнения за всички мускулни групи.",
+                "duration", "45 минути",
+                "exercises", "Клекове, лицеви опори, напади, планк, гребане с дъмбели."
+        ));
+        trainingSessions.add(Map.of(
+                "name", "Кардио тренировка",
+                "description", "Интервална тренировка с бягане или скачане на въже.",
+                "duration", "30 минути",
+                "exercises", "5 минути загрявка, 20 минути интервали (1 мин бързо, 1 мин бавно), 5 минути разтягане."
+        ));
+        result.put("trainingSessions", trainingSessions);
+
         return result;
     }
 
     private void resetSession(String sessionId) {
         sessionMap.put(sessionId, new SessionState());
+        logger.info("Сесия {} е рестартирана.", sessionId);
     }
 
-
-    public String processMessage(String sessionId, String message) {
+    // Променен тип на връщане на Object, за да може да връща Map<String, Object> или FullPlanDTO
+    public Object processMessage(String sessionId, String message) {
         SessionState session = sessionMap.computeIfAbsent(sessionId, k -> new SessionState());
-
 
         if (message.equalsIgnoreCase("рестарт")) {
             resetSession(sessionId);
-            return "Здравейте! Аз съм вашият личен асистент за фитнес и хранене. Готови ли сте да създадем вашия персонализиран план? Първо, искате ли да научите повече за различните типове диети? (да / не)";
+            return Map.of("type", "text", "message", "Здравейте! Аз съм вашият личен асистент за фитнес и хранене. Готови ли сте да създадем вашия персонализиран план? Първо, искате ли да научите повече за различните типове диети? (да / не)");
         }
 
-        String response;
+        Object response;
         try {
             // Използваме state pattern за обработка на съобщения въз основа на текущото състояние
             response = switch (session.state) {
-                case "ASK_DIET_EXPLANATION" -> handleDietExplanation(session, message);
-                case "ASK_DIET_TYPE" -> handleDietTypeInput(session, message);
-                case "ASK_WEIGHT" -> handleWeightInput(session, message);
-                case "ASK_HEIGHT" -> handleHeightInput(session, message);
-                case "ASK_AGE" -> handleAgeInput(session, message);
-                case "ASK_GENDER" -> handleGenderInput(session, message);
-                case "ASK_GOAL" -> handleGoalInput(session, message);
-                case "ASK_ACTIVITY_LEVEL" -> handleActivityLevelInput(session, message);
-                case "ASK_MEAT_PREFERENCE" -> handleMeatPreference(session, message);
-                case "ASK_DAIRY_PREFERENCE" -> handleDairy(session, message);
-                case "ASK_TRAINING_TYPE" -> handleTrainingType(session, message);
-                case "ASK_ALLERGIES" -> handleAllergies(session, message);
-                case "ASK_OTHER_DIETARY_PREFERENCES" -> handleOtherDietaryPreferences(session, message);
-                case "ASK_TRAINING_DAYS_PER_WEEK" -> handleTrainingDaysPerWeek(session, message);
-                case "ASK_TRAINING_DURATION_MINUTES" -> handleTrainingDurationMinutes(session, message);
-                case "ASK_LEVEL" -> handleLevel(session, message);
-                case "ASK_MEAL_FREQUENCY" -> handleMealFrequency(session, message);
-                case "ASK_EMAIL" -> handleEmail(session, message);
-                case "ASK_FULL_NAME" -> handleFullName(session, message);
+                case "ASK_DIET_EXPLANATION" -> Map.of("type", "text", "message", handleDietExplanation(session, message));
+                case "ASK_DIET_TYPE" -> Map.of("type", "text", "message", handleDietTypeInput(session, message));
+                case "ASK_WEIGHT" -> Map.of("type", "text", "message", handleWeightInput(session, message));
+                case "ASK_HEIGHT" -> Map.of("type", "text", "message", handleHeightInput(session, message));
+                case "ASK_AGE" -> Map.of("type", "text", "message", handleAgeInput(session, message));
+                case "ASK_GENDER" -> Map.of("type", "text", "message", handleGenderInput(session, message));
+                case "ASK_GOAL" -> Map.of("type", "text", "message", handleGoalInput(session, message));
+                case "ASK_ACTIVITY_LEVEL" -> Map.of("type", "text", "message", handleActivityLevelInput(session, message));
+                case "ASK_MEAT_PREFERENCE" -> Map.of("type", "text", "message", handleMeatPreference(session, message));
+                case "ASK_DAIRY_PREFERENCE" -> Map.of("type", "text", "message", handleDairy(session, message));
+                case "ASK_TRAINING_TYPE" -> Map.of("type", "text", "message", handleTrainingType(session, message));
+                case "ASK_ALLERGIES" -> Map.of("type", "text", "message", handleAllergies(session, message));
+                case "ASK_OTHER_DIETARY_PREFERENCES" -> Map.of("type", "text", "message", handleOtherDietaryPreferences(session, message));
+                case "ASK_TRAINING_DAYS_PER_WEEK" -> Map.of("type", "text", "message", handleTrainingDaysPerWeek(session, message));
+                case "ASK_TRAINING_DURATION_MINUTES" -> Map.of("type", "text", "message", handleTrainingDurationMinutes(session, message));
+                case "ASK_LEVEL" -> Map.of("type", "text", "message", handleLevel(session, message));
+                case "ASK_MEAL_FREQUENCY" -> handleMealFrequency(sessionId, session, message); // <-- Този метод вече връща Map
                 case "DONE" ->
-                        "Вашият персонализиран режим е вече изчислен! Ако желаете да генерирате нов, моля, напишете 'рестарт'.";
+                        Map.of("type", "text", "message", "Вашият персонализиран режим е вече изчислен! Ако желаете да генерирате нов, моля, напишете 'рестарт'.");
                 default ->
-                        "Изглежда има проблем с текущото състояние. Моля, напишете 'рестарт', за да започнем отначало.";
+                        Map.of("type", "text", "message", "Изглежда има проблем с текущото състояние. Моля, напишете 'рестарт', за да започнем отначало.");
             };
         } catch (Exception e) {
-            // Логване на грешката за отстраняване на проблеми
-            e.printStackTrace();
-            return "Възникна вътрешна грешка при обработката на съобщението: " + e.getMessage() + ". Моля, опитайте отново или напишете 'рестарт'.";
+            logger.error("Възникна вътрешна грешка при обработката на съобщението за сесия {}: {}", sessionId, e.getMessage(), e);
+            return Map.of("type", "error", "message", "Възникна вътрешна грешка при обработката на съобщението: " + e.getMessage() + ". Моля, опитайте отново или напишете 'рестарт'.");
         }
 
         return response;
     }
-
 
     public boolean isReadyToGeneratePlan(String sessionId) {
         SessionState session = sessionMap.get(sessionId);
         return session != null && "DONE".equals(session.state);
     }
 
-
-    public NutritionPlan generatePlan(String sessionId) {
+    // МОДИФИЦИРАН МЕТОД: generatePlan() -> generateAndSavePlanForUser() - вече връща създадения/актуализиран User
+    public User generateAndSavePlanForUser(String sessionId) {
         SessionState session = sessionMap.get(sessionId);
         if (session == null || !"DONE".equals(session.state)) {
             throw new IllegalStateException("Сесията не е готова за генериране на план или не е намерена.");
         }
 
+        User user;
+        if (session.userId != null && !session.isGuest) {
+            // Регистриран потребител: Актуализираме съществуващия
+            user = userRepository.findById(session.userId)
+                    .orElseThrow(() -> new RuntimeException("Регистриран потребител с ID " + session.userId + " не е намерен!"));
 
-        User user = new User();
-        user.setEmail(session.email);
-        user.setFullName(session.fullName);
+            // За регистрирани потребители, имейл и пълно име обикновено не се променят от чатбота
+            // user.setEmail(session.email != null ? session.email : user.getEmail());
+            // user.setFullName(session.fullName != null ? session.fullName : user.getFullName());
 
+        } else {
+            // Нов временен потребител (от гост сесия)
+            user = new User();
+            // За гости, имейл може да е null, ако не е попитан или генериран.
+            // Може да се генерира фиктивен имейл, ако е абсолютно необходим
+            user.setEmail(session.email != null && !session.email.isEmpty() ? session.email : UUID.randomUUID().toString() + "@guest.com");
+            user.setFullName(session.fullName != null && !session.fullName.isEmpty() ? session.fullName : "Guest User");
+            user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // Хеширана случайна парола
+            user.setIsTemporaryAccount(true); // Маркираме като временен акаунт
 
-        user.setPassword("temporary_password_hashed");
+            Role userRole = roleRepository.findByName("ROLE_USER")
+                    .orElseThrow(() -> new RuntimeException("ROLE_USER не е намерен!"));
+            user.setRoles(Set.of(userRole));
+        }
 
-
+        // Попълване на останалите атрибути на потребителя от състоянието на сесията
+        // Тази част е обща както за нов, така и за съществуващ потребител.
         user.setDietType(dietTypeRepository.findByNameIgnoreCase(session.dietType)
                 .orElseThrow(() -> new RuntimeException("DietType не е намерен: " + session.dietType)));
         user.setActivityLevel(activityLevelRepository.findByNameIgnoreCase(session.activityLevel)
                 .orElseThrow(() -> new RuntimeException("ActivityLevel не е намерен: " + session.activityLevel)));
         user.setGoal(goalRepository.findByNameIgnoreCase(session.goal)
                 .orElseThrow(() -> new RuntimeException("Goal не е намерен: " + session.goal)));
-
 
         user.setAge(session.age);
         user.setWeight(session.weight);
@@ -252,7 +305,6 @@ public class ChatbotService {
         if (session.mealFrequencyPreference != null) {
             try {
                 String displayString;
-                // Преобразуване на числовата честота в дисплей стринг за MealFrequencyPreferenceType
                 switch (session.mealFrequencyPreference) {
                     case "2":
                         displayString = "2 пъти дневно";
@@ -278,24 +330,27 @@ public class ChatbotService {
             }
         }
 
-        // Задаване на роля на потребителя
-        Role userRole = roleRepository.findByName("ROLE_USER")
-                .orElseThrow(() -> new RuntimeException("ROLE_USER не е намерен!"));
-        user.setRoles(Set.of(userRole));
-
-        // Запазване на потребителя в базата данни
-        User savedUser = userRepository.save(user);
+        // Запазване или актуализиране на потребителя в базата данни
+        User savedOrUpdatedUser = userRepository.save(user);
 
         // Генериране и запазване на плана за хранене
-        NutritionPlan nutritionPlan = nutritionPlanService.generateNutritionPlan(savedUser);
+        // Важно: generateNutritionPlan връща Entity, а не DTO, което е правилно тук
+        nutritionPlanService.generateNutritionPlan(savedOrUpdatedUser);
 
         // Генериране и запазване на тренировъчния план
-        trainingPlanService.generateAndSaveTrainingPlanForUser(savedUser);
+        trainingPlanService.generateAndSaveTrainingPlanForUser(savedOrUpdatedUser);
 
-        System.out.println("План генериран за потребител: " + savedUser.getFullName());
-        return nutritionPlan; // Връщаме генерирания план за хранене
+        session.planGenerated = true; // Маркираме, че планът е генериран за тази сесия
+        session.userId = savedOrUpdatedUser.getId(); // Актуализираме ID на потребителя в сесията, ако е бил нов
+        session.isGuest = savedOrUpdatedUser.getIsTemporaryAccount() != null && savedOrUpdatedUser.getIsTemporaryAccount(); // Актуализираме guest статуса
+
+        logger.info("План генериран/актуализиран за потребител: {} (ID: {})", savedOrUpdatedUser.getFullName(), savedOrUpdatedUser.getId());
+        return savedOrUpdatedUser; // Връщаме създадения/актуализиран потребител
     }
 
+    // Методи за обработка на състоянията:
+    // Тези методи вече не променят състоянието, а просто връщат съобщения за чатбота.
+    // Промяната на състоянието и типа на връщане се извършва в processMessage.
 
     private String handleDietExplanation(SessionState session, String message) {
         if (message.trim().equalsIgnoreCase("да")) {
@@ -325,10 +380,9 @@ public class ChatbotService {
         }
     }
 
-
     private String handleDietTypeInput(SessionState session, String message) {
         String input = message.trim().toLowerCase();
-        String dietNameInDb; // Името, което търсим в базата данни
+        String dietNameInDb;
 
         switch (input) {
             case "балансирана":
@@ -347,7 +401,7 @@ public class ChatbotService {
                 dietNameInDb = "Кето";
                 break;
             case "веган":
-            case "веганска": // Добавен е 'веганска' като синоним за 'Веган'
+            case "веганска":
             case "веган диета":
                 dietNameInDb = "Веган";
                 break;
@@ -365,14 +419,13 @@ public class ChatbotService {
 
         Optional<DietType> dietTypeOptional = dietTypeRepository.findByNameIgnoreCase(dietNameInDb);
         if (dietTypeOptional.isPresent()) {
-            session.dietType = dietTypeOptional.get().getName(); // Запазваме името, както е в БД
+            session.dietType = dietTypeOptional.get().getName();
             session.state = "ASK_WEIGHT";
             return "Моля, въведете вашето текущо тегло **в килограми (кг)**.";
         }
-        // Този else блок би трябвало да се достигне само ако има несъответствие в DataInitializer
+        logger.error("Диетичен тип '{}' не е намерен в системата.", dietNameInDb);
         return "Възникна вътрешен проблем: Диетичен тип '" + dietNameInDb + "' не е намерен в системата. Моля, свържете се с поддръжката или опитайте 'рестарт'.";
     }
-
 
     private String handleWeightInput(SessionState session, String message) {
         try {
@@ -388,7 +441,6 @@ public class ChatbotService {
         }
     }
 
-
     private String handleHeightInput(SessionState session, String message) {
         try {
             double height = Double.parseDouble(message);
@@ -402,7 +454,6 @@ public class ChatbotService {
             return "Невалиден формат за ръст. Моля, въведете само число. Например: 178";
         }
     }
-
 
     private String handleAgeInput(SessionState session, String message) {
         try {
@@ -418,7 +469,6 @@ public class ChatbotService {
         }
     }
 
-
     private String handleGenderInput(SessionState session, String message) {
         String input = message.trim().toLowerCase();
         if (input.equals("мъж") || input.equals("жена")) {
@@ -429,7 +479,6 @@ public class ChatbotService {
             return "Невалиден отговор. Моля, посочете пол: **мъж / жена**";
         }
     }
-
 
     private String handleGoalInput(SessionState session, String message) {
         String input = message.trim().toLowerCase();
@@ -464,11 +513,9 @@ public class ChatbotService {
             session.state = "ASK_ACTIVITY_LEVEL";
             return "Колко активен сте през деня? **заседнал / леко активен / умерено активен / много активен / изключително активен**";
         }
-
-        // Този else блок би трябвало да се достигне само ако има несъответствие в DataInitializer
+        logger.error("Цел '{}' не е намерена в системата.", goalName);
         return "Възникна вътрешен проблем: Цел '" + goalName + "' не е намерена в системата. Моля, свържете се с поддръжката или опитайте 'рестарт'.";
     }
-
 
     private String handleActivityLevelInput(SessionState session, String message) {
         String input = message.trim().toLowerCase();
@@ -505,25 +552,22 @@ public class ChatbotService {
             session.state = "ASK_MEAT_PREFERENCE";
             return "Имате ли предпочитания относно консумацията на месо? **пилешко / телешко / риба / свинско / агнешко / без месо / няма значение**";
         }
-
-        // Този else блок би трябвало да се достигне само ако има несъответствие в DataInitializer
+        logger.error("Ниво на активност '{}' не е намерено в системата.", level);
         return "Възникна вътрешен проблем: Ниво на активност '" + level + "' не е намерено в системата. Моля, свържете се с поддръжката или опитайте 'рестарт'.";
     }
-
 
     private String handleMeatPreference(SessionState session, String message) {
         String input = message.trim().toLowerCase();
         List<String> validPreferences = Arrays.asList("пилешко", "телешко", "риба", "свинско", "агнешко", "без месо", "няма значение");
 
         if (validPreferences.contains(input)) {
-            session.meatPreference = input; // Съхраняваме оригиналния входен стринг
+            session.meatPreference = input;
             session.state = "ASK_DAIRY_PREFERENCE";
             return "Консумирате ли млечни продукти? (да / не)";
         } else {
             return "Невалиден отговор. Моля, изберете: **пилешко / телешко / риба / свинско / агнешко / без месо / няма значение**";
         }
     }
-
 
     private String handleDairy(SessionState session, String message) {
         String input = message.trim().toLowerCase();
@@ -540,7 +584,6 @@ public class ChatbotService {
         }
     }
 
-
     private String handleTrainingType(SessionState session, String message) {
         String input = message.trim().toLowerCase();
         List<String> validTypes = Arrays.asList("тежести", "без тежести", "кардио");
@@ -552,7 +595,6 @@ public class ChatbotService {
             return "Невалиден тип тренировка. Моля, изберете: **тежести / без тежести / кардио**";
         }
     }
-
 
     private String handleAllergies(SessionState session, String message) {
         String input = message.trim();
@@ -568,7 +610,6 @@ public class ChatbotService {
         return "Имате ли други специални хранителни предпочитания или ограничения (напр. 'без захар', 'нискомаслено', 'без соя')? Моля, избройте ги, разделени със запетая, или напишете 'не'.";
     }
 
-
     private String handleOtherDietaryPreferences(SessionState session, String message) {
         String input = message.trim();
         if (input.equalsIgnoreCase("не") || input.isEmpty()) {
@@ -582,7 +623,6 @@ public class ChatbotService {
         session.state = "ASK_TRAINING_DAYS_PER_WEEK";
         return "Колко дни в седмицата планирате да тренирате? (число от 1 до 7)";
     }
-
 
     private String handleTrainingDaysPerWeek(SessionState session, String message) {
         try {
@@ -599,11 +639,10 @@ public class ChatbotService {
         }
     }
 
-
     private String handleTrainingDurationMinutes(SessionState session, String message) {
         try {
             int duration = Integer.parseInt(message);
-            if (duration >= 15 && duration <= 180) { // Разумни граници за тренировка
+            if (duration >= 15 && duration <= 180) {
                 session.trainingDurationMinutes = duration;
                 session.state = "ASK_LEVEL";
                 return "Какво е вашето текущо фитнес ниво? **начинаещ / средно напреднал / напреднал**";
@@ -614,7 +653,6 @@ public class ChatbotService {
             return "Невалиден формат. Моля, въведете цяло число.";
         }
     }
-
 
     private String handleLevel(SessionState session, String message) {
         String input = message.trim().toLowerCase();
@@ -628,45 +666,45 @@ public class ChatbotService {
         }
     }
 
-
-    private String handleMealFrequency(SessionState session, String message) {
+    // МОДИФИЦИРАН МЕТОД: handleMealFrequency - вече връща Map<String, Object> със FullPlanDTO
+    private Map<String, Object> handleMealFrequency(String sessionId, SessionState session, String message) {
         String input = message.trim();
         try {
             int frequency = Integer.parseInt(input);
-            if (frequency >= 2 && frequency <= 6) { // Разумен диапазон
+            if (frequency >= 2 && frequency <= 6) {
                 session.mealFrequencyPreference = input;
-                session.state = "ASK_EMAIL";
-                return "Почти сме готови! Моля, въведете вашия имейл адрес, за да запазим плана ви.";
+                session.state = "DONE"; // <-- ЗАДАВАМЕ СЪСТОЯНИЕТО НА DONE
+
+                // ГЕНЕРИРАНЕ И ЗАПАЗВАНЕ НА ПОТРЕБИТЕЛЯ И ПЛАНОВЕТЕ
+                // generateAndSavePlanForUser вече запазва потребителя и генерира плановете
+                User savedOrUpdatedUser = generateAndSavePlanForUser(sessionId);
+
+                // ИЗВЛИЧАНЕ НА FullPlanDTO чрез NutritionPlanService
+                FullPlanDTO fullPlanDTO = nutritionPlanService.getFullPlanByUserId(savedOrUpdatedUser.getId());
+
+                if (fullPlanDTO == null) {
+                    logger.error("Неуспешно извличане на FullPlanDTO за потребител ID: {}", savedOrUpdatedUser.getId());
+                    return Map.of("type", "error", "message", "Възникна грешка при извличане на генерирания план.");
+                }
+
+                // ВРЪЩАНЕ НА FullPlanDTO В ОТГОВОР
+                Map<String, Object> responseMap = new HashMap<>();
+                responseMap.put("type", "plan"); // Използваме "plan", както очаква фронтенда
+                responseMap.put("message", "Вашият персонализиран план е успешно генериран и запазен!");
+                responseMap.put("isGuest", session.isGuest);
+                responseMap.put("userId", session.userId);
+                responseMap.put("plan", fullPlanDTO); // <-- ДОБАВЯМЕ ЦЕЛИЯ FullPlanDTO ТУК
+
+                return responseMap;
             } else {
-                return "Невалидна честота на хранене. Моля, въведете число между 2 и 6.";
+                return Map.of("type", "text", "message", "Невалидна честота на хранене. Моля, въведете число между 2 и 6.");
             }
         } catch (NumberFormatException e) {
-            return "Невалиден формат. Моля, въведете число.";
+            return Map.of("type", "text", "message", "Невалиден формат. Моля, въведете число.");
+        } catch (Exception e) {
+            logger.error("Възникна грешка при генерирането на плана за сесия {}: {}", sessionId, e.getMessage(), e);
+            return Map.of("type", "error", "message", "Възникна грешка при генерирането на плана: " + e.getMessage());
         }
     }
 
-
-    private String handleEmail(SessionState session, String message) {
-        String email = message.trim();
-        // Проста валидация на имейл формат
-        if (email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$")) {
-            session.email = email;
-            session.state = "ASK_FULL_NAME";
-            return "Благодаря! Сега, моля, въведете вашето пълно име (напр. Иван Петров).";
-        } else {
-            return "Невалиден имейл адрес. Моля, въведете валиден имейл.";
-        }
-    }
-
-
-    private String handleFullName(SessionState session, String message) {
-        String fullName = message.trim();
-        if (!fullName.isEmpty() && fullName.length() > 3) { // Проста валидация
-            session.fullName = fullName;
-            session.state = "DONE"; // Всички данни са събрани, планът може да бъде генериран
-            return "Всички необходими данни са събрани! Генерирам вашия персонализиран план...";
-        } else {
-            return "Моля, въведете пълното си име.";
-        }
-    }
 }

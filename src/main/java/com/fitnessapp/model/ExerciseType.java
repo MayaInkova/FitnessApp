@@ -4,5 +4,6 @@ public enum ExerciseType {
     WEIGHTS,
     BODYWEIGHT,
     CARDIO,
+    OTHER
 
 }

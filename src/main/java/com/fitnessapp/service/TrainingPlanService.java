@@ -48,7 +48,13 @@ public class TrainingPlanService {
                 trainingPlanRepository.findByUserAndDateGenerated(user, LocalDate.now());
         if (existingPlan.isPresent()) {
             logger.info("Existing training plan found for user {}. Returning existing plan.", user.getFullName());
-            return existingPlan.get();
+            TrainingPlan plan = existingPlan.get();
+            // Корекция: Инициализирайте лениво заредените колекции, когато връщате съществуващ план
+            Hibernate.initialize(plan.getTrainingSessions());
+            if (plan.getTrainingSessions() != null) {
+                plan.getTrainingSessions().forEach(session -> Hibernate.initialize(session.getExercises()));
+            }
+            return plan;
         }
 
         LevelType userLevel = user.getLevel();

@@ -12,6 +12,8 @@ import com.fitnessapp.model.Role;
 import com.fitnessapp.model.TrainingType;
 import com.fitnessapp.model.User;
 import com.fitnessapp.model.MealFrequencyPreferenceType;
+import com.fitnessapp.model.NutritionPlan;
+import com.fitnessapp.model.TrainingPlan;
 
 import com.fitnessapp.repository.ActivityLevelRepository;
 import com.fitnessapp.repository.DietTypeRepository;
@@ -26,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -62,7 +65,7 @@ public class UserService {
      */
     @Transactional
     public User saveUser(User user) {
-        logger.info("Saving user: {}", user.getEmail());
+        logger.info("Запазване на потребител: {}", user.getEmail());
         return userRepository.save(user);
     }
 
@@ -74,7 +77,7 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public Optional<User> getUserByEmail(String email) {
-        logger.debug("Attempting to retrieve user by email: {}", email);
+        logger.debug("Опит за извличане на потребител по имейл: {}", email);
         return userRepository.findByEmail(email);
     }
 
@@ -86,7 +89,7 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public User getUserById(Integer id) {
-        logger.debug("Attempting to retrieve user by ID: {}", id);
+        logger.debug("Опит за извличане на потребител по ID: {}", id);
         return userRepository.findById(id).orElse(null);
     }
 
@@ -99,7 +102,7 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public Optional<UserResponseDTO> getUserByEmailDTO(String email) {
-        logger.debug("Attempting to retrieve user DTO by email: {}", email);
+        logger.debug("Опит за извличане на потребителски DTO по имейл: {}", email);
         return userRepository.findByEmail(email)
                 .map(this::convertUserToUserResponseDTO);
     }
@@ -113,7 +116,7 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public Optional<UserResponseDTO> getUserByIdDTO(Integer id) {
-        logger.debug("Attempting to retrieve user DTO by ID: {}", id);
+        logger.debug("Опит за извличане на потребителски DTO по ID: {}", id);
         return userRepository.findById(id)
                 .map(this::convertUserToUserResponseDTO);
     }
@@ -121,7 +124,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserResponseDTO> getAllUsersDTO() {
-        logger.info("Retrieving all user DTOs.");
+        logger.info("Извличане на всички потребителски DTO.");
         return userRepository.findAll().stream()
                 .map(this::convertUserToUserResponseDTO)
                 .collect(Collectors.toList());
@@ -130,7 +133,7 @@ public class UserService {
 
     @Transactional
     public UserResponseDTO updateUserProfile(Integer userId, UserUpdateRequest updateRequest) {
-        logger.info("Updating user profile for ID: {}", userId);
+        logger.info("Актуализиране на потребителски профил за ID: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Потребител не е намерен с ID: " + userId));
 
@@ -168,13 +171,13 @@ public class UserService {
         }
 
         User updatedUser = userRepository.save(user);
-        logger.info("User profile updated for ID: {}", userId);
+        logger.info("Потребителският профил е актуализиран за ID: {}", userId);
         return convertUserToUserResponseDTO(updatedUser); // Convert to DTO before returning
     }
 
     @Transactional
     public void updateDietTypeForUser(Integer userId, String dietTypeName) {
-        logger.info("Updating diet type for user ID: {} to {}", userId, dietTypeName);
+        logger.info("Актуализиране на тип диета за потребител ID: {} до {}", userId, dietTypeName);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Потребител не е намерен с ID: " + userId));
 
@@ -183,12 +186,12 @@ public class UserService {
 
         user.setDietType(dietType);
         userRepository.save(user);
-        logger.info("Diet type updated for user ID: {}", userId);
+        logger.info("Тип диета актуализиран за потребител ID: {}", userId);
     }
 
     @Transactional
     public User assignRole(Integer userId, String roleName) {
-        logger.info("Assigning role '{}' to user ID: {}", roleName, userId);
+        logger.info("Присвояване на роля '{}' на потребител ID: {}", roleName, userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Потребител не е намерен с ID: " + userId));
 
@@ -201,7 +204,7 @@ public class UserService {
         user.getRoles().add(role);
 
         User updatedUser = userRepository.save(user);
-        logger.info("Role assigned to user ID: {}", userId);
+        logger.info("Роля присвоена на потребител ID: {}", userId);
         return updatedUser;
     }
 
@@ -212,31 +215,47 @@ public class UserService {
      */
     @Transactional
     public void deleteUser(Integer id) {
-        logger.info("Attempting to delete user with ID: {}", id);
+        logger.info("Опит за изтриване на потребител с ID: {}", id);
         if (!userRepository.existsById(id)) {
-            logger.warn("User with ID {} not found for deletion.", id);
+            logger.warn("Потребител с ID {} не е намерен за изтриване.", id);
             throw new RuntimeException("Потребител с ID " + id + " не е намерен за изтриване.");
         }
         userRepository.deleteById(id);
-        logger.info("User with ID {} successfully deleted.", id);
+        logger.info("Потребител с ID {} успешно изтрит.", id);
     }
 
 
 
     private UserResponseDTO convertUserToUserResponseDTO(User user) {
         if (user == null) {
-            logger.warn("Attempted to convert a null User entity to DTO.");
+            logger.warn("Опит за конвертиране на празен потребителски обект в DTO.");
             return null;
         }
 
-
+        // Инициализиране на Lazy-loaded колекции
         Hibernate.initialize(user.getActivityLevel());
         Hibernate.initialize(user.getGoal());
         Hibernate.initialize(user.getDietType());
         Hibernate.initialize(user.getAllergies());
         Hibernate.initialize(user.getOtherDietaryPreferences());
-        Hibernate.initialize(user.getNutritionPlan());
-        Hibernate.initialize(user.getTrainingPlan());
+        Hibernate.initialize(user.getNutritionPlans()); // Променено от getNutritionPlan()
+        Hibernate.initialize(user.getTrainingPlans());   // Променено от getTrainingPlan()
+
+        // Взимане на ID на най-новия хранителен план
+        Integer latestNutritionPlanId = user.getNutritionPlans() != null && !user.getNutritionPlans().isEmpty() ?
+                user.getNutritionPlans().stream()
+                        .max(Comparator.comparing(NutritionPlan::getDateGenerated))
+                        .map(NutritionPlan::getId)
+                        .orElse(null)
+                : null;
+
+        // Взимане на ID на най-новия тренировъчен план
+        Integer latestTrainingPlanId = user.getTrainingPlans() != null && !user.getTrainingPlans().isEmpty() ?
+                user.getTrainingPlans().stream()
+                        .max(Comparator.comparing(TrainingPlan::getDateGenerated))
+                        .map(TrainingPlan::getId)
+                        .orElse(null)
+                : null;
 
 
         return UserResponseDTO.builder()
@@ -265,8 +284,8 @@ public class UserService {
                 .roles(user.getRoles() != null ? user.getRoles().stream() // Roles are EAGER, should not be null in practice
                         .map(Role::getName)
                         .collect(Collectors.toSet()) : new HashSet<>()) // Ensure non-null set
-                .nutritionPlanId(user.getNutritionPlan() != null ? user.getNutritionPlan().getId() : null)
-                .trainingPlanId(user.getTrainingPlan() != null ? user.getTrainingPlan().getId() : null)
+                .nutritionPlanId(latestNutritionPlanId) // Използва най-новия план ID
+                .trainingPlanId(latestTrainingPlanId)   // Използва най-новия план ID
                 .build();
     }
 }

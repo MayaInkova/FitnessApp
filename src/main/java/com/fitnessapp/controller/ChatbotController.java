@@ -1,13 +1,17 @@
 package com.fitnessapp.controller;
 
 import com.fitnessapp.dto.ChatMessageRequest;
-import com.fitnessapp.model.NutritionPlan;
+import com.fitnessapp.dto.FullPlanDTO; // Добавено, ако искате да връщате директно FullPlanDTO
+import com.fitnessapp.model.User;
+import com.fitnessapp.repository.UserRepository;
 import com.fitnessapp.service.ChatbotService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.Map;
 
 @RestController
@@ -16,65 +20,45 @@ import java.util.Map;
 public class ChatbotController {
 
     private final ChatbotService chatbotService;
+    private final UserRepository userRepository;
     private static final Logger log = LoggerFactory.getLogger(ChatbotController.class);
 
-    public ChatbotController(ChatbotService chatbotService) {
+    public ChatbotController(ChatbotService chatbotService, UserRepository userRepository) {
         this.chatbotService = chatbotService;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/message")
-    public ResponseEntity<?> handleMessage(@RequestBody ChatMessageRequest req) {
-
+    public ResponseEntity<?> handleMessage(@RequestBody ChatMessageRequest req, Principal principal) {
         try {
-
             String sessionId = String.valueOf(req.getSessionId());
             log.info("📨  [{}] {}", sessionId, req.getMessage());
 
+            Integer userId = null;
+            boolean isGuest = true;
 
-            ChatbotService.SessionState s = chatbotService.getOrCreateSession(sessionId);
-
-            if (s.userId == null && req.getUserId() != null) {   // вече логнат
-                s.userId  = req.getUserId();
-                s.isGuest = false;
-            }
-            if (req.getUserId() == null) {                       // още е гост
-                s.isGuest = true;
-            }
-
-
-            String reply = chatbotService.processMessage(sessionId, req.getMessage());
-
-
-            if (!s.planGenerated && chatbotService.isReadyToGeneratePlan(sessionId)) {
-                s.planGenerated = true;          // за да не влизаме пак тук
-
-
-                if (s.isGuest) {
-                    Map<String, Object> demoPlan = chatbotService.generateDemoPlan(sessionId); // <-- нов метод
-                    return ResponseEntity.ok(Map.of(
-                            "type", "demo_plan",
-                            "plan", demoPlan
-                    ));
-                }
-
-
-                NutritionPlan plan = chatbotService.generatePlan(sessionId);
-                return ResponseEntity.ok(Map.of(
-                        "type", "plan",
-                        "plan", plan
-                ));
+            if (principal != null && principal.getName() != null) {
+                User user = userRepository.findByEmail(principal.getName())
+                        .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + principal.getName()));
+                userId = user.getId();
+                isGuest = false;
             }
 
+            // Инициализираме или актуализираме сесията на чатбота с данните за потребителя
+            chatbotService.setSessionUser(sessionId, userId, isGuest);
 
-            return ResponseEntity.ok(Map.of(
-                    "type",    "text",
-                    "message", reply
-            ));
+            // Обработваме съобщението
+            // processMessage вече връща Map<String, Object> с типа ("text", "plan", "error", "demo_plan")
+            // и съответните данни. Контролерът просто трябва да върне този Map.
+            Object responseFromChatbotService = chatbotService.processMessage(sessionId, req.getMessage());
+
+            // Връщаме директно отговора от ChatbotService
+            return ResponseEntity.ok(responseFromChatbotService);
 
         } catch (Exception ex) {
-            log.error(" Грешка при обработка на съобщението", ex);
+            log.error("Грешка при обработка на съобщението за сесия: {}", req.getSessionId(), ex);
             return ResponseEntity.status(500).body(
-                    "Грешка при обработка на съобщението: " + ex.getMessage()
+                    Map.of("type", "error", "message", "Грешка при обработка на съобщението: " + ex.getMessage())
             );
         }
     }
@@ -85,15 +69,17 @@ public class ChatbotController {
         try {
             ChatbotService.SessionState s = chatbotService.getOrCreateSession(sessionId);
             return ResponseEntity.ok(Map.of(
-                    "sessionId",     sessionId,
-                    "isGuest",       s.isGuest,
-                    "userId",        s.userId,
+                    "sessionId", sessionId,
+                    "isGuest", s.isGuest,
+                    "userId", s.userId,
                     "planGenerated", s.planGenerated,
-                    "state",         s.state          // за дебъг
+                    "state", s.state // за дебъг
             ));
         } catch (Exception ex) {
-            log.error(" Грешка при проверка на състоянието", ex);
-            return ResponseEntity.status(500).body("Грешка: " + ex.getMessage());
+            log.error("Грешка при проверка на състоянието за сесия: {}", sessionId, ex);
+            return ResponseEntity.status(500).body(
+                    Map.of("type", "error", "message", "Грешка: " + ex.getMessage())
+            );
         }
     }
 }
