@@ -50,6 +50,7 @@ public class DataInitializer implements CommandLineRunner {
             roleRepository.save(Role.builder().name("ROLE_USER").build());
             roleRepository.save(Role.builder().name("ROLE_ADMIN").build());
             roleRepository.save(Role.builder().name("ROLE_MODERATOR").build());
+            roleRepository.save(Role.builder().name("ROLE_GUEST").build());
             System.out.println("Ролите са попълнени!");
         }
 
@@ -63,12 +64,12 @@ public class DataInitializer implements CommandLineRunner {
                     .name("Кето")
                     .description("Кетогенна диета с високо съдържание на мазнини и ниско съдържание на въглехидрати.").build());
             dietTypeRepository.save(DietType.builder()
-                    .name("Балансирана").description("Балансирана диета, включваща всички хранителни групи.").build()); // Corrected from "Стандартна"
+                    .name("Балансирана").description("Балансирана диета, включваща всички хранителни групи.").build());
             dietTypeRepository.save(DietType.builder()
                     .name("Вегетарианска").description("Растителна диета, без месо, птици или риба.").build());
             dietTypeRepository.save(DietType.builder()
-                    .name("Веган").description("Строго растителна диета, без животински продукти, включително млечни продукти и яйца.").build()); // Corrected from "Веганска"
-            dietTypeRepository.save(DietType.builder() // Added "Палео"
+                    .name("Веган").description("Строго растителна диета, без животински продукти, включително млечни продукти и яйца.").build());
+            dietTypeRepository.save(DietType.builder()
                     .name("Палео")
                     .description("Фокусира се върху храни, достъпни за палеолитните хора (месо, риба, зеленчуци, плодове, ядки, семена), изключва зърнени култури, бобови растения, млечни продукти и преработени храни.")
                     .build());
@@ -204,8 +205,29 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("Упражненията са попълнени!");
         }
 
-
+        // Добавяне на тестови потребители, включително администратор
         if (userRepository.count() == 0) {
+            Role userRole = roleRepository.findByName("ROLE_USER").orElseThrow(() -> new RuntimeException("ROLE_USER не е намерен!"));
+            Role adminRole = roleRepository.findByName("ROLE_ADMIN").orElseThrow(() -> new RuntimeException("ROLE_ADMIN не е намерен!"));
+
+            if (userRepository.findByEmail("test@example.com").isEmpty()) {
+                userRepository.save(User.builder()
+                        .fullName("Тест Потребител")
+                        .email("test@example.com")
+                        .password(passwordEncoder.encode("password123")) // Хеширана парола
+                        .roles(Set.of(userRole))
+                        .build());
+            }
+
+            if (userRepository.findByEmail("admin@example.com").isEmpty()) {
+                userRepository.save(User.builder()
+                        .fullName("Админ Потребител")
+                        .email("admin@example.com")
+                        .password(passwordEncoder.encode("adminpass")) // Хеширана парола
+                        .roles(Set.of(adminRole))
+                        .build());
+            }
+
             System.out.println("Потребителите са попълнени!");
         }
     }

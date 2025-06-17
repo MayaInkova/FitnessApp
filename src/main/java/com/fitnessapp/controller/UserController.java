@@ -74,7 +74,7 @@ public class UserController {
     public ResponseEntity<String> deleteUser(@PathVariable Integer id) {
         logger.info("Получена DELETE заявка за потребител с ID: {}", id);
         try {
-
+            userService.deleteUser(id);
             return new ResponseEntity<>("Потребител с ID " + id + " е изтрит успешно.", HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Грешка при изтриване на потребител с ID {}: {}", id, e.getMessage(), e);

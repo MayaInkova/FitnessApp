@@ -22,6 +22,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.hibernate.Hibernate; // Import Hibernate for lazy loading initialization
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +33,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserService {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -55,7 +60,9 @@ public class UserService {
      * @param user The User entity to save.
      * @return The saved User entity.
      */
+    @Transactional
     public User saveUser(User user) {
+        logger.info("Saving user: {}", user.getEmail());
         return userRepository.save(user);
     }
 
@@ -66,7 +73,8 @@ public class UserService {
      * @return An Optional containing the User entity if found, otherwise empty.
      */
     @Transactional(readOnly = true)
-    public Optional<User> getUserByEmail(String email) { // Renamed from getUserByEmailDTO to return Entity
+    public Optional<User> getUserByEmail(String email) {
+        logger.debug("Attempting to retrieve user by email: {}", email);
         return userRepository.findByEmail(email);
     }
 
@@ -74,10 +82,11 @@ public class UserService {
      * Retrieves a user entity by ID.
      * This method is intended for internal service use where a User entity is required.
      * @param id The ID of the user.
-     * @return The User entity if found, otherwise null. (Changed from Optional to match original)
+     * @return The User entity if found, otherwise null.
      */
     @Transactional(readOnly = true)
-    public User getUserById(Integer id) { // Re-added to return User entity
+    public User getUserById(Integer id) {
+        logger.debug("Attempting to retrieve user by ID: {}", id);
         return userRepository.findById(id).orElse(null);
     }
 
@@ -90,6 +99,7 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public Optional<UserResponseDTO> getUserByEmailDTO(String email) {
+        logger.debug("Attempting to retrieve user DTO by email: {}", email);
         return userRepository.findByEmail(email)
                 .map(this::convertUserToUserResponseDTO);
     }
@@ -103,14 +113,15 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public Optional<UserResponseDTO> getUserByIdDTO(Integer id) {
+        logger.debug("Attempting to retrieve user DTO by ID: {}", id);
         return userRepository.findById(id)
                 .map(this::convertUserToUserResponseDTO);
     }
 
 
-
     @Transactional(readOnly = true)
     public List<UserResponseDTO> getAllUsersDTO() {
+        logger.info("Retrieving all user DTOs.");
         return userRepository.findAll().stream()
                 .map(this::convertUserToUserResponseDTO)
                 .collect(Collectors.toList());
@@ -119,15 +130,16 @@ public class UserService {
 
     @Transactional
     public UserResponseDTO updateUserProfile(Integer userId, UserUpdateRequest updateRequest) {
+        logger.info("Updating user profile for ID: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Потребител не е намерен с ID: " + userId));
-
 
         Optional.ofNullable(updateRequest.getFullName()).ifPresent(user::setFullName);
         Optional.ofNullable(updateRequest.getAge()).ifPresent(user::setAge);
         Optional.ofNullable(updateRequest.getHeight()).ifPresent(user::setHeight);
         Optional.ofNullable(updateRequest.getWeight()).ifPresent(user::setWeight);
         Optional.ofNullable(updateRequest.getGender()).ifPresent(user::setGender);
+
         Optional.ofNullable(updateRequest.getActivityLevelId())
                 .flatMap(activityLevelRepository::findById)
                 .ifPresent(user::setActivityLevel);
@@ -139,7 +151,6 @@ public class UserService {
         Optional.ofNullable(updateRequest.getDietTypeId())
                 .flatMap(dietTypeRepository::findById)
                 .ifPresent(user::setDietType);
-
 
         Optional.ofNullable(updateRequest.getTrainingType()).ifPresent(user::setTrainingType);
         Optional.ofNullable(updateRequest.getTrainingDaysPerWeek()).ifPresent(user::setTrainingDaysPerWeek);
@@ -157,11 +168,13 @@ public class UserService {
         }
 
         User updatedUser = userRepository.save(user);
+        logger.info("User profile updated for ID: {}", userId);
         return convertUserToUserResponseDTO(updatedUser); // Convert to DTO before returning
     }
 
     @Transactional
     public void updateDietTypeForUser(Integer userId, String dietTypeName) {
+        logger.info("Updating diet type for user ID: {} to {}", userId, dietTypeName);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Потребител не е намерен с ID: " + userId));
 
@@ -170,10 +183,12 @@ public class UserService {
 
         user.setDietType(dietType);
         userRepository.save(user);
+        logger.info("Diet type updated for user ID: {}", userId);
     }
 
     @Transactional
     public User assignRole(Integer userId, String roleName) {
+        logger.info("Assigning role '{}' to user ID: {}", roleName, userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Потребител не е намерен с ID: " + userId));
 
@@ -185,11 +200,35 @@ public class UserService {
         }
         user.getRoles().add(role);
 
-        return userRepository.save(user);
+        User updatedUser = userRepository.save(user);
+        logger.info("Role assigned to user ID: {}", userId);
+        return updatedUser;
     }
 
+    /**
+     * Deletes a user by their ID.
+     * @param id The ID of the user to delete.
+     * @throws RuntimeException if the user is not found.
+     */
+    @Transactional
+    public void deleteUser(Integer id) {
+        logger.info("Attempting to delete user with ID: {}", id);
+        if (!userRepository.existsById(id)) {
+            logger.warn("User with ID {} not found for deletion.", id);
+            throw new RuntimeException("Потребител с ID " + id + " не е намерен за изтриване.");
+        }
+        userRepository.deleteById(id);
+        logger.info("User with ID {} successfully deleted.", id);
+    }
+
+
+
     private UserResponseDTO convertUserToUserResponseDTO(User user) {
-        if (user == null) return null;
+        if (user == null) {
+            logger.warn("Attempted to convert a null User entity to DTO.");
+            return null;
+        }
+
 
         Hibernate.initialize(user.getActivityLevel());
         Hibernate.initialize(user.getGoal());
@@ -199,6 +238,7 @@ public class UserService {
         Hibernate.initialize(user.getNutritionPlan());
         Hibernate.initialize(user.getTrainingPlan());
 
+
         return UserResponseDTO.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
@@ -206,26 +246,25 @@ public class UserService {
                 .age(user.getAge())
                 .height(user.getHeight())
                 .weight(user.getWeight())
-                .gender(user.getGender())
+                .gender(user.getGender()) // GenderType enum
                 .activityLevelId(user.getActivityLevel() != null ? user.getActivityLevel().getId() : null)
                 .activityLevelName(user.getActivityLevel() != null ? user.getActivityLevel().getName() : null)
                 .goalId(user.getGoal() != null ? user.getGoal().getId() : null)
                 .goalName(user.getGoal() != null ? user.getGoal().getName() : null)
                 .dietTypeId(user.getDietType() != null ? user.getDietType().getId() : null)
                 .dietTypeName(user.getDietType() != null ? user.getDietType().getName() : null)
-                .trainingType(user.getTrainingType() != null ? user.getTrainingType().name() : null)
+                .trainingType(user.getTrainingType() != null ? user.getTrainingType().name() : null) // Assuming DTO expects String
                 .trainingDaysPerWeek(user.getTrainingDaysPerWeek())
                 .trainingDurationMinutes(user.getTrainingDurationMinutes())
-                .level(user.getLevel())
+                .level(user.getLevel()) // LevelType enum
                 .allergies(user.getAllergies())
                 .otherDietaryPreferences(user.getOtherDietaryPreferences())
-                .meatPreference(user.getMeatPreference())
+                .meatPreference(user.getMeatPreference()) // MeatPreferenceType enum
                 .consumesDairy(user.getConsumesDairy())
-                .mealFrequencyPreference(user.getMealFrequencyPreference())
-                .roles(user.getRoles().stream()
+                .mealFrequencyPreference(user.getMealFrequencyPreference()) // MealFrequencyPreferenceType enum
+                .roles(user.getRoles() != null ? user.getRoles().stream() // Roles are EAGER, should not be null in practice
                         .map(Role::getName)
-                        .collect(Collectors.toSet()))
-
+                        .collect(Collectors.toSet()) : new HashSet<>()) // Ensure non-null set
                 .nutritionPlanId(user.getNutritionPlan() != null ? user.getNutritionPlan().getId() : null)
                 .trainingPlanId(user.getTrainingPlan() != null ? user.getTrainingPlan().getId() : null)
                 .build();
