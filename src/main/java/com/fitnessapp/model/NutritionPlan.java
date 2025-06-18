@@ -3,10 +3,10 @@ package com.fitnessapp.model;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter; // Added
-import lombok.Setter; // Added
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
-import lombok.EqualsAndHashCode; // Added
+import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -16,20 +16,18 @@ import java.util.List;
 @Table(name = "nutrition_plans", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"user_id", "dateGenerated"})
 })
-@Getter // Generates getters
-@Setter // Generates setters
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-// --- IMPORTANT CHANGE: Control EqualsAndHashCode ---
-@EqualsAndHashCode(onlyExplicitlyIncluded = true) // Generates equals/hashCode only for fields with @EqualsAndHashCode.Include
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class NutritionPlan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include // Include 'id' in equals() and hashCode()
+    @EqualsAndHashCode.Include
     private Integer id;
 
-    // LAZY ManyToOne relationship - DO NOT INCLUDE IN equals/hashCode
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -48,19 +46,17 @@ public class NutritionPlan {
     @Column(name = "carbohydrates")
     private Double carbohydrates;
 
-    // LAZY ManyToOne relationship - DO NOT INCLUDE IN equals/hashCode
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "goal_id")
     private Goal goal;
 
-    // OneToMany collection - DO NOT INCLUDE IN equals/hashCode
     @OneToMany(mappedBy = "nutritionPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Meal> meals = new ArrayList<>();
 
-    // --- Helper methods for bidirectional relationships ---
+
     public void addMeal(Meal meal) {
-        if (this.meals == null) { // Add null check for safety, though @Builder.Default should handle it
+        if (this.meals == null) {
             this.meals = new ArrayList<>();
         }
         this.meals.add(meal);

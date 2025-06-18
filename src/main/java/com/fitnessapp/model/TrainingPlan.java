@@ -14,7 +14,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "training_plans", uniqueConstraints = {
-        // ТОВА Е КЛЮЧОВОТО: Уникално ограничение върху user_id и date_generated
+
         @UniqueConstraint(columnNames = {"user_id", "date_generated"})
 })
 @Getter
@@ -30,14 +30,13 @@ public class TrainingPlan {
     @EqualsAndHashCode.Include
     private Integer id;
 
-    // Ето промяната: @ManyToOne
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false) // Премахнете unique = true, ако е имало
-    @EqualsAndHashCode.Include // Включете го за equals/hashCode, за да участва в уникалния ключ
+    @JoinColumn(name = "user_id", nullable = false)
+    @EqualsAndHashCode.Include
     private User user;
 
     @Column(nullable = false)
-    @EqualsAndHashCode.Include // Включете го за equals/hashCode
+    @EqualsAndHashCode.Include
     private LocalDate dateGenerated;
 
     private Integer daysPerWeek;
@@ -47,7 +46,7 @@ public class TrainingPlan {
     @Builder.Default
     private List<TrainingSession> trainingSessions = new ArrayList<>();
 
-    // Помощни методи
+
     public void addTrainingSession(TrainingSession session) {
         if (this.trainingSessions == null) {
             this.trainingSessions = new ArrayList<>();

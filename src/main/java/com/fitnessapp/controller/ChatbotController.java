@@ -1,7 +1,6 @@
 package com.fitnessapp.controller;
 
 import com.fitnessapp.dto.ChatMessageRequest;
-import com.fitnessapp.dto.FullPlanDTO; // Добавено, ако искате да връщате директно FullPlanDTO
 import com.fitnessapp.model.User;
 import com.fitnessapp.repository.UserRepository;
 import com.fitnessapp.service.ChatbotService;
@@ -32,7 +31,7 @@ public class ChatbotController {
     public ResponseEntity<?> handleMessage(@RequestBody ChatMessageRequest req, Principal principal) {
         try {
             String sessionId = String.valueOf(req.getSessionId());
-            log.info("📨  [{}] {}", sessionId, req.getMessage());
+            log.info("  [{}] {}", sessionId, req.getMessage());
 
             Integer userId = null;
             boolean isGuest = true;
@@ -44,15 +43,13 @@ public class ChatbotController {
                 isGuest = false;
             }
 
-            // Инициализираме или актуализираме сесията на чатбота с данните за потребителя
+
             chatbotService.setSessionUser(sessionId, userId, isGuest);
 
-            // Обработваме съобщението
-            // processMessage вече връща Map<String, Object> с типа ("text", "plan", "error", "demo_plan")
-            // и съответните данни. Контролерът просто трябва да върне този Map.
+
             Object responseFromChatbotService = chatbotService.processMessage(sessionId, req.getMessage());
 
-            // Връщаме директно отговора от ChatbotService
+
             return ResponseEntity.ok(responseFromChatbotService);
 
         } catch (Exception ex) {

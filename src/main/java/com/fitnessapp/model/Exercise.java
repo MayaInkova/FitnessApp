@@ -3,28 +3,28 @@ package com.fitnessapp.model;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter; // Added
-import lombok.Setter; // Added
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
-import lombok.EqualsAndHashCode; // Added
+import lombok.EqualsAndHashCode;
 
 @Entity
 @Table(name = "exercises")
-@Getter // Generates getters
-@Setter // Generates setters
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-// --- IMPORTANT CHANGE: Control EqualsAndHashCode ---
-@EqualsAndHashCode(onlyExplicitlyIncluded = true) // Generates equals/hashCode only for fields with @EqualsAndHashCode.Include
+
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Exercise {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include // Include 'id' in equals() and hashCode()
+    @EqualsAndHashCode.Include
     private Integer id;
 
     @Column(nullable = false)
-    @EqualsAndHashCode.Include // You can include 'name' here if you consider it unique enough for equals/hashCode
+    @EqualsAndHashCode.Include
     private String name;
 
     @Column(columnDefinition = "TEXT")
@@ -43,7 +43,7 @@ public class Exercise {
     @Enumerated(EnumType.STRING)
     private EquipmentType equipment;
 
-    // LAZY ManyToOne relationship - DO NOT INCLUDE IN equals/hashCode
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "training_session_id")
     private TrainingSession trainingSession;

@@ -1,4 +1,4 @@
-package com.fitnessapp.model; // или com.fitnessapp.model.enums
+package com.fitnessapp.model;
 
 public enum MeatType {
     NONE,

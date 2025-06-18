@@ -12,20 +12,20 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "chat_messages")
-@Getter // Generates getters
-@Setter // Generates setters
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-// --- IMPORTANT CHANGE: Control EqualsAndHashCode ---
-@EqualsAndHashCode(onlyExplicitlyIncluded = true) // Generates equals/hashCode only for fields with @EqualsAndHashCode.Include
+
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ChatMessage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include // Include 'id' in equals() and hashCode()
+    @EqualsAndHashCode.Include
     private Integer id;
 
-    // LAZY ManyToOne relationship - DO NOT INCLUDE IN equals/hashCode
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", nullable = false)
     private ChatSession session;

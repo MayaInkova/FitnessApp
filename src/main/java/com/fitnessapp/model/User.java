@@ -1,12 +1,12 @@
 package com.fitnessapp.model;
 
 import jakarta.persistence.*;
-import lombok.Getter; // Използвайте индивидуални анотации
-import lombok.Setter; // вместо @Data
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.EqualsAndHashCode; // Изисква се за контролиране на equals/hashCode
+import lombok.EqualsAndHashCode;
 
 import java.util.Set;
 import java.util.Collection;
@@ -18,30 +18,27 @@ import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "users")
-@Getter // Генерира гетъри за всички полета
-@Setter // Генерира сетъри за всички полета
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-// --- ВАЖНА ПРОМЯНА: Контролираме EqualsAndHashCode ---
-@EqualsAndHashCode(onlyExplicitlyIncluded = true) // Генерира equals/hashCode само за полета с @EqualsAndHashCode.Include
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include // Включва 'id' в equals() и hashCode()
+    @EqualsAndHashCode.Include
     private Integer id;
 
     @Column(unique = true, nullable = false)
-    @EqualsAndHashCode.Include // Можете да включите и имейл, тъй като е уникален и не се променя
+    @EqualsAndHashCode.Include
     private String email;
 
     @Column(nullable = false)
     private String password;
-
     private String fullName;
 
-    // ----- Нови полета от чатбота -----
     private Double weight;
     private Double height;
     private Integer age;
@@ -56,12 +53,12 @@ public class User implements UserDetails {
     @ElementCollection
     @CollectionTable(name = "user_allergies", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "allergy")
-    private Set<String> allergies; // НЕ ВКЛЮЧВАЙТЕ В equals/hashCode
+    private Set<String> allergies;
 
     @ElementCollection
     @CollectionTable(name = "user_dietary_preferences", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "preference")
-    private Set<String> otherDietaryPreferences; // НЕ ВКЛЮЧВАЙТЕ В equals/hashCode
+    private Set<String> otherDietaryPreferences;
 
     private Integer trainingDaysPerWeek;
     private Integer trainingDurationMinutes;
@@ -72,26 +69,26 @@ public class User implements UserDetails {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diet_type_id")
-    private DietType dietType; // НЕ ВКЛЮЧВАЙТЕ В equals/hashCode, освен ако не е EAGER и не води до циклична зависимост
+    private DietType dietType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "activity_level_id")
-    private ActivityLevel activityLevel; // НЕ ВКЛЮЧВАЙТЕ В equals/hashCode
+    private ActivityLevel activityLevel;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "goal_id")
-    private Goal goal; // НЕ ВКЛЮЧВАЙТЕ В equals/hashCode
+    private Goal goal;
 
     private Boolean isTemporaryAccount = false;
 
-    // --- КОЛЕКЦИИ: ЗАДЪЛЖИТЕЛНО НЕ ГИ ВКЛЮЧВАЙТЕ В equals/hashCode ---
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<NutritionPlan> nutritionPlans;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<TrainingPlan> trainingPlans;
 
-    @ManyToMany(fetch = FetchType.EAGER) // Roles може да е EAGER, но все пак е по-добре да не се включва.
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -99,7 +96,6 @@ public class User implements UserDetails {
     )
     private Set<Role> roles;
 
-    // --- Помощни методи за двупосочни връзки (по желание, но силно препоръчително) ---
     public void addNutritionPlan(NutritionPlan plan) {
         if (this.nutritionPlans == null) {
             this.nutritionPlans = new java.util.HashSet<>();
@@ -115,7 +111,7 @@ public class User implements UserDetails {
         }
     }
 
-    // Повторете за TrainingPlan
+
     public void addTrainingPlan(TrainingPlan plan) {
         if (this.trainingPlans == null) {
             this.trainingPlans = new java.util.HashSet<>();
@@ -132,7 +128,6 @@ public class User implements UserDetails {
     }
 
 
-    // --- UserDetails имплементации ---
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roles.stream()

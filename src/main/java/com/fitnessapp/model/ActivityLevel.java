@@ -10,22 +10,22 @@ import lombok.EqualsAndHashCode; // Добавено
 
 @Entity
 @Table(name = "activity_levels")
-@Getter // Генерира гетъри
-@Setter // Генерира сетъри
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-// --- ВАЖНА ПРОМЯНА: Контролираме EqualsAndHashCode за последователност ---
-@EqualsAndHashCode(onlyExplicitlyIncluded = true) // Генерира equals/hashCode само за полета с @EqualsAndHashCode.Include
+
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ActivityLevel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include // Включва 'id' в equals() и hashCode()
+    @EqualsAndHashCode.Include
     private Integer id;
 
     @Column(unique = true, nullable = false)
-    @EqualsAndHashCode.Include // Можете да включите и 'name', тъй като е уникално
+    @EqualsAndHashCode.Include
     private String name;
     private String description;
     private Double multiplier;

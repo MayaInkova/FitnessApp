@@ -20,10 +20,10 @@ public enum MealType {
         return displayValue;
     }
 
-    @JsonCreator // Тази анотация е полезна за десериализация от JSON
+    @JsonCreator
     public static MealType fromString(String text) {
         for (MealType b : MealType.values()) {
-            // Сравняваме с displayValue за по-гъвкаво съвпадениe
+
             if (b.displayValue.equalsIgnoreCase(text)) {
                 return b;
             }

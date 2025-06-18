@@ -13,20 +13,19 @@ import java.util.Set;
 
 @Entity
 @Table(name = "recipes")
-@Getter // Generates getters
-@Setter // Generates setters
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-// --- ВАЖНА ПРОМЯНА: Контролираме EqualsAndHashCode ---
-@EqualsAndHashCode(onlyExplicitlyIncluded = true) // Generates equals/hashCode only for fields with @EqualsAndHashCode.Include
+
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Recipe {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include // Include 'id' in equals() and hashCode()
+    @EqualsAndHashCode.Include
     private Integer id;
 
-    // Можете да добавите @EqualsAndHashCode.Include към name, ако е уникално
     private String name;
     private String description;
     private String imageUrl;
@@ -41,7 +40,6 @@ public class Recipe {
     private Boolean containsFish;
     private Boolean containsPork;
 
-    // Collections: Even if EAGER, DO NOT INCLUDE THEM in equals/hashCode.
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "recipe_tags", joinColumns = @JoinColumn(name = "recipe_id"))
     @Column(name = "tag")
@@ -55,11 +53,9 @@ public class Recipe {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diet_type_id")
-    // @EqualsAndHashCode.Exclude is redundant when using onlyExplicitlyIncluded = true,
-    // but leaving it doesn't hurt. The key is it's NOT @EqualsAndHashCode.Include.
+
     private DietType dietType;
 
-    // Collections: Even if EAGER, DO NOT INCLUDE THEM in equals/hashCode.
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "recipe_allergens", joinColumns = @JoinColumn(name = "recipe_id"))
     @Column(name = "allergen")

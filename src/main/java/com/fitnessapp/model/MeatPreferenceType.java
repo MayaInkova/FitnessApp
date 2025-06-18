@@ -1,12 +1,12 @@
-package com.fitnessapp.model; // или com.fitnessapp.model.enums - избери едно
+package com.fitnessapp.model;
 
 public enum MeatPreferenceType {
-    NONE("без месо"), // За вегетарианци/вегани
+    NONE("без месо"),
     CHICKEN("пилешко"),
     BEEF("телешко"),
     PORK("свинско"),
     FISH("риба"),
-    LAMB("агнешко"), // Добавих агнешко, ако го ползваш
+    LAMB("агнешко"),
     NO_PREFERENCE("няма значение");
 
     private final String displayName;
@@ -21,7 +21,6 @@ public enum MeatPreferenceType {
 
     public static MeatPreferenceType fromString(String text) {
         for (MeatPreferenceType b : MeatPreferenceType.values()) {
-            // Сравняваме display name (напр. "без месо") или name() (напр. "NONE")
             if (b.displayName.equalsIgnoreCase(text) || b.name().equalsIgnoreCase(text.replace(" ", "_").toUpperCase())) {
                 return b;
             }
