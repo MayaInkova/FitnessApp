@@ -2,6 +2,7 @@ package com.fitnessapp.service;
 
 import com.fitnessapp.dto.ExerciseDTO;
 import com.fitnessapp.dto.TrainingPlanDTO;
+import com.fitnessapp.dto.TrainingPlanHistoryDTO;
 import com.fitnessapp.dto.TrainingSessionDTO;
 import com.fitnessapp.model.*;
 import com.fitnessapp.repository.ExerciseRepository;
@@ -263,5 +264,22 @@ public class TrainingPlanService {
     public TrainingPlanDTO getRecommendedTrainingPlanDTO(String goal, boolean withWeights) {
         logger.warn("Not implemented: getRecommendedTrainingPlanDTO");
         return null;
+    }
+
+    public List<TrainingPlanHistoryDTO> getTrainingPlanHistory(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+
+        List<TrainingPlan> plans = trainingPlanRepository.findByUserOrderByDateGeneratedDesc(user);
+
+        return plans.stream()
+                .map(plan -> TrainingPlanHistoryDTO.builder()
+                        .id(plan.getId())
+                        .dateGenerated(plan.getDateGenerated())
+                        .trainingPlanDescription(plan.getTrainingPlanDescription()) // Уверете се, че това поле е налично
+                        .trainingDaysPerWeek(plan.getDaysPerWeek())
+                        .trainingDurationMinutes(plan.getDurationMinutes())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

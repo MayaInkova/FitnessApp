@@ -15,4 +15,5 @@ public interface TrainingPlanRepository extends JpaRepository<TrainingPlan, Inte
     Optional<TrainingPlan> findByUserAndDateGenerated(User user, LocalDate dateGenerated);
 
     List<TrainingPlan> findByUserOrderByDateGeneratedDesc(User user);
+
 }

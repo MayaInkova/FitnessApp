@@ -13,5 +13,6 @@ import java.util.Optional;
 public interface NutritionPlanRepository extends JpaRepository<NutritionPlan, Integer> {
     Optional<NutritionPlan> findByUserAndDateGenerated(User user, LocalDate dateGenerated);
     List<NutritionPlan> findByUser(User user);
+    List<NutritionPlan> findByUserOrderByDateGeneratedDesc(User user);
 
 }

@@ -39,6 +39,10 @@ public class TrainingPlan {
     @EqualsAndHashCode.Include
     private LocalDate dateGenerated;
 
+    @Lob
+    @Column(name = "training_plan_description", columnDefinition = "TEXT")
+    private String trainingPlanDescription;
+
     private Integer daysPerWeek;
     private Integer durationMinutes;
 

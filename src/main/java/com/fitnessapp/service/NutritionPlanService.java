@@ -335,4 +335,25 @@ public class NutritionPlanService {
         }
         return sb.toString();
     }
+    public List<NutritionPlanHistoryDTO> getNutritionPlanHistory(Integer userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+
+
+        List<NutritionPlan> plans = nutritionPlanRepository.findByUserOrderByDateGeneratedDesc(user);
+
+
+        return plans.stream()
+                .map(plan -> NutritionPlanHistoryDTO.builder()
+                        .id(plan.getId())
+                        .dateGenerated(plan.getDateGenerated())
+                        .targetCalories(plan.getTargetCalories())
+                        .protein(plan.getProtein())
+                        .fat(plan.getFat())
+                        .carbohydrates(plan.getCarbohydrates())
+                        .goalName(plan.getGoal() != null ? plan.getGoal().getName() : null) // Важно! Взимаме името на целта
+                        .build())
+                .collect(Collectors.toList());
+    }
 }

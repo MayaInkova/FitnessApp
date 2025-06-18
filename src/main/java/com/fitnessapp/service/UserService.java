@@ -1,7 +1,7 @@
 package com.fitnessapp.service;
 
 import com.fitnessapp.dto.UserUpdateRequest;
-import com.fitnessapp.dto.UserResponseDTO; // Import the new DTO
+import com.fitnessapp.dto.UserResponseDTO;
 
 import com.fitnessapp.model.ActivityLevel;
 import com.fitnessapp.model.DietType;
@@ -23,7 +23,7 @@ import com.fitnessapp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.hibernate.Hibernate; // Import Hibernate for lazy loading initialization
+import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,48 +58,27 @@ public class UserService {
         this.goalRepository = goalRepository;
     }
 
-    /**
-     * Saves a user entity to the database.
-     * @param user The User entity to save.
-     * @return The saved User entity.
-     */
+
     @Transactional
     public User saveUser(User user) {
         logger.info("Запазване на потребител: {}", user.getEmail());
         return userRepository.save(user);
     }
 
-    /**
-     * Retrieves a user entity by email.
-     * This method is intended for internal service use where a User entity is required.
-     * @param email The email of the user.
-     * @return An Optional containing the User entity if found, otherwise empty.
-     */
+
     @Transactional(readOnly = true)
     public Optional<User> getUserByEmail(String email) {
         logger.debug("Опит за извличане на потребител по имейл: {}", email);
         return userRepository.findByEmail(email);
     }
 
-    /**
-     * Retrieves a user entity by ID.
-     * This method is intended for internal service use where a User entity is required.
-     * @param id The ID of the user.
-     * @return The User entity if found, otherwise null.
-     */
+
     @Transactional(readOnly = true)
     public User getUserById(Integer id) {
         logger.debug("Опит за извличане на потребител по ID: {}", id);
         return userRepository.findById(id).orElse(null);
     }
 
-    /**
-     * Retrieves a user by email and converts it to a UserResponseDTO.
-     * Initializes lazy-loaded collections before mapping to DTO.
-     * This method is intended for API responses.
-     * @param email The email of the user.
-     * @return An Optional containing UserResponseDTO if found, otherwise empty.
-     */
     @Transactional(readOnly = true)
     public Optional<UserResponseDTO> getUserByEmailDTO(String email) {
         logger.debug("Опит за извличане на потребителски DTO по имейл: {}", email);
@@ -107,13 +86,6 @@ public class UserService {
                 .map(this::convertUserToUserResponseDTO);
     }
 
-    /**
-     * Retrieves a user by ID and converts it to a UserResponseDTO.
-     * Initializes lazy-loaded collections before mapping to DTO.
-     * This method is intended for API responses.
-     * @param id The ID of the user.
-     * @return An Optional containing UserResponseDTO if found, otherwise empty.
-     */
     @Transactional(readOnly = true)
     public Optional<UserResponseDTO> getUserByIdDTO(Integer id) {
         logger.debug("Опит за извличане на потребителски DTO по ID: {}", id);
@@ -208,11 +180,7 @@ public class UserService {
         return updatedUser;
     }
 
-    /**
-     * Deletes a user by their ID.
-     * @param id The ID of the user to delete.
-     * @throws RuntimeException if the user is not found.
-     */
+
     @Transactional
     public void deleteUser(Integer id) {
         logger.info("Опит за изтриване на потребител с ID: {}", id);
@@ -232,14 +200,14 @@ public class UserService {
             return null;
         }
 
-        // Инициализиране на Lazy-loaded колекции
+
         Hibernate.initialize(user.getActivityLevel());
         Hibernate.initialize(user.getGoal());
         Hibernate.initialize(user.getDietType());
         Hibernate.initialize(user.getAllergies());
         Hibernate.initialize(user.getOtherDietaryPreferences());
-        Hibernate.initialize(user.getNutritionPlans()); // Променено от getNutritionPlan()
-        Hibernate.initialize(user.getTrainingPlans());   // Променено от getTrainingPlan()
+        Hibernate.initialize(user.getNutritionPlans());
+        Hibernate.initialize(user.getTrainingPlans());
 
         // Взимане на ID на най-новия хранителен план
         Integer latestNutritionPlanId = user.getNutritionPlans() != null && !user.getNutritionPlans().isEmpty() ?
@@ -265,7 +233,7 @@ public class UserService {
                 .age(user.getAge())
                 .height(user.getHeight())
                 .weight(user.getWeight())
-                .gender(user.getGender()) // GenderType enum
+                .gender(user.getGender())
                 .activityLevelId(user.getActivityLevel() != null ? user.getActivityLevel().getId() : null)
                 .activityLevelName(user.getActivityLevel() != null ? user.getActivityLevel().getName() : null)
                 .goalId(user.getGoal() != null ? user.getGoal().getId() : null)
@@ -275,7 +243,7 @@ public class UserService {
                 .trainingType(user.getTrainingType() != null ? user.getTrainingType().name() : null) // Assuming DTO expects String
                 .trainingDaysPerWeek(user.getTrainingDaysPerWeek())
                 .trainingDurationMinutes(user.getTrainingDurationMinutes())
-                .level(user.getLevel()) // LevelType enum
+                .level(user.getLevel())
                 .allergies(user.getAllergies())
                 .otherDietaryPreferences(user.getOtherDietaryPreferences())
                 .meatPreference(user.getMeatPreference()) // MeatPreferenceType enum
@@ -283,9 +251,10 @@ public class UserService {
                 .mealFrequencyPreference(user.getMealFrequencyPreference()) // MealFrequencyPreferenceType enum
                 .roles(user.getRoles() != null ? user.getRoles().stream() // Roles are EAGER, should not be null in practice
                         .map(Role::getName)
-                        .collect(Collectors.toSet()) : new HashSet<>()) // Ensure non-null set
-                .nutritionPlanId(latestNutritionPlanId) // Използва най-новия план ID
-                .trainingPlanId(latestTrainingPlanId)   // Използва най-новия план ID
+                        .collect(Collectors.toSet()) : new HashSet<>())
+                .nutritionPlanId(latestNutritionPlanId)
+                .trainingPlanId(latestTrainingPlanId)
                 .build();
     }
+
 }
