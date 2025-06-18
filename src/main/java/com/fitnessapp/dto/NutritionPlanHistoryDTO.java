@@ -18,5 +18,16 @@ public class NutritionPlanHistoryDTO {
     private Double fat;
     private Double carbohydrates;
     private String goalName;
+    private String userGenderSnapshot;
+    private Integer userAgeSnapshot;
+    private Double userWeightSnapshot;
+    private Double userHeightSnapshot;
+    private String userActivityLevelSnapshotName;
+    private String userDietTypeSnapshotName;
+    private String userAllergiesSnapshot;
+    private String userOtherDietaryPreferencesSnapshot;
+    private String userMeatPreferenceSnapshot;
+    private Boolean userConsumesDairySnapshot;
+    private String userMealFrequencyPreferenceSnapshot;
 
 }

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Set;
 import java.util.HashSet;
-import java.util.Arrays; // За лесно създаване на Set от колекции
+import java.util.Arrays;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -48,7 +48,7 @@ public class DataInitializer implements CommandLineRunner {
         seedDietTypes();
         seedActivityLevels();
         seedGoals();
-        seedRecipes(); // Този метод вече ще съдържа много повече данни
+        seedRecipes();
         seedExercises();
         seedTestUsers();
     }
@@ -102,9 +102,8 @@ public class DataInitializer implements CommandLineRunner {
         DietType protein = dietTypeRepository.findByName("Протеинова").orElse(null);
 
 
-        // --- БАЛАНСИРАНИ РЕЦЕПТИ ---
 
-        // Закуска: Балансирана, с млечни
+
         recipeRepository.save(Recipe.builder()
                 .name("Овесена каша с плодове и кисело мляко")
                 .description("Здравословна закуска, богата на фибри.")
@@ -120,7 +119,7 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("бързо", "здравословно", "закуска")))
                 .build());
 
-        // Обяд: Балансиран, с пилешко
+
         recipeRepository.save(Recipe.builder()
                 .name("Пилешка супа с много зеленчуци")
                 .description("Класическа пилешка супа, засищаща и питателна.")
@@ -137,7 +136,7 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("супа", "домашно", "обяд")))
                 .build());
 
-        // Вечеря: Балансирана, с риба, без млечни
+
         recipeRepository.save(Recipe.builder()
                 .name("Печена сьомга със задушени аспержи")
                 .description("Лека и здравословна вечеря с омега-3.")
@@ -154,9 +153,9 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("риба", "здравословно", "бързо")))
                 .build());
 
-        // --- КЕТО РЕЦЕПТИ ---
 
-        // Закуска: Кето, без млечни (може да има и с млечни, зависи от предпочитанията)
+
+
         recipeRepository.save(Recipe.builder()
                 .name("Кето омлет с бекон и авокадо")
                 .description("Засищаща кето закуска.")
@@ -173,7 +172,7 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("кето", "бързо", "закуска")))
                 .build());
 
-        // Обяд: Кето, с телешко, с млечни
+
         recipeRepository.save(Recipe.builder()
                 .name("Кето телешки кюфтенца с гъбен сос")
                 .description("Сочни телешки кюфтенца в кремообразен гъбен сос.")
@@ -190,7 +189,7 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("кето", "телешко", "богато")))
                 .build());
 
-        // Вечеря: Кето, с пилешко, без млечни, с ядки
+
         recipeRepository.save(Recipe.builder()
                 .name("Кето пилешки крилца с бадемова коричка")
                 .description("Хрупкави пилешки крилца, идеални за кето.")
@@ -210,9 +209,7 @@ public class DataInitializer implements CommandLineRunner {
                 .build());
 
 
-        // --- ВЕГАН РЕЦЕПТИ ---
 
-        // Закуска: Веган, без млечни
         recipeRepository.save(Recipe.builder()
                 .name("Чиа пудинг с горски плодове")
                 .description("Лека и хранителна веган закуска.")
@@ -228,7 +225,7 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("веган", "закуска", "без млечни")))
                 .build());
 
-        // Обяд: Веган, без млечни, без ядки
+
         recipeRepository.save(Recipe.builder()
                 .name("Леща с моркови и целина")
                 .description("Засищаща и богата на протеини веган супа.")
@@ -245,7 +242,7 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("веган", "супа", "обяд")))
                 .build());
 
-        // Вечеря: Веган, без млечни, със соя
+
         recipeRepository.save(Recipe.builder()
                 .name("Тофу със сотирани зеленчуци и ориз")
                 .description("Здравословна веган вечеря.")
@@ -263,9 +260,7 @@ public class DataInitializer implements CommandLineRunner {
                 .build());
 
 
-        // --- ПАЛЕО РЕЦЕПТИ ---
 
-        // Закуска: Палео, пилешко, без млечни
         recipeRepository.save(Recipe.builder()
                 .name("Палео Омлет с пилешко и зеленчуци")
                 .description("Бърза и засищаща палео закуска.")
@@ -282,7 +277,6 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("палео", "закуска", "високопротеиново")))
                 .build());
 
-        // Обяд: Палео, пилешко, без млечни
         recipeRepository.save(Recipe.builder()
                 .name("Пилешка салата Палео със сладки картофи")
                 .description("Свежа салата с пилешко филе и печени сладки картофи.")
@@ -299,7 +293,6 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("палео", "салата", "обяд")))
                 .build());
 
-        // Вечеря: Палео, телешко, без млечни
         recipeRepository.save(Recipe.builder()
                 .name("Телешко с броколи и гъби")
                 .description("Класическо палео ястие с много зеленчуци.")
@@ -317,9 +310,7 @@ public class DataInitializer implements CommandLineRunner {
                 .build());
 
 
-        // --- ПРОТЕИНОВИ РЕЦЕПТИ ---
 
-        // Закуска: Протеинова, с млечни
         recipeRepository.save(Recipe.builder()
                 .name("Протеинов шейк с извара и горски плодове")
                 .description("Бърза протеинова закуска или междинно хранене.")
@@ -335,7 +326,6 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("протеин", "бързо", "шейк")))
                 .build());
 
-        // Обяд: Протеинова, с пилешко
         recipeRepository.save(Recipe.builder()
                 .name("Грил пилешко филе с киноа и зелена салата")
                 .description("Лека, но богата на протеини опция за обяд.")
@@ -352,7 +342,7 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("протеин", "пилешко", "обяд")))
                 .build());
 
-        // Вечеря: Протеинова, с риба
+
         recipeRepository.save(Recipe.builder()
                 .name("Треска на фурна с лимон и билки")
                 .description("Нискомаслена, богата на протеини вечеря.")
@@ -369,9 +359,9 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("протеин", "риба", "лесно")))
                 .build());
 
-        // --- ВЕГЕТАРИАНСКИ РЕЦЕПТИ ---
 
-        // Закуска: Вегетарианска, с млечни
+
+
         recipeRepository.save(Recipe.builder()
                 .name("Гръцко кисело мляко с мед и орехи")
                 .description("Бърза вегетарианска закуска.")
@@ -381,7 +371,7 @@ public class DataInitializer implements CommandLineRunner {
                 .fat(12.0)
                 .isVegetarian(true)
                 .containsDairy(true)
-                .containsNuts(true) // Съдържа ядки
+                .containsNuts(true)
                 .mealType(MealType.BREAKFAST)
                 .instructions("Смесете гръцко кисело мляко с мед и нарязани орехи.")
                 .dietType(vegetarian)
@@ -389,7 +379,6 @@ public class DataInitializer implements CommandLineRunner {
                 .tags(new HashSet<>(Arrays.asList("вегетарианска", "бързо", "закуска")))
                 .build());
 
-        // Обяд: Вегетарианска, без млечни
         recipeRepository.save(Recipe.builder()
                 .name("Салата Капрезе с балсамов оцет")
                 .description("Класическа вегетарианска салата.")
@@ -398,7 +387,7 @@ public class DataInitializer implements CommandLineRunner {
                 .carbs(15.0)
                 .fat(25.0)
                 .isVegetarian(true)
-                .containsDairy(false) // Може да се направи с безлактозна моцарела или без сирене
+                .containsDairy(false)
                 .mealType(MealType.LUNCH)
                 .instructions("Нарежете домати и моцарела, аранжирайте с босилек и полейте с балсамов оцет.")
                 .dietType(vegetarian)
@@ -411,14 +400,13 @@ public class DataInitializer implements CommandLineRunner {
 
     private void seedExercises() {
         if (exerciseRepository.count() > 0) return;
-        // Bodyweight Exercises
+
         exerciseRepository.save(Exercise.builder().name("Клякания със собствено тегло").description("Упражнение за крака и глутеус.").sets(3).reps(15).durationMinutes(10).type(ExerciseType.BODYWEIGHT).difficultyLevel(DifficultyLevel.BEGINNER).equipment(EquipmentType.NONE).build());
         exerciseRepository.save(Exercise.builder().name("Лицеви опори").description("Упражнение за гърди и трицепс.").sets(3).reps(12).durationMinutes(8).type(ExerciseType.BODYWEIGHT).difficultyLevel(DifficultyLevel.BEGINNER).equipment(EquipmentType.NONE).build());
         exerciseRepository.save(Exercise.builder().name("Планк").description("Укрепва коремните мускули и ядрото.").sets(3).reps(1).durationMinutes(5).type(ExerciseType.BODYWEIGHT).difficultyLevel(DifficultyLevel.BEGINNER).equipment(EquipmentType.NONE).build());
         exerciseRepository.save(Exercise.builder().name("Бърпи").description("Цялостно кардио и силово упражнение.").sets(3).reps(10).durationMinutes(10).type(ExerciseType.BODYWEIGHT).difficultyLevel(DifficultyLevel.INTERMEDIATE).equipment(EquipmentType.NONE).build());
         exerciseRepository.save(Exercise.builder().name("Напади със собствено тегло").description("Упражнение за крака и глутеус.").sets(3).reps(12).durationMinutes(8).type(ExerciseType.BODYWEIGHT).difficultyLevel(DifficultyLevel.BEGINNER).equipment(EquipmentType.NONE).build());
 
-        // Weight Training Exercises
         exerciseRepository.save(Exercise.builder().name("Напади с дъмбели").description("Комбинира сила и баланс.").sets(3).reps(12).durationMinutes(8).type(ExerciseType.WEIGHTS).difficultyLevel(DifficultyLevel.INTERMEDIATE).equipment(EquipmentType.DUMBBELLS).build());
         exerciseRepository.save(Exercise.builder().name("Мъртва тяга").description("Комплексно упражнение за цялото тяло.").sets(4).reps(8).durationMinutes(12).type(ExerciseType.WEIGHTS).difficultyLevel(DifficultyLevel.ADVANCED).equipment(EquipmentType.BARBELL).build());
         exerciseRepository.save(Exercise.builder().name("Бенч преса").description("Упражнение за гърди с щанга.").sets(4).reps(10).durationMinutes(10).type(ExerciseType.WEIGHTS).difficultyLevel(DifficultyLevel.INTERMEDIATE).equipment(EquipmentType.BARBELL).build());
@@ -428,13 +416,13 @@ public class DataInitializer implements CommandLineRunner {
         exerciseRepository.save(Exercise.builder().name("Трицепсово разгъване").description("Упражнение за трицепс.").sets(3).reps(12).durationMinutes(6).type(ExerciseType.WEIGHTS).difficultyLevel(DifficultyLevel.BEGINNER).equipment(EquipmentType.DUMBBELLS).build());
 
 
-        // Cardio Exercises
+
         exerciseRepository.save(Exercise.builder().name("Бягане на пътека").description("Кардио за издръжливост.").durationMinutes(30).type(ExerciseType.CARDIO).difficultyLevel(DifficultyLevel.BEGINNER).equipment(EquipmentType.GYM_EQUIPMENT).build());
         exerciseRepository.save(Exercise.builder().name("Колоездене (стационарно)").description("Кардио за крака.").durationMinutes(45).type(ExerciseType.CARDIO).difficultyLevel(DifficultyLevel.INTERMEDIATE).equipment(EquipmentType.GYM_EQUIPMENT).build());
         exerciseRepository.save(Exercise.builder().name("Скачане на въже").description("Високоинтензивно кардио.").durationMinutes(15).type(ExerciseType.CARDIO).difficultyLevel(DifficultyLevel.INTERMEDIATE).equipment(EquipmentType.NONE).build());
         exerciseRepository.save(Exercise.builder().name("Плуване").description("Цялостно кардио упражнение.").durationMinutes(40).type(ExerciseType.CARDIO).difficultyLevel(DifficultyLevel.ADVANCED).equipment(EquipmentType.NONE).build());
 
-        // Other types (if applicable, e.g., Yoga, Pilates, stretching)
+
         exerciseRepository.save(Exercise.builder().name("Йога - Поздрав към Слънцето").description("Поредица от йога пози за гъвкавост и сила.").durationMinutes(20).type(ExerciseType.OTHER).difficultyLevel(DifficultyLevel.BEGINNER).equipment(EquipmentType.NONE).build());
 
 

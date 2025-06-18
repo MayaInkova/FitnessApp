@@ -51,9 +51,7 @@ public class ChatbotService {
     }
 
     public static class SessionState {
-        /**
-         * текущ етап на “формата”
-         */
+
         public String state = "ASK_DIET_EXPLANATION";
 
         /* събрани данни */
@@ -97,10 +95,7 @@ public class ChatbotService {
     public Map<String, Object> generateDemoPlan(String sessionId) {
         SessionState s = sessionMap.get(sessionId);
         if (s == null) {
-            // Ако сесията не е намерена, може би е изтекла или е директен достъп
-            // В този случай, може да върнете празен или базов демо план
-            // или да пренасочите потребителя да започне отначало.
-            // За целите на демото ще върнем базов план.
+
             s = new SessionState(); // Създаваме временна сесия за демото, ако няма налична
             s.dietType = "Балансирана"; // Задаваме базова диета за демото
             logger.warn("Сесия не е намерена за ID: {}. Генерирам базов демо план.", sessionId);
@@ -230,15 +225,11 @@ public class ChatbotService {
             user = userRepository.findById(session.userId)
                     .orElseThrow(() -> new RuntimeException("Регистриран потребител с ID " + session.userId + " не е намерен!"));
 
-            // За регистрирани потребители, имейл и пълно име обикновено не се променят от чатбота
-            // user.setEmail(session.email != null ? session.email : user.getEmail());
-            // user.setFullName(session.fullName != null ? session.fullName : user.getFullName());
 
         } else {
             // Нов временен потребител (от гост сесия)
             user = new User();
-            // За гости, имейл може да е null, ако не е попитан или генериран.
-            // Може да се генерира фиктивен имейл, ако е абсолютно необходим
+
             user.setEmail(session.email != null && !session.email.isEmpty() ? session.email : UUID.randomUUID().toString() + "@guest.com");
             user.setFullName(session.fullName != null && !session.fullName.isEmpty() ? session.fullName : "Guest User");
             user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // Хеширана случайна парола
@@ -249,8 +240,7 @@ public class ChatbotService {
             user.setRoles(Set.of(userRole));
         }
 
-        // Попълване на останалите атрибути на потребителя от състоянието на сесията
-        // Тази част е обща както за нов, така и за съществуващ потребител.
+
         user.setDietType(dietTypeRepository.findByNameIgnoreCase(session.dietType)
                 .orElseThrow(() -> new RuntimeException("DietType не е намерен: " + session.dietType)));
         user.setActivityLevel(activityLevelRepository.findByNameIgnoreCase(session.activityLevel)
@@ -333,8 +323,7 @@ public class ChatbotService {
         // Запазване или актуализиране на потребителя в базата данни
         User savedOrUpdatedUser = userRepository.save(user);
 
-        // Генериране и запазване на плана за хранене
-        // Важно: generateNutritionPlan връща Entity, а не DTO, което е правилно тук
+
         nutritionPlanService.generateNutritionPlan(savedOrUpdatedUser);
 
         // Генериране и запазване на тренировъчния план
@@ -348,9 +337,7 @@ public class ChatbotService {
         return savedOrUpdatedUser; // Връщаме създадения/актуализиран потребител
     }
 
-    // Методи за обработка на състоянията:
-    // Тези методи вече не променят състоянието, а просто връщат съобщения за чатбота.
-    // Промяната на състоянието и типа на връщане се извършва в processMessage.
+
 
     private String handleDietExplanation(SessionState session, String message) {
         if (message.trim().equalsIgnoreCase("да")) {

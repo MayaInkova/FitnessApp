@@ -14,7 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/chat-sessions")
-@CrossOrigin(origins = "*") // Разрешаване на CORS за улеснение при разработка
+@CrossOrigin(origins = "*")
 
 
 public class ChatSessionController {

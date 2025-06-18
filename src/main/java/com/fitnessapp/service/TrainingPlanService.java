@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.*;
@@ -50,11 +51,13 @@ public class TrainingPlanService {
         if (existingPlan.isPresent()) {
             logger.info("Existing training plan found for user {}. Returning existing plan.", user.getFullName());
             TrainingPlan plan = existingPlan.get();
-            // Корекция: Инициализирайте лениво заредените колекции, когато връщате съществуващ план
+
             Hibernate.initialize(plan.getTrainingSessions());
             if (plan.getTrainingSessions() != null) {
                 plan.getTrainingSessions().forEach(session -> Hibernate.initialize(session.getExercises()));
             }
+
+            Hibernate.initialize(plan.getUserActivityLevelSnapshot());
             return plan;
         }
 
@@ -66,10 +69,21 @@ public class TrainingPlanService {
                 .dateGenerated(LocalDate.now())
                 .daysPerWeek(Optional.ofNullable(user.getTrainingDaysPerWeek()).orElse(getDefaultTrainingDays(userLevel)))
                 .durationMinutes(Optional.ofNullable(user.getTrainingDurationMinutes()).orElse(getDefaultTrainingDuration(userLevel)))
-                .trainingSessions(new ArrayList<>()) // Инициализираме празен списък
+                .trainingSessions(new ArrayList<>())
                 .build();
 
-        // *** КОРИГИРАН РЕД: Запазете TrainingPlan ПЪРВО, за да получи ID ***
+
+        trainingPlan.setUserGenderSnapshot(user.getGender());
+        trainingPlan.setUserAgeSnapshot(user.getAge());
+        trainingPlan.setUserWeightSnapshot(user.getWeight());
+        trainingPlan.setUserHeightSnapshot(user.getHeight());
+        if (user.getActivityLevel() != null) {
+            Hibernate.initialize(user.getActivityLevel());
+            trainingPlan.setUserActivityLevelSnapshot(user.getActivityLevel());
+        }
+
+
+
         trainingPlan = trainingPlanRepository.save(trainingPlan);
 
         int daysPerWeek = trainingPlan.getDaysPerWeek();
@@ -82,7 +96,7 @@ public class TrainingPlanService {
             TrainingSession session = TrainingSession.builder()
                     .dayOfWeek(day)
                     .durationMinutes(durationMinutesPerSession)
-                    .trainingPlan(trainingPlan) // Сега trainingPlan има ID и е постоянен обект
+                    .trainingPlan(trainingPlan)
                     .build();
 
             List<Exercise> exercises = getExercisesForUser(userLevel, userTrainingType);
@@ -97,13 +111,10 @@ public class TrainingPlanService {
                 session.addExercise(exercises.get(i));
             }
 
-            // Запазете сесията. Тя вече коректно препраща към запазения TrainingPlan.
             trainingSessionRepository.save(session);
-            trainingPlan.addTrainingSession(session); // Добавяме запазената сесия към списъка в плана
+            trainingPlan.addTrainingSession(session);
         }
 
-        // Финално запазване на плана, за да се гарантира, че колекцията от сесии е запазена (ако няма каскадни опции)
-        // Но основният проблем с TransientPropertyValueException е решен от горното запазване на trainingPlan.
         return trainingPlanRepository.save(trainingPlan);
     }
 
@@ -266,6 +277,7 @@ public class TrainingPlanService {
         return null;
     }
 
+    @Transactional(readOnly = true)
     public List<TrainingPlanHistoryDTO> getTrainingPlanHistory(Integer userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
@@ -273,13 +285,24 @@ public class TrainingPlanService {
         List<TrainingPlan> plans = trainingPlanRepository.findByUserOrderByDateGeneratedDesc(user);
 
         return plans.stream()
-                .map(plan -> TrainingPlanHistoryDTO.builder()
-                        .id(plan.getId())
-                        .dateGenerated(plan.getDateGenerated())
-                        .trainingPlanDescription(plan.getTrainingPlanDescription()) // Уверете се, че това поле е налично
-                        .trainingDaysPerWeek(plan.getDaysPerWeek())
-                        .trainingDurationMinutes(plan.getDurationMinutes())
-                        .build())
+                .map(plan -> {
+
+                    Hibernate.initialize(plan.getUserActivityLevelSnapshot());
+
+                    return TrainingPlanHistoryDTO.builder()
+                            .id(plan.getId())
+                            .dateGenerated(plan.getDateGenerated())
+                            .trainingPlanDescription(plan.getTrainingPlanDescription())
+                            .trainingDaysPerWeek(plan.getDaysPerWeek())
+                            .trainingDurationMinutes(plan.getDurationMinutes())
+                            .userGenderSnapshot(plan.getUserGenderSnapshot() != null ? plan.getUserGenderSnapshot().name() : null)
+                            .userAgeSnapshot(plan.getUserAgeSnapshot())
+                            .userWeightSnapshot(plan.getUserWeightSnapshot())
+                            .userHeightSnapshot(plan.getUserHeightSnapshot())
+                            .userActivityLevelSnapshotName(plan.getUserActivityLevelSnapshot() != null ? plan.getUserActivityLevelSnapshot().getName() : null)
+
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 }

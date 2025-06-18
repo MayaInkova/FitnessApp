@@ -44,7 +44,7 @@ public class RecipeController {
     }
 
     @GetMapping("/by-meal-type/{mealTypeString}")
-    public ResponseEntity<List<RecipeDTO>> getRecipesByMealType(@PathVariable String mealTypeString) { // ПРОМЕНЕНО: Връща List<RecipeDTO>
+    public ResponseEntity<List<RecipeDTO>> getRecipesByMealType(@PathVariable String mealTypeString) {
         try {
             MealType mealType = MealType.fromString(mealTypeString);
             List<RecipeDTO> recipes = recipeService.getRecipeDTOsByMealType(mealType); // Извиква новия метод

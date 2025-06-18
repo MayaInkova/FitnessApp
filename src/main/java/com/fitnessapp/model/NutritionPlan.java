@@ -46,6 +46,43 @@ public class NutritionPlan {
     @Column(name = "carbohydrates")
     private Double carbohydrates;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_gender_snapshot")
+    private GenderType userGenderSnapshot;
+
+    @Column(name = "user_age_snapshot")
+    private Integer userAgeSnapshot;
+
+    @Column(name = "user_weight_snapshot")
+    private Double userWeightSnapshot;
+
+    @Column(name = "user_height_snapshot")
+    private Double userHeightSnapshot;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_activity_level_snapshot_id")
+    private ActivityLevel userActivityLevelSnapshot;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_diet_type_snapshot_id")
+    private DietType userDietTypeSnapshot;
+
+    @Column(name = "user_allergies_snapshot", length = 500)
+    private String userAllergiesSnapshot;
+
+    @Column(name = "user_other_dietary_preferences_snapshot", length = 500)
+    private String userOtherDietaryPreferencesSnapshot;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_meat_preference_snapshot")
+    private MeatPreferenceType userMeatPreferenceSnapshot;
+
+    @Column(name = "user_consumes_dairy_snapshot")
+    private Boolean userConsumesDairySnapshot;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_meal_frequency_preference_snapshot")
+    private MealFrequencyPreferenceType userMealFrequencyPreferenceSnapshot;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "goal_id")
     private Goal goal;

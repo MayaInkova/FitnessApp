@@ -14,32 +14,21 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * NutritionPlanService – генерира, запазва и връща хранителни планове (и комбинирани пълни режими)
- * под формата на DTO‑та, използвани във фронта.
- */
+
 @Service
 @RequiredArgsConstructor
 public class NutritionPlanService {
 
     private static final Logger log = LoggerFactory.getLogger(NutritionPlanService.class);
 
-    /* ------------------------------------------------------------------ */
-    /* DEPENDENCIES                                                     */
-    /* ------------------------------------------------------------------ */
+
     private final NutritionPlanRepository nutritionPlanRepository;
     private final RecipeRepository        recipeRepository;
     private final TrainingPlanRepository  trainingPlanRepository;
     private final UserRepository          userRepository;
     private final TrainingPlanService     trainingPlanService;
 
-    /* ------------------------------------------------------------------ */
-    /* PUBLIC API                                                        */
-    /* ------------------------------------------------------------------ */
 
-    /**
-     * Генерира нов хранителен план, запазва го и връща DTO версията.
-     */
     @Transactional
     public NutritionPlanDTO generateAndSaveNutritionPlanForUserDTO(User user){
         log.info("Генериране и запазване на хранителен план за потребител: {}", user.getFullName());
@@ -47,15 +36,13 @@ public class NutritionPlanService {
         return convertNutritionPlanToDTO(entity);
     }
 
-    /**
-     * Генерира и СЪХРАНЯВА NutritionPlan entity (може да се ползва от други сервиси).
-     */
+
     @Transactional
     public NutritionPlan generateNutritionPlan(User user){
-        /* ------------ 1) Проверки за липсващи данни ------------- */
+
         validateUserProfileForPlanGeneration(user);
 
-        /* ------------ 2) Връщаме съществуващ план за днешната дата, ако има ------------- */
+
         Optional<NutritionPlan> existing = nutritionPlanRepository.findByUserAndDateGenerated(user, LocalDate.now());
         if(existing.isPresent()){
             NutritionPlan plan = existing.get();
@@ -63,19 +50,19 @@ public class NutritionPlanService {
             return plan;
         }
 
-        /* ------------ 3) Изчисляваме целеви калории ------------- */
+
         double targetCalories = NutritionCalculator.calculateTDEE(user);
         if(user.getGoal()!=null && user.getGoal().getCalorieModifier()!=null){
             targetCalories += user.getGoal().getCalorieModifier();
         }
         log.info("TDEE за {}: {} kcal", user.getEmail(), targetCalories);
 
-        /* ------------ 4) Избираме рецепти според филтрите ------------- */
+
         List<Recipe> filtered = filterRecipes(recipeRepository.findAll(), user);
         if(filtered.isEmpty())
             throw new IllegalStateException("Няма рецепти, отговарящи на критериите.");
 
-        // групираме по тип хранене
+
         Map<MealType,List<Recipe>> byType = filtered.stream().collect(Collectors.groupingBy(Recipe::getMealType));
 
         Recipe breakfast = byType.getOrDefault(MealType.BREAKFAST, Collections.emptyList()).stream().findFirst().orElse(null);
@@ -83,11 +70,35 @@ public class NutritionPlanService {
         Recipe dinner    = byType.getOrDefault(MealType.DINNER,    Collections.emptyList()).stream().findFirst().orElse(null);
         List<Recipe> snacks = byType.getOrDefault(MealType.SNACK,  Collections.emptyList());
 
-        /* ------------ 5) Създаваме NutritionPlan entity ------------- */
+
         NutritionPlan plan = new NutritionPlan();
         plan.setUser(user);
         plan.setTargetCalories(targetCalories);
         plan.setDateGenerated(LocalDate.now());
+
+
+
+        // --- ПОПЪЛВАНЕ НА SNAPSHOT ПОЛЕТАТА ---
+        plan.setUserGenderSnapshot(user.getGender());
+        plan.setUserAgeSnapshot(user.getAge());
+        plan.setUserWeightSnapshot(user.getWeight());
+        plan.setUserHeightSnapshot(user.getHeight());
+        plan.setUserActivityLevelSnapshot(user.getActivityLevel());
+        plan.setUserDietTypeSnapshot(user.getDietType());
+        plan.setUserAllergiesSnapshot(
+                user.getAllergies() != null && !user.getAllergies().isEmpty() ?
+                        String.join(", ", user.getAllergies()) : null
+        );
+
+        plan.setUserOtherDietaryPreferencesSnapshot(
+                user.getOtherDietaryPreferences() != null && !user.getOtherDietaryPreferences().isEmpty() ?
+                        String.join(", ", user.getOtherDietaryPreferences()) : null
+        );
+        plan.setUserMeatPreferenceSnapshot(user.getMeatPreference());
+        plan.setUserConsumesDairySnapshot(user.getConsumesDairy());
+        plan.setUserMealFrequencyPreferenceSnapshot(user.getMealFrequencyPreference());
+        plan.setGoal(user.getGoal()); // Запазваме референция към целта на потребителя
+
 
         List<com.fitnessapp.model.Meal> meals = new ArrayList<>();
         if(breakfast!=null) meals.add(com.fitnessapp.model.Meal.builder().recipe(breakfast).mealType(MealType.BREAKFAST).portionSize(1.0).build());
@@ -119,10 +130,8 @@ public class NutritionPlanService {
         return saved;
     }
 
-    /**
-     * Записва даден NutritionPlan обект в базата данни и връща DTO версията му.
-     * Използва се, когато планът е изцяло формиран отвън (напр. от администратор или за директно запазване).
-     */
+
+
     @Transactional
     public NutritionPlanDTO saveNutritionPlan(NutritionPlan plan) {
         log.info("Записване на NutritionPlan (директно): {}", plan.getId());
@@ -130,10 +139,7 @@ public class NutritionPlanService {
         return convertNutritionPlanToDTO(savedPlan);
     }
 
-    /**
-     * Връща списък от всички хранителни планове за даден потребител под формата на DTO.
-     * Плановете са сортирани по дата на генериране в низходящ ред (най-новият първи).
-     */
+
     @Transactional(readOnly = true)
     public List<NutritionPlanDTO> getNutritionPlansByUserDTO(User user) {
         log.info("Извличане на хранителни планове за потребител: {}", user.getEmail());
@@ -145,10 +151,7 @@ public class NutritionPlanService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Връща списък от всички хранителни планове в системата под формата на DTO.
-     * Използва се главно от администратори.
-     */
+
     @Transactional(readOnly = true)
     public List<NutritionPlanDTO> getAllNutritionPlansDTO() {
         log.info("Извличане на всички хранителни планове.");
@@ -159,9 +162,7 @@ public class NutritionPlanService {
     }
 
 
-    /* ------------------------------------------------------------------ */
-    /* DTO CONVERTERS                                                    */
-    /* ------------------------------------------------------------------ */
+
 
     @Transactional(readOnly = true)
     private NutritionPlanDTO convertNutritionPlanToDTO(NutritionPlan plan){
@@ -211,9 +212,12 @@ public class NutritionPlanService {
                 .containsDairy(recipe.getContainsDairy())
                 .containsNuts(recipe.getContainsNuts())
                 .containsFish(recipe.getContainsFish())
+                // Уверете се, че 'containsPork' е правилно мапнато, ако съществува в Recipe entity
+                // .containsPork(recipe.getContainsPork())
                 .meatType(recipe.getMeatType()!=null? recipe.getMeatType():null)
-                .allergens(recipe.getAllergens()!=null? recipe.getAllergens(): Collections.emptySet())
-                .tags(recipe.getTags()!=null? recipe.getTags(): Collections.emptySet())
+                // КОРЕКЦИЯ: Подаваме Set<String> директно, тъй като RecipeDTO очаква Set<String>
+                .allergens(recipe.getAllergens()!=null? recipe.getAllergens() : Collections.emptySet())
+                .tags(recipe.getTags()!=null? recipe.getTags() : Collections.emptySet())
                 .build();
     }
 
@@ -254,9 +258,7 @@ public class NutritionPlanService {
                 .build();
     }
 
-    /* ------------------------------------------------------------------ */
-    /* FULL PLAN AGGREGATION                                             */
-    /* ------------------------------------------------------------------ */
+
 
     @Transactional(readOnly = true)
     public FullPlanDTO getFullPlanByUserId(Integer userId){
@@ -284,9 +286,7 @@ public class NutritionPlanService {
                 .build();
     }
 
-    /* ------------------------------------------------------------------ */
-    /* HELPERS                                                           */
-    /* ------------------------------------------------------------------ */
+
 
     private void initializePlanLazyFields(NutritionPlan plan){
         Hibernate.initialize(plan.getMeals());
@@ -300,6 +300,9 @@ public class NutritionPlanService {
             });
         }
         Hibernate.initialize(plan.getGoal());
+        // Инициализираме Lazy заредените snapshot полета, ако са обекти (ManyToOne)
+        Hibernate.initialize(plan.getUserActivityLevelSnapshot());
+        Hibernate.initialize(plan.getUserDietTypeSnapshot());
     }
 
     private void validateUserProfileForPlanGeneration(User user){
@@ -316,9 +319,8 @@ public class NutritionPlanService {
     }
 
     private List<Recipe> filterRecipes(List<Recipe> all, User user){
-        // Тук е съкратена версия – логиката от твоя оригинал остава непроменена.
-        // За да не дублирам целия 700+ редов метод, при нужда копирай същия filtering код.
-        return all; // <‑‑ placeholder (остави твоята пълна имплементация тук)
+
+        return all;
     }
 
     public String getTrainingSummary(User user){
@@ -335,25 +337,44 @@ public class NutritionPlanService {
         }
         return sb.toString();
     }
+
+    @Transactional(readOnly = true)
     public List<NutritionPlanHistoryDTO> getNutritionPlanHistory(Integer userId) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
 
-
         List<NutritionPlan> plans = nutritionPlanRepository.findByUserOrderByDateGeneratedDesc(user);
 
-
         return plans.stream()
-                .map(plan -> NutritionPlanHistoryDTO.builder()
-                        .id(plan.getId())
-                        .dateGenerated(plan.getDateGenerated())
-                        .targetCalories(plan.getTargetCalories())
-                        .protein(plan.getProtein())
-                        .fat(plan.getFat())
-                        .carbohydrates(plan.getCarbohydrates())
-                        .goalName(plan.getGoal() != null ? plan.getGoal().getName() : null) // Важно! Взимаме името на целта
-                        .build())
+                .map(plan -> {
+                    // Инициализирайте Lazy-loaded обекти, преди да ги използвате
+                    Hibernate.initialize(plan.getGoal());
+                    Hibernate.initialize(plan.getUserActivityLevelSnapshot());
+                    Hibernate.initialize(plan.getUserDietTypeSnapshot());
+                    // Не е необходимо да инициализирате стринговите snapshot-и, тъй като те са директно в entity
+
+                    return NutritionPlanHistoryDTO.builder()
+                            .id(plan.getId())
+                            .dateGenerated(plan.getDateGenerated())
+                            .targetCalories(plan.getTargetCalories())
+                            .protein(plan.getProtein())
+                            .fat(plan.getFat())
+                            .carbohydrates(plan.getCarbohydrates())
+                            .goalName(plan.getGoal() != null ? plan.getGoal().getName() : null)
+                            .userGenderSnapshot(plan.getUserGenderSnapshot() != null ? plan.getUserGenderSnapshot().name() : null)
+                            .userAgeSnapshot(plan.getUserAgeSnapshot())
+                            .userWeightSnapshot(plan.getUserWeightSnapshot())
+                            .userHeightSnapshot(plan.getUserHeightSnapshot())
+                            .userActivityLevelSnapshotName(plan.getUserActivityLevelSnapshot() != null ? plan.getUserActivityLevelSnapshot().getName() : null)
+                            .userDietTypeSnapshotName(plan.getUserDietTypeSnapshot() != null ? plan.getUserDietTypeSnapshot().getName() : null)
+                            .userAllergiesSnapshot(plan.getUserAllergiesSnapshot())
+                            .userOtherDietaryPreferencesSnapshot(plan.getUserOtherDietaryPreferencesSnapshot())
+                            .userMeatPreferenceSnapshot(plan.getUserMeatPreferenceSnapshot() != null ? plan.getUserMeatPreferenceSnapshot().name() : null)
+                            .userConsumesDairySnapshot(plan.getUserConsumesDairySnapshot())
+                            .userMealFrequencyPreferenceSnapshot(plan.getUserMealFrequencyPreferenceSnapshot() != null ? plan.getUserMealFrequencyPreferenceSnapshot().name() : null)
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 }

@@ -30,23 +30,22 @@ public class PlanHistoryController {
 
     @GetMapping
     public ResponseEntity<PlanHistoryResponseDTO> getUserPlanHistory(@AuthenticationPrincipal UserDetails userDetails) {
-        // Извличаме потребителското ID от UserDetails, което идва от Spring Security (JWT)
-        // userDetails.getUsername() обикновено е имейлът на потребителя
-        User user = userService.getUserByEmail(userDetails.getUsername()) // Използваме съществуващия метод
+
+        User user = userService.getUserByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found for authenticated principal: " + userDetails.getUsername()));
 
-        // Взимаме историята за хранителни планове
+
         List<NutritionPlanHistoryDTO> nutritionPlans = nutritionPlanService.getNutritionPlanHistory(user.getId());
-        // Взимаме историята за тренировъчни планове
+
         List<TrainingPlanHistoryDTO> trainingPlans = trainingPlanService.getTrainingPlanHistory(user.getId());
 
-        // Създаваме обект, който да съдържа и двата списъка
+
         PlanHistoryResponseDTO response = PlanHistoryResponseDTO.builder()
                 .nutritionPlans(nutritionPlans)
                 .trainingPlans(trainingPlans)
                 .build();
 
-        // Връщаме отговор с HTTP статус 200 OK
+
         return ResponseEntity.ok(response);
     }
 }

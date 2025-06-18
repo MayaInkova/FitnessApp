@@ -41,8 +41,7 @@ public class NutritionPlanController {
         this.userService = userService;
     }
 
-    // Този ендпойнт е за запазване на предварително създаден NutritionPlan (например от администратор).
-    // Поставен е под PreAuthorize("hasRole('ADMIN')") за по-добра сигурност.
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createNutritionPlan(@RequestBody NutritionPlan plan) {
@@ -57,7 +56,7 @@ public class NutritionPlanController {
     }
 
 
-    // Единен ендпойнт за генериране на нов план
+
     @PostMapping("/generate/{userId}")
     public ResponseEntity<?> generatePlan(@PathVariable Integer userId) {
         try {
@@ -82,8 +81,7 @@ public class NutritionPlanController {
         }
     }
 
-    // Връща последния (най-новия) хранителен план за потребител
-    // Може да се преименува на /latest/{userId} за по-голяма яснота.
+
     @GetMapping("/{userId}")
     public ResponseEntity<?> getLatestNutritionPlanByUserId(@PathVariable Integer userId) {
         try {
@@ -93,7 +91,7 @@ public class NutritionPlanController {
                         .body(Map.of("type", "error", "message", "Потребител с ID " + userId + " не е намерен."));
             }
 
-            // Предполагаме, че getNutritionPlansByUserDTO връща плановете в хронологичен ред (най-новият първи)
+
             List<NutritionPlanDTO> plansDTO = nutritionPlanService.getNutritionPlansByUserDTO(user);
             NutritionPlanDTO latestPlanDTO = plansDTO.stream().findFirst().orElse(null);
 
@@ -138,10 +136,6 @@ public class NutritionPlanController {
         }
     }
 
-    // Този ендпойнт е дубликат на /generate/{userId} по функционалност.
-    // Препоръчително е да го премахнете или да му промените логиката,
-    // ако имате друго специфично изискване за него.
-    // Ако го запазите, може би трябва да е POST, тъй като променя състоянието (генерира нов план).
     @GetMapping("/weekly/{userId}") // Аз бих го превърнал в POST или бих го премахнал
     public ResponseEntity<?> generateWeeklyPlan(@PathVariable Integer userId) {
         try {

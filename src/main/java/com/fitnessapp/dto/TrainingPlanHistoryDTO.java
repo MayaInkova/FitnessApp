@@ -16,4 +16,9 @@ public class TrainingPlanHistoryDTO {
     private String trainingPlanDescription;
     private Integer trainingDaysPerWeek;
     private Integer trainingDurationMinutes;
+    private String userGenderSnapshot;
+    private Integer userAgeSnapshot;
+    private Double userWeightSnapshot;
+    private Double userHeightSnapshot;
+    private String userActivityLevelSnapshotName;
 }

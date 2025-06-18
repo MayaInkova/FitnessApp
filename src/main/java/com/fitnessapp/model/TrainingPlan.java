@@ -46,6 +46,23 @@ public class TrainingPlan {
     private Integer daysPerWeek;
     private Integer durationMinutes;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_gender_snapshot")
+    private GenderType userGenderSnapshot;
+
+    @Column(name = "user_age_snapshot")
+    private Integer userAgeSnapshot;
+
+    @Column(name = "user_weight_snapshot")
+    private Double userWeightSnapshot;
+
+    @Column(name = "user_height_snapshot")
+    private Double userHeightSnapshot;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_activity_level_snapshot_id")
+    private ActivityLevel userActivityLevelSnapshot;
+
     @OneToMany(mappedBy = "trainingPlan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private List<TrainingSession> trainingSessions = new ArrayList<>();
