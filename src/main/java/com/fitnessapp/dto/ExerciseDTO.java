@@ -4,9 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.fitnessapp.model.ExerciseType;
-import com.fitnessapp.model.DifficultyLevel;
-import com.fitnessapp.model.EquipmentType;
+import com.fitnessapp.model.ExerciseType; // ИМПОРТИРАМЕ!
+import com.fitnessapp.model.DifficultyLevel; // ИМПОРТИРАМЕ!
+import com.fitnessapp.model.EquipmentType; // ИМПОРТИРАМЕ!
 
 @Data
 @NoArgsConstructor
@@ -19,7 +19,7 @@ public class ExerciseDTO {
     private Integer sets;
     private Integer reps;
     private Integer durationMinutes;
-    private ExerciseType type;
-    private DifficultyLevel difficultyLevel;
-    private EquipmentType equipment;
+    private ExerciseType type; // ПРОМЕНЕНО: От String на ExerciseType
+    private DifficultyLevel difficultyLevel; // ПРОМЕНЕНО: От String на DifficultyLevel
+    private EquipmentType equipment; // ПРОМЕНЕНО: От String на EquipmentType
 }

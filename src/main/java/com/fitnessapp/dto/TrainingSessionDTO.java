@@ -4,8 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fitnessapp.model.DayOfWeek;
 
-import java.time.DayOfWeek;
 import java.util.List;
 
 @Data

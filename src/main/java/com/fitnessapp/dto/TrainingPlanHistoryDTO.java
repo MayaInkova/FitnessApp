@@ -4,6 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fitnessapp.model.TrainingType; // ИМПОРТИРАМЕ!
+import com.fitnessapp.model.LevelType; // НОВО: ИМПОРТИРАМЕ LevelType
+
 import java.time.LocalDate;
 
 @Data
@@ -21,4 +24,7 @@ public class TrainingPlanHistoryDTO {
     private Double userWeightSnapshot;
     private Double userHeightSnapshot;
     private String userActivityLevelSnapshotName;
+    private TrainingType userTrainingTypeSnapshot;
+    private LevelType userLevelSnapshot;
+    private String userGoalNameSnapshot;
 }

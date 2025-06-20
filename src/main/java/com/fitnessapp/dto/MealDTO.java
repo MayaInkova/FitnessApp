@@ -15,4 +15,10 @@ public class MealDTO {
     private RecipeDTO recipe;
     private MealType mealType;
     private Double portionSize;
+
+    // НОВО: Изчислени полета за тази конкретна порция
+    private Double calculatedCalories;
+    private Double calculatedProtein;
+    private Double calculatedCarbs;
+    private Double calculatedFat;
 }

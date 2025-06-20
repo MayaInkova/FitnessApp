@@ -1,9 +1,6 @@
 package com.fitnessapp.service;
 
-import com.fitnessapp.dto.FullPlanDTO;
-import com.fitnessapp.dto.MealDTO;
-import com.fitnessapp.dto.TrainingSessionDTO;
-import com.fitnessapp.dto.ExerciseDTO; // Добавено
+import com.fitnessapp.dto.*;
 import com.fitnessapp.model.*;
 import com.fitnessapp.repository.*;
 import org.slf4j.Logger;
@@ -324,7 +321,7 @@ public class ChatbotService {
         User savedOrUpdatedUser = userRepository.save(user);
 
 
-        nutritionPlanService.generateNutritionPlan(savedOrUpdatedUser);
+        NutritionPlanDTO generatedNutritionPlan = nutritionPlanService.generateAndSaveNutritionPlanForUserDTO(savedOrUpdatedUser);
 
         // Генериране и запазване на тренировъчния план
         trainingPlanService.generateAndSaveTrainingPlanForUser(savedOrUpdatedUser);

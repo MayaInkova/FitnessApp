@@ -14,7 +14,6 @@ import java.util.List;
 
 @Entity
 @Table(name = "training_plans", uniqueConstraints = {
-
         @UniqueConstraint(columnNames = {"user_id", "date_generated"})
 })
 @Getter
@@ -39,9 +38,9 @@ public class TrainingPlan {
     @EqualsAndHashCode.Include
     private LocalDate dateGenerated;
 
-    @Lob
+    @Lob // За по-дълъг текст, ако е необходимо
     @Column(name = "training_plan_description", columnDefinition = "TEXT")
-    private String trainingPlanDescription;
+    private String trainingPlanDescription; // Добавено поле за описание на плана
 
     private Integer daysPerWeek;
     private Integer durationMinutes;
@@ -63,6 +62,20 @@ public class TrainingPlan {
     @JoinColumn(name = "user_activity_level_snapshot_id")
     private ActivityLevel userActivityLevelSnapshot;
 
+    @Enumerated(EnumType.STRING) // За да запазвате енъма като String в базата данни
+    @Column(name = "user_training_type_snapshot") // Името на колоната в базата данни
+    private TrainingType userTrainingTypeSnapshot; // Заснемане на TrainingType на потребителя
+
+    // НОВО: Заснемане на LevelType на потребителя
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_level_snapshot")
+    private LevelType userLevelSnapshot;
+
+    // НОВО: Заснемане на Goal на потребителя
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_goal_snapshot_id")
+    private Goal userGoalSnapshot;
+
     @OneToMany(mappedBy = "trainingPlan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private List<TrainingSession> trainingSessions = new ArrayList<>();
@@ -74,7 +87,7 @@ public class TrainingPlan {
         }
         if (session != null) {
             trainingSessions.add(session);
-            session.setTrainingPlan(this);
+            session.setTrainingPlan(this); // Установяваме двупосочна връзка
         }
     }
 

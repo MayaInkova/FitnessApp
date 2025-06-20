@@ -1,9 +1,6 @@
 package com.fitnessapp.controller;
 
-import com.fitnessapp.dto.FullPlanDTO;
-import com.fitnessapp.dto.PlanBundleResponse;
-import com.fitnessapp.dto.NutritionPlanDTO;
-import com.fitnessapp.dto.TrainingPlanDTO;
+import com.fitnessapp.dto.*;
 
 import com.fitnessapp.model.NutritionPlan;
 import com.fitnessapp.model.User;
@@ -41,24 +38,14 @@ public class NutritionPlanController {
         this.userService = userService;
     }
 
+    // ----------- ЕНДПОЙНТИ ЗА ГЕНЕРИРАНЕ НА ПЛАНОВЕ -----------
 
-    @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> createNutritionPlan(@RequestBody NutritionPlan plan) {
-        try {
-            NutritionPlanDTO savedPlanDTO = nutritionPlanService.saveNutritionPlan(plan); // <-- Вече трябва да работи
-            return ResponseEntity.ok(savedPlanDTO);
-        } catch (Exception e) {
-            logger.error("Грешка при създаване на хранителен план: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("type", "error", "message", "Грешка при създаване на план: " + e.getMessage()));
-        }
-    }
-
-
-
-    @PostMapping("/generate/{userId}")
-    public ResponseEntity<?> generatePlan(@PathVariable Integer userId) {
+    /**
+     * Генерира и запазва ДНЕВЕН хранителен план и тренировъчен план за потребител.
+     * Отговаря на POST /api/nutrition-plans/generate-daily/{userId}
+     */
+    @PostMapping("/generate-daily/{userId}")
+    public ResponseEntity<?> generateDailyPlan(@PathVariable Integer userId) {
         try {
             User user = userService.getUserById(userId);
             if (user == null) {
@@ -71,19 +58,22 @@ public class NutritionPlanController {
 
             return ResponseEntity.ok(new PlanBundleResponse(nutritionPlanDTO, trainingPlanDTO));
         } catch (IllegalArgumentException e) {
-            logger.warn("Липсващи потребителски данни за генериране на план: {}", e.getMessage());
+            logger.warn("Липсващи потребителски данни за генериране на дневен план: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("type", "error", "message", e.getMessage()));
         } catch (Exception e) {
-            logger.error("Грешка при генериране на план за потребител {}: ", userId, e);
+            logger.error("Грешка при генериране на дневен план за потребител {}: ", userId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("type", "error", "message", "Възникна вътрешна грешка при генериране на план: " + e.getMessage()));
+                    .body(Map.of("type", "error", "message", "Възникна вътрешна грешка при генериране на дневен план: " + e.getMessage()));
         }
     }
 
-
-    @GetMapping("/{userId}")
-    public ResponseEntity<?> getLatestNutritionPlanByUserId(@PathVariable Integer userId) {
+    /**
+     * Генерира и запазва СЕДМИЧЕН хранителен план за потребител.
+     * Отговаря на POST /api/nutrition-plans/generate-weekly/{userId}
+     */
+    @PostMapping("/generate-weekly/{userId}") // НОВ ЕНДПОЙНТ ЗА СЕДМИЧЕН ПЛАН
+    public ResponseEntity<?> generateWeeklyNutritionPlan(@PathVariable Integer userId) {
         try {
             User user = userService.getUserById(userId);
             if (user == null) {
@@ -91,35 +81,56 @@ public class NutritionPlanController {
                         .body(Map.of("type", "error", "message", "Потребител с ID " + userId + " не е намерен."));
             }
 
+            // Извикваме новия метод за генериране на седмичен план
+            WeeklyNutritionPlanDTO weeklyPlanDTO = nutritionPlanService.generateAndSaveWeeklyNutritionPlanForUserDTO(user);
+
+            return ResponseEntity.ok(weeklyPlanDTO);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Липсващи потребителски данни за генериране на седмичен хранителен план: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("type", "error", "message", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Грешка при генериране на седмичен хранителен план за потребител {}: ", userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("type", "error", "message", "Възникна вътрешна грешка при генериране на седмичен хранителен план: " + e.getMessage()));
+        }
+    }
+
+
+    // ----------- ЕНДПОЙНТИ ЗА ИЗВЛИЧАНЕ НА ПЛАНОВЕ -----------
+
+    /**
+     * Извлича последния ДНЕВЕН хранителен план за потребител.
+     * Отговаря на GET /api/nutrition-plans/latest-daily/{userId}
+     */
+    @GetMapping("/latest-daily/{userId}") // Преименувах, за да е по-ясно, че е за дневен
+    public ResponseEntity<?> getLatestDailyNutritionPlanByUserId(@PathVariable Integer userId) {
+        try {
+            User user = userService.getUserById(userId);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("type", "error", "message", "Потребител с ID " + userId + " не е намерен."));
+            }
 
             List<NutritionPlanDTO> plansDTO = nutritionPlanService.getNutritionPlansByUserDTO(user);
             NutritionPlanDTO latestPlanDTO = plansDTO.stream().findFirst().orElse(null);
 
             return latestPlanDTO != null ? ResponseEntity.ok(latestPlanDTO)
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("type", "error", "message", "Няма намерен хранителен план за потребител с ID " + userId));
+                    .body(Map.of("type", "error", "message", "Няма намерен дневен хранителен план за потребител с ID " + userId));
         } catch (Exception e) {
-            logger.error("Грешка при извличане на план по потребител {}: ", userId, e);
+            logger.error("Грешка при извличане на дневен план по потребител {}: ", userId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("type", "error", "message", "Възникна грешка при извличане на план: " + e.getMessage()));
+                    .body(Map.of("type", "error", "message", "Възникна грешка при извличане на дневен план: " + e.getMessage()));
         }
     }
 
-    @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getAllNutritionPlans() {
-        try {
-            List<NutritionPlanDTO> plansDTO = nutritionPlanService.getAllNutritionPlansDTO();
-            return ResponseEntity.ok(plansDTO);
-        } catch (Exception e) {
-            logger.error("Грешка при зареждане на всички планове: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("type", "error", "message", "Грешка при зареждане: " + e.getMessage()));
-        }
-    }
-
+    /**
+     * Извлича историята на всички ДНЕВНИ хранителни планове за потребител.
+     * Отговаря на GET /api/nutrition-plans/history/{userId}
+     */
     @GetMapping("/history/{userId}")
-    public ResponseEntity<?> getPlanHistory(@PathVariable Integer userId) {
+    public ResponseEntity<?> getNutritionPlanHistory(@PathVariable Integer userId) { // Преименувах метода за яснота
         try {
             User user = userService.getUserById(userId);
             if (user == null) {
@@ -127,41 +138,21 @@ public class NutritionPlanController {
                         .body(Map.of("type", "error", "message", "Потребител с ID " + userId + " не е намерен."));
             }
 
-            List<NutritionPlanDTO> plansDTO = nutritionPlanService.getNutritionPlansByUserDTO(user);
-            return ResponseEntity.ok(plansDTO);
+            // Извикваме nutritionPlanService.getNutritionPlanHistory, който връща NutritionPlanHistoryDTO
+            List<NutritionPlanHistoryDTO> plansHistoryDTO = nutritionPlanService.getNutritionPlanHistory(userId);
+            return ResponseEntity.ok(plansHistoryDTO);
         } catch (Exception e) {
-            logger.error("Грешка при зареждане на историята на плановете за потребител {}: ", userId, e);
+            logger.error("Грешка при зареждане на историята на хранителните планове за потребител {}: ", userId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("type", "error", "message", "Грешка при зареждане на историята: " + e.getMessage()));
         }
     }
 
-    @GetMapping("/weekly/{userId}") // Аз бих го превърнал в POST или бих го премахнал
-    public ResponseEntity<?> generateWeeklyPlan(@PathVariable Integer userId) {
-        try {
-            // Тази логика е същата като в /generate/{userId}
-            User user = userService.getUserById(userId);
-            if (user == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("type", "error", "message", "Потребител с ID " + userId + " не е намерен."));
-            }
 
-            NutritionPlanDTO nutritionPlanDTO = nutritionPlanService.generateAndSaveNutritionPlanForUserDTO(user);
-            TrainingPlanDTO trainingPlanDTO = trainingPlanService.generateAndSaveTrainingPlanForUserDTO(user);
-
-            return ResponseEntity.ok(new PlanBundleResponse(nutritionPlanDTO, trainingPlanDTO));
-        } catch (IllegalArgumentException e) {
-            logger.warn("Липсващи потребителски данни за генериране на седмичен план: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("type", "error", "message", e.getMessage()));
-        } catch (Exception e) {
-            logger.error("Грешка при генериране на седмичен план за потребител {}: ", userId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("type", "error", "message", "Грешка при генериране на седмичен режим: " + e.getMessage()));
-        }
-    }
-
-
+    /**
+     * Извлича комбиниран (хранителен и тренировъчен) план за потребител.
+     * Отговаря на GET /api/nutrition-plans/full?userId={userId}
+     */
     @GetMapping("/full")
     public ResponseEntity<?> getFullPlan(@RequestParam Integer userId) {
         try {
@@ -185,6 +176,46 @@ public class NutritionPlanController {
     }
 
 
+    // ----------- АДМИНСКИ И ДР. ЕНДПОЙНТИ -----------
+
+    /**
+     * Записва нов NutritionPlan entity (само за ADMIN).
+     * Отговаря на POST /api/nutrition-plans
+     */
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> createNutritionPlan(@RequestBody NutritionPlan plan) {
+        try {
+            NutritionPlanDTO savedPlanDTO = nutritionPlanService.saveNutritionPlan(plan);
+            return ResponseEntity.ok(savedPlanDTO);
+        } catch (Exception e) {
+            logger.error("Грешка при създаване на хранителен план: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("type", "error", "message", "Грешка при създаване на план: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Извлича всички хранителни планове (само за ADMIN).
+     * Отговаря на GET /api/nutrition-plans/all
+     */
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getAllNutritionPlans() {
+        try {
+            List<NutritionPlanDTO> plansDTO = nutritionPlanService.getAllNutritionPlansDTO();
+            return ResponseEntity.ok(plansDTO);
+        } catch (Exception e) {
+            logger.error("Грешка при зареждане на всички планове: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("type", "error", "message", "Грешка при зареждане: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Дебъг ендпойнт за извличане на последния дневен план (само за ADMIN).
+     * Отговаря на GET /api/nutrition-plans/debug/{userId}
+     */
     @GetMapping("/debug/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> debugPlan(@PathVariable Integer userId) {
@@ -206,7 +237,10 @@ public class NutritionPlanController {
         }
     }
 
-
+    /**
+     * Коригира липсващи тренировъчни планове (само за ADMIN).
+     * Отговаря на GET /api/nutrition-plans/fix-training
+     */
     @GetMapping("/fix-training")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> fixTrainingPlans() {

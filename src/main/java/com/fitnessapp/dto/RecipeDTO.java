@@ -1,11 +1,14 @@
 package com.fitnessapp.dto;
 
+// Променете импорта от MeatType към MeatPreferenceType
+import com.fitnessapp.model.MeatPreferenceType; // <-- ТОЗИ ИМПОРТ Е ПРАВИЛНИЯТ!
+import com.fitnessapp.model.MealType; // Този импорт е ОК
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.fitnessapp.model.MealType;
-import com.fitnessapp.model.MeatType;
+
 
 import java.util.Set;
 
@@ -34,5 +37,7 @@ public class RecipeDTO {
     private String instructions;
     private String dietTypeName;
     private Set<String> allergens;
-    private MeatType meatType;
+
+    // Променете типа на meatType от MeatType на MeatPreferenceType
+    private MeatPreferenceType meatType; // <-- ПРОМЕНЕНО ТУК!
 }

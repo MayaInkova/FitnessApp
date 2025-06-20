@@ -32,6 +32,13 @@ public class NutritionPlan {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    // --- START OF ADDITION ---
+    // NEW: ManyToOne relationship to WeeklyNutritionPlan
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "weekly_plan_id") // This will be the foreign key column in your nutrition_plans table
+    private WeeklyNutritionPlan weeklyNutritionPlan; // <-- This is the field that was missing
+    // --- END OF ADDITION ---
+
     @Column(nullable = false)
     private LocalDate dateGenerated;
 
@@ -48,7 +55,7 @@ public class NutritionPlan {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "user_gender_snapshot")
-    private GenderType userGenderSnapshot;
+    private GenderType userGenderSnapshot; // Assuming GenderType is your enum now
 
     @Column(name = "user_age_snapshot")
     private Integer userAgeSnapshot;

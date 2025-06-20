@@ -18,9 +18,14 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Duration;
 import java.util.Map;
 
+// НОВИ ИМПОРТИ ЗА ЗАЯВКИ ЗА ЗАБРАВЕНА/ВЪЗСТАНОВЕНА ПАРОЛА
+import com.fitnessapp.request.ForgotPasswordRequest; // Уверете се, че пътят е правилен
+import com.fitnessapp.request.ResetPasswordRequest; // Уверете се, че пътят е правилен
+
+
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*") // Добре е да ограничите това до конкретни фронтенд домейни за продукция
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -77,5 +82,38 @@ public class AuthController {
                 "userId", guest.getId().toString(),
                 "role",   "GUEST"
         ));
+    }
+
+    // НОВ ЕНДПОЙНТ: Заявка за забравена парола (изпращане на имейл с линк)
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest forgotPasswordRequest) {
+        log.info("Заявка за забравена парола за имейл: {}", forgotPasswordRequest.getEmail());
+        try {
+            authService.forgotPassword(forgotPasswordRequest.getEmail());
+            // Винаги връщаме успешно съобщение за сигурност, за да не подсказваме съществуват ли акаунти
+            return ResponseEntity.ok("Ако има акаунт, свързан с този имейл, линк за възстановяване на парола е изпратен.");
+        } catch (Exception ex) {
+            log.error("Грешка при обработка на заявка за забравена парола за имейл {}: {}", forgotPasswordRequest.getEmail(), ex.getMessage(), ex);
+            // Можете да върнете по-общо съобщение за грешка или да игнорирате специфични грешки за сигурност
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Възникна грешка при обработка на заявката. Моля, опитайте отново по-късно.");
+        }
+    }
+
+    // НОВ ЕНДПОЙНТ: Нулиране на паролата (промяна на паролата чрез токен)
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
+        log.info("Заявка за нулиране на парола с токен.");
+        try {
+            authService.resetPassword(resetPasswordRequest.getToken(), resetPasswordRequest.getNewPassword());
+            return ResponseEntity.ok("Паролата е успешно променена. Моля, влезте с новата си парола.");
+        } catch (IllegalArgumentException ex) { // За невалиден/изтекъл токен
+            log.error("Грешка при нулиране на парола (невалиден аргумент): {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Грешка при нулиране на парола: {}", ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Възникна грешка при промяна на паролата. Моля, опитайте отново по-късно.");
+        }
     }
 }

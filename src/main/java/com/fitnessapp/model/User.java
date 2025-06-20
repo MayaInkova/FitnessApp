@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.Collection;
 import org.springframework.security.core.GrantedAuthority;
@@ -38,6 +39,12 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
     private String fullName;
+
+    @Column(name = "reset_password_token")
+    private String resetPasswordToken;
+
+    @Column(name = "reset_password_token_expiry_date")
+    private LocalDateTime resetPasswordTokenExpiryDate;
 
     private Double weight;
     private Double height;

@@ -8,7 +8,10 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.EqualsAndHashCode;
 
-import java.time.DayOfWeek;
+// Премахнете или променете този импорт:
+// import java.time.DayOfWeek;
+// Трябва да използваме DayOfWeek от текущия пакет (com.fitnessapp.model)
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +37,8 @@ public class TrainingSession {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private DayOfWeek dayOfWeek;
+    // Уверете се, че използвате DayOfWeek от com.fitnessapp.model пакета
+    private DayOfWeek dayOfWeek; // Това вече ще реферира към com.fitnessapp.model.DayOfWeek
 
     private Integer durationMinutes;
 
@@ -60,5 +64,4 @@ public class TrainingSession {
             exercise.setTrainingSession(null);
         }
     }
-
 }

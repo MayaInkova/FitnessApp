@@ -4,9 +4,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
-import lombok.Getter; // Added
-import lombok.Setter; // Added
-import lombok.EqualsAndHashCode; // Added
+import lombok.Getter;
+import lombok.Setter;
+import lombok.EqualsAndHashCode;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -18,7 +18,6 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Recipe {
     @Id
@@ -27,7 +26,6 @@ public class Recipe {
     private Integer id;
 
     private String name;
-    private String description;
     private String imageUrl;
 
     private Double calories;
@@ -39,6 +37,9 @@ public class Recipe {
     private Boolean containsNuts;
     private Boolean containsFish;
     private Boolean containsPork;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "recipe_tags", joinColumns = @JoinColumn(name = "recipe_id"))
@@ -53,7 +54,6 @@ public class Recipe {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diet_type_id")
-
     private DietType dietType;
 
     @ElementCollection(fetch = FetchType.EAGER)
@@ -62,6 +62,7 @@ public class Recipe {
     @Builder.Default
     private Set<String> allergens = new HashSet<>();
 
+
     @Enumerated(EnumType.STRING)
-    private MeatType meatType;
+    private MeatPreferenceType meatType;
 }
