@@ -4,9 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.fitnessapp.model.ExerciseType; // ИМПОРТИРАМЕ!
-import com.fitnessapp.model.DifficultyLevel; // ИМПОРТИРАМЕ!
-import com.fitnessapp.model.EquipmentType; // ИМПОРТИРАМЕ!
+import com.fitnessapp.model.ExerciseType;
+import com.fitnessapp.model.DifficultyLevel;
+import com.fitnessapp.model.EquipmentType;
 
 @Data
 @NoArgsConstructor

@@ -29,12 +29,6 @@ public class WeeklyNutritionPlan {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
-    /**
-     * Един седмичен план съдържа много дневни планове (обикновено 7).
-     * - mappedBy: показва, че NutritionPlan има поле `weeklyNutritionPlan`, което е owner.
-     * - cascade = ALL: при запазване/изтриване на Weekly → каскадно към NutritionPlan
-     * - orphanRemoval = true: ако махнем дневен план от списъка → изтрива се от БД
-     */
     @OneToMany(mappedBy = "weeklyNutritionPlan",
             cascade = CascadeType.ALL,
             orphanRemoval = true,
@@ -42,10 +36,7 @@ public class WeeklyNutritionPlan {
     @Builder.Default
     private List<NutritionPlan> dailyPlans = new ArrayList<>();
 
-    /**
-     * Добавяне на дневен план към седмичния.
-     * ЗАДЪЛЖИТЕЛНО: трябва да зададе и обратната връзка, за да не се загуби при save().
-     */
+
     public void addDailyPlan(NutritionPlan dailyPlan) {
         if (dailyPlans == null) {
             dailyPlans = new ArrayList<>();
@@ -54,9 +45,7 @@ public class WeeklyNutritionPlan {
         dailyPlan.setWeeklyNutritionPlan(this); // двупосочна връзка!
     }
 
-    /**
-     * Премахване на дневен план.
-     */
+
     public void removeDailyPlan(NutritionPlan dailyPlan) {
         if (dailyPlans != null) {
             dailyPlans.remove(dailyPlan);

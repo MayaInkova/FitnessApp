@@ -4,8 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.fitnessapp.model.TrainingType; // ИМПОРТИРАМЕ!
-import com.fitnessapp.model.LevelType; // НОВО: ИМПОРТИРАМЕ LevelType
+import com.fitnessapp.model.TrainingType;
+import com.fitnessapp.model.LevelType;
 
 import java.time.LocalDate;
 

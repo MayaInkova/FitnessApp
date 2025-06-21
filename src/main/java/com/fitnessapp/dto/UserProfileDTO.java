@@ -5,33 +5,29 @@ import lombok.*;
 
 import java.util.Set;
 
-/**
- * Snapshot на профила, който потребителят редактира в страницата “Профил”.
- * Използваме го и в UserProfileMapper, за да синхронизираме Entity ⇄ DTO.
- */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserProfileDTO {
 
-    /* ───── базови данни ───── */
-    private Double  weight;   // кг
-    private Double  height;   // см
+
+    private Double  weight;
+    private Double  height;
     private Integer age;
 
     private GenderType gender;
 
-    /* ───── активности / диета ───── */
-    private Integer activityLevelId;   // FK към ActivityLevel
-    private Integer dietTypeId;        // FK към DietType
+
+    private Integer activityLevelId;
+    private Integer dietTypeId;
 
     private MeatPreferenceType meatPreference;
     private Boolean consumesDairy;
 
-    /* ───── предпочитания / алергии ───── */
-    private Set<String> allergies;                  // алергени
-    private Set<String> otherDietaryPreferences;    // custom предпочитания
+
+    private Set<String> allergies;
+    private Set<String> otherDietaryPreferences;
 
     private MealFrequencyPreferenceType mealFrequencyPreference;
 }

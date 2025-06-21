@@ -52,8 +52,8 @@ public class ChatbotService {
         public String state = "ASK_DIET_EXPLANATION";
 
         /* събрани данни */
-        String email; // Може да се използва за гост акаунти
-        String fullName; // Може да се използва за гост акаунти
+        String email;
+        String fullName;
         String dietType;
         Double weight;
         Double height;
@@ -71,9 +71,9 @@ public class ChatbotService {
         String level;
         String mealFrequencyPreference;
 
-        public Integer userId = null; // ID на потребителя, ако е логнат
-        public boolean isGuest = true; // Флаг дали е гост или регистриран потребител
-        public boolean planGenerated = false; // Показва дали планът е генериран за тази сесия
+        public Integer userId = null;
+        public boolean isGuest = true;
+        public boolean planGenerated = false;
     }
 
     public SessionState getOrCreateSession(String sessionId) {

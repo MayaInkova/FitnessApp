@@ -31,12 +31,7 @@ public class TrainingPlanService {
     private final TrainingSessionRepository trainingSessionRepository;
     private final UserRepository userRepository;
 
-    /**
-     * Генерира и запазва тренировъчен план за потребител.
-     * Този метод е основният за генериране на план.
-     * @param user Потребителят, за когото се генерира планът.
-     * @return Запазеният TrainingPlan entity.
-     */
+
     @Transactional
     public TrainingPlan generateAndSaveTrainingPlanForUser(User user) {
         validateUserProfileForTrainingPlanGeneration(user);
@@ -65,10 +60,7 @@ public class TrainingPlanService {
         trainingPlan.setUserAgeSnapshot(user.getAge());
         trainingPlan.setUserWeightSnapshot(user.getWeight());
         trainingPlan.setUserHeightSnapshot(user.getHeight());
-        // Проверете дали ActivityLevel и Goal са Lazy-зареждащи се в User entity.
-        // Ако са LAZY, трябва да се инициализират преди да се използват за snapshot.
-        // Hibernate.initialize(user.getActivityLevel()); // Разкоментирайте, ако е Lazy
-        // Hibernate.initialize(user.getGoal()); // Разкоментирайте, ако е Lazy
+
         trainingPlan.setUserActivityLevelSnapshot(user.getActivityLevel());
         trainingPlan.setUserTrainingTypeSnapshot(user.getTrainingType());
         trainingPlan.setUserLevelSnapshot(user.getLevel());
@@ -89,7 +81,7 @@ public class TrainingPlanService {
                     .dayOfWeek(day)
                     .durationMinutes(durationMinutesPerSession)
                     .trainingPlan(trainingPlan) // Важно: задаваме връзката към плана
-                    .exercises(new ArrayList<>()) // Инициализирайте празен списък за упражненията на сесията
+                    .exercises(new ArrayList<>())
                     .build();
 
             List<Exercise> exercises = getExercisesForUser(userLevel, userTrainingType);
@@ -100,7 +92,6 @@ public class TrainingPlanService {
                 continue; // Move to next day
             }
 
-            // --- МОДИФИЦИРАН И ПОДОБРЕН БЛОК ЗА ИЗБОР НА УПРАЖНЕНИЯ ---
             List<Exercise> currentSessionExercises = new ArrayList<>();
             List<Exercise> availableExercisesForSession = new ArrayList<>(exercises);
             Collections.shuffle(availableExercisesForSession);
@@ -108,19 +99,18 @@ public class TrainingPlanService {
             int currentSessionTime = 0;
             final int TARGET_DURATION = durationMinutesPerSession;
             final int MIN_EXERCISES_PER_SESSION = 3;
-            final int MAX_OVERAGE_MINUTES_SOFT_CAP = 15; // How much we can go over target for a "good" session
-            final int HARD_CAP_EXERCISES = 8; // Prevent excessively long lists
-            final int MIN_DURATION_PER_EXERCISE = 1; // Lowered to 1 min for greater leniency in finding exercises
+            final int MAX_OVERAGE_MINUTES_SOFT_CAP = 15;
+            final int HARD_CAP_EXERCISES = 8;
+            final int MIN_DURATION_PER_EXERCISE = 1;
 
-            // Pass 1: Try to fill with a good fit, prioritizing minimum exercises and staying near target
-            // Iterate through a shuffled copy to pick from.
-            List<Exercise> tempPass1Exercises = new ArrayList<>(availableExercisesForSession); // Copy for safe iteration/removal
+
+            List<Exercise> tempPass1Exercises = new ArrayList<>(availableExercisesForSession);
             Iterator<Exercise> it = tempPass1Exercises.iterator();
 
             while (it.hasNext() && currentSessionExercises.size() < HARD_CAP_EXERCISES) {
                 Exercise potentialExercise = it.next();
 
-                // Skip invalid exercises (null or below minimum duration)
+
                 if (potentialExercise.getDurationMinutes() == null || potentialExercise.getDurationMinutes() < MIN_DURATION_PER_EXERCISE) {
                     logger.debug("Skipping exercise with invalid or too short duration: {} (ID: {}). Duration: {}", potentialExercise.getName(), potentialExercise.getId(), potentialExercise.getDurationMinutes());
                     continue;
@@ -128,34 +118,27 @@ public class TrainingPlanService {
 
                 int exerciseDuration = potentialExercise.getDurationMinutes();
 
-                // Conditions for adding in Pass 1:
-                // 1. If we are under the target duration AND adding this exercise doesn't overshoot much.
-                // 2. OR if we are still below the MIN_EXERCISES_PER_SESSION and adding this exercise doesn't massively overshoot.
+
                 boolean fitsWell = (currentSessionTime + exerciseDuration <= TARGET_DURATION + MAX_OVERAGE_MINUTES_SOFT_CAP);
                 boolean needsMinExercises = (currentSessionExercises.size() < MIN_EXERCISES_PER_SESSION && currentSessionTime + exerciseDuration <= TARGET_DURATION + MAX_OVERAGE_MINUTES_SOFT_CAP * 2); // More permissive for min count
 
-                if (fitsWell || needsMinExercises || currentSessionExercises.isEmpty()) { // currentSessionExercises.isEmpty() handles the very first exercise
+                if (fitsWell || needsMinExercises || currentSessionExercises.isEmpty()) {
                     currentSessionExercises.add(potentialExercise);
                     currentSessionTime += exerciseDuration;
-                    it.remove(); // Remove from temp list for next iteration of this pass
+                    it.remove();
                 }
 
-                // Break conditions for Pass 1:
-                // If we've hit target duration AND minimum exercises, OR filled up to a reasonable amount.
+
                 if (currentSessionTime >= TARGET_DURATION && currentSessionExercises.size() >= MIN_EXERCISES_PER_SESSION) {
                     logger.info("Pass 1: Session for day {} filled optimally. Exercises: {}, Time: {} min (Target: {} min).", day, currentSessionExercises.size(), currentSessionTime, TARGET_DURATION);
                     break;
                 }
             }
 
-            // Pass 2: Fallback to ensure *at least* MIN_EXERCISES_PER_SESSION if not met,
-            // or if the session is still considerably under target duration.
-            // This pass is less strict on overshoot to guarantee content.
-            // Use the remaining exercises from availableExercisesForSession (original list without selected)
-            // or if tempPass1Exercises was mutated, re-init with allAvailableExercises for the current session.
-            List<Exercise> remainingExercises = new ArrayList<>(exercises); // Use fresh copy for robustness
-            remainingExercises.removeAll(currentSessionExercises); // Exclude already chosen exercises
-            Collections.shuffle(remainingExercises); // Shuffle remaining for new selection chances
+
+            List<Exercise> remainingExercises = new ArrayList<>(exercises);
+            remainingExercises.removeAll(currentSessionExercises);
+            Collections.shuffle(remainingExercises);
 
             if (currentSessionExercises.size() < MIN_EXERCISES_PER_SESSION || currentSessionTime < TARGET_DURATION - MAX_OVERAGE_MINUTES_SOFT_CAP) {
                 logger.warn("Pass 2: Session for day {} still underfilled ({} exercises, {} min). Target: {} min. Attempting fallback fill.",
@@ -169,8 +152,7 @@ public class TrainingPlanService {
                         currentSessionExercises.add(fbExercise);
                         currentSessionTime += fbExercise.getDurationMinutes();
 
-                        // Break conditions for Pass 2:
-                        // Met min exercises AND duration is at least half of target, OR hit hard cap on exercises.
+
                         if ((currentSessionExercises.size() >= MIN_EXERCISES_PER_SESSION && currentSessionTime >= TARGET_DURATION / 2) ||
                                 currentSessionExercises.size() >= HARD_CAP_EXERCISES) {
                             logger.info("Pass 2: Fallback succeeded for day {}. Exercises: {}, Time: {} min.", day, currentSessionExercises.size(), currentSessionTime);
@@ -180,16 +162,14 @@ public class TrainingPlanService {
                 }
             }
 
-            // Final GUARANTEE: If the session is still empty for ANY reason, FORCE at least one valid exercise.
-            // This is the unbreakable safety net.
+
             if (currentSessionExercises.isEmpty() && !exercises.isEmpty()) {
                 logger.error("CRITICAL SAFETY NET: Session for day {} is STILL EMPTY after all advanced attempts! Forcing one exercise.", day);
-                // Get the first available exercise directly, regardless of its duration, just to ensure content.
-                // We ensure 'exercises' is not empty due to the outer check at the beginning of the loop.
+
                 Exercise arbitraryExercise = exercises.stream()
                         .filter(e -> e.getDurationMinutes() != null) // Only ensure not null
                         .findFirst()
-                        .orElse(null); // Fallback to null if no exercise has non-null duration (should not happen if DB is seeded)
+                        .orElse(null);
 
                 if (arbitraryExercise != null) {
                     currentSessionExercises.add(arbitraryExercise);
@@ -203,9 +183,9 @@ public class TrainingPlanService {
             }
 
 
-            // Log final state for session, regardless of outcome
+
             logger.info("Session for day {} finalized with {} exercises, total time: {} min (Target: {} min).", day, currentSessionExercises.size(), currentSessionTime, TARGET_DURATION);
-            // --- КРАЙ НА МОДИФИЦИРАНИЯ И ПОДОБРЕН БЛОК ЗА ИЗБОР НА УПРАЖНЕНИЯ ---
+
 
             // Добавяме събраните упражнения към сесията
             currentSessionExercises.forEach(session::addExercise);
@@ -219,12 +199,6 @@ public class TrainingPlanService {
         return savedPlan;
     }
 
-    /**
-     * Помощен метод за извличане на упражнения въз основа на нивото на потребителя и типа тренировка.
-     * @param level Нивото на потребителя.
-     * @param type Типът тренировка.
-     * @return Списък с филтрирани упражнения.
-     */
     private List<Exercise> getExercisesForUser(LevelType level, TrainingType type) {
         DifficultyLevel diff = getDifficultyLevelEnum(level);
         ExerciseType exType = getExerciseTypeEnum(type);
@@ -253,12 +227,7 @@ public class TrainingPlanService {
         return allExercises;
     }
 
-    /**
-     * Валидира потребителския профил за наличие на основни данни,
-     * необходими за генериране на тренировъчен план.
-     * @param user Потребителят за валидация.
-     * @throws IllegalArgumentException Ако липсват необходими данни.
-     */
+
     private void validateUserProfileForTrainingPlanGeneration(User user) {
         List<String> missing = new ArrayList<>();
         if (user.getGender() == null) missing.add("пол");
@@ -277,11 +246,7 @@ public class TrainingPlanService {
         }
     }
 
-    /**
-     * Избира случайни дни за тренировка през седмицата.
-     * @param days Брой тренировъчни дни.
-     * @return Списък от DayOfWeek енуми.
-     */
+
     private List<com.fitnessapp.model.DayOfWeek> selectTrainingDays(int days) {
         int numDays = Math.min(days, 7); // Уверете се, че не надвишаваме 7 дни
         List<java.time.DayOfWeek> allJavaTimeDays = new ArrayList<>(Arrays.asList(java.time.DayOfWeek.values()));
@@ -293,71 +258,47 @@ public class TrainingPlanService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Връща брой тренировъчни дни по подразбиране въз основа на нивото на потребителя.
-     * @param level Нивото на потребителя.
-     * @return Брой дни.
-     */
+
     private int getDefaultTrainingDays(LevelType level) {
         return switch (level) {
             case BEGINNER -> 3;
             case INTERMEDIATE -> 4;
             case ADVANCED -> 5;
-            // default клона е излишен, ако всички енум стойности са покрити
-            // default -> 3;
+
         };
     }
 
-    /**
-     * Връща продължителност на тренировка по подразбиране въз основа на нивото на потребителя.
-     * @param level Нивото на потребителя.
-     * @return Продължителност в минути.
-     */
+
     private int getDefaultTrainingDuration(LevelType level) {
         return switch (level) {
             case BEGINNER -> 45;
             case INTERMEDIATE -> 60;
             case ADVANCED -> 75;
-            // default клона е излишен
-            // default -> 60;
+
         };
     }
 
-    /**
-     * Конвертира LevelType в DifficultyLevel.
-     * @param level LevelType.
-     * @return DifficultyLevel.
-     */
+
     private DifficultyLevel getDifficultyLevelEnum(LevelType level) {
         return switch (level) {
             case BEGINNER -> DifficultyLevel.BEGINNER;
             case INTERMEDIATE -> DifficultyLevel.INTERMEDIATE;
             case ADVANCED -> DifficultyLevel.ADVANCED;
-            // default клона е излишен
-            // default -> DifficultyLevel.BEGINNER;
+
         };
     }
 
-    /**
-     * Конвертира TrainingType в ExerciseType.
-     * @param type TrainingType.
-     * @return ExerciseType.
-     */
+
     private ExerciseType getExerciseTypeEnum(TrainingType type) {
         return switch (type) {
             case WEIGHTS -> ExerciseType.WEIGHTS;
             case BODYWEIGHT -> ExerciseType.BODYWEIGHT;
             case CARDIO -> ExerciseType.CARDIO;
-            // default клона е излишен
-            // default -> ExerciseType.BODYWEIGHT;
+
         };
     }
 
-    /**
-     * Конвертира TrainingPlan entity в TrainingPlanDTO.
-     * @param plan TrainingPlan entity.
-     * @return TrainingPlanDTO обект.
-     */
+
     @Transactional(readOnly = true) // Транзакцията е важна за initialize
     public TrainingPlanDTO convertTrainingPlanToDTO(TrainingPlan plan) {
         if (plan == null) return null;
@@ -386,14 +327,10 @@ public class TrainingPlanService {
                 .build();
     }
 
-    /**
-     * Конвертира TrainingSession entity в TrainingSessionDTO.
-     * @param session TrainingSession entity.
-     * @return TrainingSessionDTO обект.
-     */
+
     private TrainingSessionDTO convertSessionToDTO(TrainingSession session) {
         if (session == null) return null;
-        Hibernate.initialize(session.getExercises()); // Инициализирайте упражненията в сесията
+        Hibernate.initialize(session.getExercises());
 
         List<ExerciseDTO> exerciseDTOs = session.getExercises().stream()
                 .map(this::convertExerciseToDTO) // Използваме нов помощен метод за конверсия на Exercise
@@ -407,11 +344,7 @@ public class TrainingPlanService {
                 .build();
     }
 
-    /**
-     * Конвертира Exercise entity в ExerciseDTO.
-     * @param ex Exercise entity.
-     * @return ExerciseDTO обект.
-     */
+
     private ExerciseDTO convertExerciseToDTO(Exercise ex) {
         if (ex == null) return null;
         return ExerciseDTO.builder()
@@ -427,10 +360,7 @@ public class TrainingPlanService {
                 .build();
     }
 
-    /**
-     * Извлича всички тренировъчни планове от базата данни.
-     * @return Списък от DTO обекти на всички тренировъчни планове.
-     */
+
     @Transactional(readOnly = true)
     public List<TrainingPlanDTO> getAllTrainingPlansDTO() {
         return trainingPlanRepository.findAll().stream()
@@ -438,11 +368,7 @@ public class TrainingPlanService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Генерира и запазва тренировъчен план за потребител, връщайки DTO.
-     * @param user Потребителят, за когото се генерира планът.
-     * @return DTO обект на генерирания план.
-     */
+
     @Transactional
     public TrainingPlanDTO generateAndSaveTrainingPlanForUserDTO(User user) {
         // Използваме вече съществуващия метод за генериране и запазване на entity
@@ -451,11 +377,7 @@ public class TrainingPlanService {
         return convertTrainingPlanToDTO(plan);
     }
 
-    /**
-     * Извлича всички тренировъчни планове за даден потребител.
-     * @param user Потребителят.
-     * @return Списък от DTO обекти на тренировъчни планове, сортирани по дата (най-новите първи).
-     */
+
     @Transactional(readOnly = true)
     public List<TrainingPlanDTO> getTrainingPlansByUserDTO(User user) {
         // Уверете се, че работите с managed User entity в рамките на транзакцията
@@ -468,9 +390,7 @@ public class TrainingPlanService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Поправя липсващи тренировъчни планове за потребители, ако няма такъв за текущия ден.
-     */
+
     @Transactional
     public void fixMissingTrainingPlans() {
         logger.info("Fixing missing training plans...");
@@ -491,27 +411,15 @@ public class TrainingPlanService {
         });
     }
 
-    /**
-     * Връща препоръчителен тренировъчен план. (Място за имплементация)
-     * @param goal Целта на тренировката.
-     * @param withWeights Дали да включва тежести.
-     * @return TrainingPlanDTO.
-     */
+
     @Transactional(readOnly = true)
     public TrainingPlanDTO getRecommendedTrainingPlanDTO(String goal, boolean withWeights) {
         logger.warn("Not implemented: getRecommendedTrainingPlanDTO. This method needs specific logic.");
-        // Тази логика би била много специфична за вашето приложение
-        // Пример:
-        // List<TrainingPlan> plans = trainingPlanRepository.findByGoalAndTrainingType(...);
-        // return plans.stream().findFirst().map(this::convertTrainingPlanToDTO).orElse(null);
+
         return null;
     }
 
-    /**
-     * Извлича историята на тренировъчните планове за даден потребител.
-     * @param userId ID на потребителя.
-     * @return Списък от DTO обекти за история на тренировъчни планове.
-     */
+
     @Transactional(readOnly = true)
     public List<TrainingPlanHistoryDTO> getTrainingPlanHistory(Integer userId) {
         User user = userRepository.findById(userId)
@@ -521,7 +429,6 @@ public class TrainingPlanService {
 
         return plans.stream()
                 .map(plan -> {
-                    // Инициализирайте всички lazy полета, които ще се използват в DTO
                     initializeTrainingPlanLazyFields(plan);
 
                     return TrainingPlanHistoryDTO.builder()
@@ -543,10 +450,7 @@ public class TrainingPlanService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Помощен метод за инициализация на Lazy полета на TrainingPlan entity.
-     * @param plan TrainingPlan entity.
-     */
+
     private void initializeTrainingPlanLazyFields(TrainingPlan plan) {
         if (plan == null) return;
         Hibernate.initialize(plan.getUser());
@@ -555,19 +459,12 @@ public class TrainingPlanService {
         if (plan.getTrainingSessions() != null) {
             plan.getTrainingSessions().forEach(session -> Hibernate.initialize(session.getExercises()));
         }
-        // Ако ActivityLevel, TrainingType и Goal са Lazy-зареждащи се, инициализирайте ги:
+
         Hibernate.initialize(plan.getUserActivityLevelSnapshot());
-        // Hibernate.initialize(plan.getUserTrainingTypeSnapshot()); // Активирай, ако е Lazy
-        // Hibernate.initialize(plan.getUserLevelSnapshot()); // Активирай, ако е Lazy
         Hibernate.initialize(plan.getUserGoalSnapshot());
     }
 
-    /**
-     * Изчислява кратко описание на тренировъчния план.
-     * Можете да адаптирате това според информацията, която искате да покажете.
-     * @param plan Тренировъчен план.
-     * @return Кратко текстово описание.
-     */
+
     private String getTrainingPlanSummary(TrainingPlan plan) {
         if (plan == null) {
             return "Няма информация за тренировъчен план.";

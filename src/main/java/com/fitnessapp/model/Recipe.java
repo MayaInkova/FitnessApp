@@ -17,7 +17,7 @@ import java.util.Set;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Recipe {
 
-    /* ───── базови полета ───── */
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
@@ -45,7 +45,7 @@ public class Recipe {
 
     private String instructions;
 
-    /* ───── връзки към други таблици ───── */
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diet_type_id")
     private DietType dietType;
@@ -53,7 +53,7 @@ public class Recipe {
     @Enumerated(EnumType.STRING)
     private MeatPreferenceType meatType;
 
-    /* ───── tag-ове / алергени ───── */
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "recipe_tags", joinColumns = @JoinColumn(name = "recipe_id"))
     @Column(name = "tag")
@@ -66,7 +66,7 @@ public class Recipe {
     @Builder.Default
     private Set<String> allergens = new HashSet<>();
 
-    /* ─────────── NEW: съставки ─────────── */
+
     @OneToMany(mappedBy = "recipe",
             fetch = FetchType.LAZY,
             cascade = CascadeType.ALL,
@@ -74,7 +74,7 @@ public class Recipe {
     @Builder.Default
     private List<RecipeIngredient> ingredients = new ArrayList<>();
 
-    /* helper-и (по желание) */
+
     public void addIngredient(RecipeIngredient ri) {
         ingredients.add(ri);
         ri.setRecipe(this);

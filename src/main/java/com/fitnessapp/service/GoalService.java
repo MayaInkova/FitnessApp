@@ -23,7 +23,7 @@ public class GoalService {
         GoalType goalType = GoalType.fromString(normalized);
 
         // Използваме findByNameIgnoreCase, за да сме сигурни, че намираме целта
-        return goalRepository.findByNameIgnoreCase(goalType.getDisplayName()) // Използвайте findByNameIgnoreCase
+        return goalRepository.findByNameIgnoreCase(goalType.getDisplayName())
                 .orElseThrow(() -> new RuntimeException("Goal not found"));
     }
 

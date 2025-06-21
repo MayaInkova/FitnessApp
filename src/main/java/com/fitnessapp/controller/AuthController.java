@@ -25,7 +25,7 @@ import com.fitnessapp.request.ResetPasswordRequest; // Уверете се, че
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*") // Добре е да ограничите това до конкретни фронтенд домейни за продукция
+@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class AuthController {
 

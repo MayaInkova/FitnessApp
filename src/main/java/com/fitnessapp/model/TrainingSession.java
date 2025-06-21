@@ -27,7 +27,7 @@ import java.util.List;
 public class TrainingSession {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include // Включва 'id' в equals() и hashCode()
+    @EqualsAndHashCode.Include
     private Integer id;
 
 
@@ -37,8 +37,8 @@ public class TrainingSession {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    // Уверете се, че използвате DayOfWeek от com.fitnessapp.model пакета
-    private DayOfWeek dayOfWeek; // Това вече ще реферира към com.fitnessapp.model.DayOfWeek
+
+    private DayOfWeek dayOfWeek;
 
     private Integer durationMinutes;
 

@@ -203,8 +203,6 @@ public class NutritionPlanService {
         plan.setTargetCalories(targetCalories);
         plan.setDateGenerated(date);
         plan.setWeeklyNutritionPlan(weeklyPlanEntity);
-
-        // --- ПОПЪЛВАНЕ НА SNAPSHOT ПОЛЕТАТА ---
         plan.setUserGenderSnapshot(user.getGender());
         plan.setUserAgeSnapshot(user.getAge());
         plan.setUserWeightSnapshot(user.getWeight());

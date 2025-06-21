@@ -5,7 +5,7 @@ public enum LevelType {
     INTERMEDIATE,
     ADVANCED;
 
-    // преобразуване на стринг към LevelType
+
     public static LevelType fromString(String text) {
         if (text == null || text.trim().isEmpty()) {
             throw new IllegalArgumentException("Текстовата стойност за LevelType не може да бъде празна.");

@@ -39,10 +39,8 @@ public class RecipeDTO {
     private String instructions;
     private String dietTypeName;
     private Set<String> allergens;
-
-
-    // Променете типа на meatType от MeatType на MeatPreferenceType
     private MeatPreferenceType meatType;
+
     @Builder.Default
     private List<RecipeIngredientDTO> ingredients = Collections.emptyList();
 

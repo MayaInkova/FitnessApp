@@ -11,8 +11,8 @@ import java.util.List;
 public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByEmail(String email);
     List<User> findAll();
-    boolean existsByEmail(String email);// Явно дефиниране, въпреки че е наследено
+    boolean existsByEmail(String email);
 
-    // НОВ МЕТОД: Намиране на потребител по токен за възстановяване на парола
-    Optional<User> findByResetPasswordToken(String resetPasswordToken); // <-- Добавете този ред
+    //  Намиране на потребител по токен за възстановяване на парола
+    Optional<User> findByResetPasswordToken(String resetPasswordToken);
 }

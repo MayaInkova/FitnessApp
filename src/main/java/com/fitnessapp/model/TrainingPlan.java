@@ -40,8 +40,7 @@ public class TrainingPlan {
 
     @Lob // За по-дълъг текст, ако е необходимо
     @Column(name = "training_plan_description", columnDefinition = "TEXT")
-    private String trainingPlanDescription; // Добавено поле за описание на плана
-
+    private String trainingPlanDescription;
     private Integer daysPerWeek;
     private Integer durationMinutes;
 
@@ -62,16 +61,16 @@ public class TrainingPlan {
     @JoinColumn(name = "user_activity_level_snapshot_id")
     private ActivityLevel userActivityLevelSnapshot;
 
-    @Enumerated(EnumType.STRING) // За да запазвате енъма като String в базата данни
-    @Column(name = "user_training_type_snapshot") // Името на колоната в базата данни
-    private TrainingType userTrainingTypeSnapshot; // Заснемане на TrainingType на потребителя
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_training_type_snapshot")
+    private TrainingType userTrainingTypeSnapshot;
 
-    // НОВО: Заснемане на LevelType на потребителя
+
     @Enumerated(EnumType.STRING)
     @Column(name = "user_level_snapshot")
     private LevelType userLevelSnapshot;
 
-    // НОВО: Заснемане на Goal на потребителя
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_goal_snapshot_id")
     private Goal userGoalSnapshot;

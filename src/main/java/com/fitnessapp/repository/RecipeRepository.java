@@ -13,7 +13,7 @@ import java.util.List;
 @Repository
 public interface RecipeRepository extends JpaRepository<Recipe, Integer> {
 
-    /* --- стандартни търсения, които вече имаш --- */
+
     List<Recipe> findByMealType(MealType mealType);
     List<Recipe> findByDietType(DietType dietType);
     List<Recipe> findByMealTypeAndIdNot(MealType mealType, Integer id);

@@ -12,7 +12,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder // Добавен Builder
+@Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class NutritionPlanDTO {
     private Integer id;

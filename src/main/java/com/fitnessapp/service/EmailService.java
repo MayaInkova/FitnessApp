@@ -20,14 +20,14 @@ public class EmailService {
         message.setTo(to);
         message.setSubject(subject);
         message.setText(text);
-        // Можете да добавите message.setFrom("your_email@example.com"); ако искате да е различно от username в properties
+
 
         try {
             mailSender.send(message);
             log.info("Имейл изпратен до: {} със subject: {}", to, subject);
         } catch (MailException e) {
             log.error("Грешка при изпращане на имейл до {}: {}", to, e.getMessage(), e);
-            // Можете да хвърлите custom exception тук или да логнете
+
         }
     }
 }

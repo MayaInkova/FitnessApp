@@ -25,10 +25,6 @@ public class RecipeController {
         this.recipeService = recipeService;
     }
 
-    /* ------------------------------------------------------------
-       CRUD + разширен ендпойнт за алтернативи по MealType
-       ------------------------------------------------------------ */
-
     /** Всички рецепти като DTO */
     @GetMapping
     public ResponseEntity<List<RecipeDTO>> getAllRecipes() {
@@ -62,7 +58,7 @@ public class RecipeController {
         }
     }
 
-    /** 🔁 Алтернативи за дадено хранене – същия mealType, различен id */
+
     @GetMapping("/alternatives")
     public ResponseEntity<List<RecipeDTO>> getAlternatives(@RequestParam MealType mealType,
                                                            @RequestParam Integer excludeId) {
@@ -70,7 +66,7 @@ public class RecipeController {
         return ResponseEntity.ok(alts);
     }
 
-    /** Създаване на рецепта */
+
     @PostMapping
     public ResponseEntity<Recipe> createRecipe(@RequestBody Recipe recipe) {
         try {
@@ -81,7 +77,7 @@ public class RecipeController {
         }
     }
 
-    /** Актуализация */
+
     @PutMapping("/{id}")
     public ResponseEntity<Recipe> updateRecipe(@PathVariable Integer id, @RequestBody Recipe recipe) {
         try {
@@ -95,7 +91,7 @@ public class RecipeController {
         }
     }
 
-    /** Изтриване */
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRecipe(@PathVariable Integer id) {
         try {

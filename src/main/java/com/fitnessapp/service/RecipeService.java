@@ -34,20 +34,20 @@ public class RecipeService {
         return recipeRepository.findByMealType(mealType);
     }
 
-    //  Връща всички рецепти като DTOs
+
     public List<RecipeDTO> getAllRecipeDTOs() {
         return recipeRepository.findAll().stream()
                 .map(this::convertToRecipeDTO) // Използваме помощния метод за конверсия
                 .collect(Collectors.toList());
     }
 
-    //  Връща една рецепта по ID като DTO
+
     public Optional<RecipeDTO> getRecipeDTOById(Integer id) {
         return recipeRepository.findById(id)
                 .map(this::convertToRecipeDTO);
     }
 
-    // Връща рецепти по тип хранене като DTOs
+
     public List<RecipeDTO> getRecipeDTOsByMealType(MealType mealType) {
         return recipeRepository.findByMealType(mealType).stream()
                 .map(this::convertToRecipeDTO)
@@ -120,10 +120,10 @@ public class RecipeService {
     }
     public List<RecipeDTO> findAlternatives(MealType mealType, Integer excludeId) {
         return recipeRepository
-                .findByMealTypeAndIdNot(mealType, excludeId)   // използва новия Repo метод
+                .findByMealTypeAndIdNot(mealType, excludeId)
                 .stream()
-                .map(this::convertToRecipeDTO)                 // вече имаш конвертора
-                .limit(20)                                     // по желание: максимум 20
+                .map(this::convertToRecipeDTO)
+                .limit(20)
                 .toList();
     }
 }

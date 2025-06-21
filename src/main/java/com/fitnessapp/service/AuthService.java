@@ -37,7 +37,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
-    private final EmailService emailService; // НОВО: Инжектираме EmailService
+    private final EmailService emailService;
 
 
     @Autowired
@@ -46,13 +46,13 @@ public class AuthService {
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
                        JwtTokenProvider jwtTokenProvider,
-                       EmailService emailService) { // НОВО: Добавяме EmailService в конструктора
+                       EmailService emailService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
-        this.emailService = emailService; // НОВО: Присвояваме EmailService
+        this.emailService = emailService;
     }
 
     @Transactional // Важно за операции с база данни, като запазване на потребител
@@ -73,15 +73,14 @@ public class AuthService {
                 // Новите полета за възстановяване на парола не се задават при регистрация
                 .build();
 
-        // Задаване на роля по подразбиране (напр. ROLE_USER)
-        // Уверете се, че имате Role entity и че "ROLE_USER" съществува в базата данни/enum
+
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseThrow(() -> new RuntimeException("Роля 'ROLE_USER' не е намерена в базата данни."));
-        user.setRoles(Collections.singleton(userRole)); // Задаваме колекция с една роля
+        user.setRoles(Collections.singleton(userRole));
 
-        // Запазване на потребителя
+
         userRepository.save(user);
-        log.info("Потребител '{}' успешно регистриран.", user.getEmail()); // Добавяне на лог
+        log.info("Потребител '{}' успешно регистриран.", user.getEmail());
     }
 
     public LoginResponse authenticateUser(LoginRequest loginRequest) {
@@ -101,8 +100,6 @@ public class AuthService {
 
         // Извличане на User за отговора (потребителят е автентикиран, така че вече го има)
         User user = (User) authentication.getPrincipal(); // Може да получите потребителя директно от authentication
-        // Ако authentication.getPrincipal() връща org.springframework.security.core.userdetails.User
-        // тогава може да се наложи да използвате userRepository.findByEmail(loginRequest.getEmail()) както е било
 
         Optional<User> authenticatedUserOptional = userRepository.findByEmail(loginRequest.getEmail());
         if (authenticatedUserOptional.isEmpty()) {
@@ -125,7 +122,7 @@ public class AuthService {
                 .build();
     }
 
-    // НОВ МЕТОД: Забравена парола - генерира токен и изпраща имейл
+    //  Забравена парола - генерира токен и изпраща имейл
     @Transactional
     public void forgotPassword(String email) {
         Optional<User> userOptional = userRepository.findByEmail(email);
@@ -147,9 +144,7 @@ public class AuthService {
 
         userRepository.save(user); // Запазваме токена и срока му в базата данни
 
-        // Изпращане на имейл
-        // !!! ВАЖНО: Заменете този URL с реалния URL на вашия фронтенд приложение
-        // Например: "https://yourfitnessapp.com/reset-password?token="
+
         String resetLink = "http://localhost:3000/reset-password?token=" + token;
         String subject = "Заявка за възстановяване на парола за Fitness App";
         String text = "Здравейте " + user.getFullName() + ",\n\n"
@@ -165,7 +160,7 @@ public class AuthService {
         log.info("Линк за възстановяване на парола изпратен до: {}", user.getEmail());
     }
 
-    // НОВ МЕТОД: Нулиране на парола - валидира токен и сменя парола
+    //  Нулиране на парола - валидира токен и сменя парола
     @Transactional
     public void resetPassword(String token, String newPassword) {
         Optional<User> userOptional = userRepository.findByResetPasswordToken(token);

@@ -209,7 +209,7 @@ public class UserService {
         Hibernate.initialize(user.getNutritionPlans());
         Hibernate.initialize(user.getTrainingPlans());
 
-        // Взимане на ID на най-новия хранителен план
+
         Integer latestNutritionPlanId = user.getNutritionPlans() != null && !user.getNutritionPlans().isEmpty() ?
                 user.getNutritionPlans().stream()
                         .max(Comparator.comparing(NutritionPlan::getDateGenerated))
@@ -217,7 +217,7 @@ public class UserService {
                         .orElse(null)
                 : null;
 
-        // Взимане на ID на най-новия тренировъчен план
+
         Integer latestTrainingPlanId = user.getTrainingPlans() != null && !user.getTrainingPlans().isEmpty() ?
                 user.getTrainingPlans().stream()
                         .max(Comparator.comparing(TrainingPlan::getDateGenerated))
@@ -240,16 +240,16 @@ public class UserService {
                 .goalName(user.getGoal() != null ? user.getGoal().getName() : null)
                 .dietTypeId(user.getDietType() != null ? user.getDietType().getId() : null)
                 .dietTypeName(user.getDietType() != null ? user.getDietType().getName() : null)
-                .trainingType(user.getTrainingType() != null ? user.getTrainingType().name() : null) // Assuming DTO expects String
+                .trainingType(user.getTrainingType() != null ? user.getTrainingType().name() : null)
                 .trainingDaysPerWeek(user.getTrainingDaysPerWeek())
                 .trainingDurationMinutes(user.getTrainingDurationMinutes())
                 .level(user.getLevel())
                 .allergies(user.getAllergies())
                 .otherDietaryPreferences(user.getOtherDietaryPreferences())
-                .meatPreference(user.getMeatPreference()) // MeatPreferenceType enum
+                .meatPreference(user.getMeatPreference())
                 .consumesDairy(user.getConsumesDairy())
-                .mealFrequencyPreference(user.getMealFrequencyPreference()) // MealFrequencyPreferenceType enum
-                .roles(user.getRoles() != null ? user.getRoles().stream() // Roles are EAGER, should not be null in practice
+                .mealFrequencyPreference(user.getMealFrequencyPreference())
+                .roles(user.getRoles() != null ? user.getRoles().stream()
                         .map(Role::getName)
                         .collect(Collectors.toSet()) : new HashSet<>())
                 .nutritionPlanId(latestNutritionPlanId)

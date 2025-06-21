@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 @Component
 public class DataInitializer implements CommandLineRunner {
 
-    /* =========  Repositories  ========= */
+
     private final RecipeRepository recipeRepository;
     private final ExerciseRepository exerciseRepository;
     private final UserRepository userRepository;
@@ -43,7 +43,6 @@ public class DataInitializer implements CommandLineRunner {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /* ==========  Runner  ========== */
     @Override
     public void run(String... args) {
         seedRoles();
@@ -55,9 +54,7 @@ public class DataInitializer implements CommandLineRunner {
         seedTestUsers();
     }
 
-    /* ================================== */
-    /*              MASTER DATA           */
-    /* ================================== */
+
 
     private void seedRoles() {
         Stream.of("ROLE_USER", "ROLE_ADMIN", "ROLE_MODERATOR", "ROLE_GUEST")
@@ -116,16 +113,13 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("✔ Целите синхронизирани");
     }
 
-    /* ==================================*/
-    /*              RECIPES              */
-    /* ==================================*/
     private record RSeed(String n, String d, double kcal, double p, double c, double f,
                          MealType meal, DietType diet, MeatPreferenceType meat,
                          boolean veg, boolean dairy, boolean nuts, String... tags) {
     }
 
     private void seedRecipes() {
-        // === Fetch diet references ===
+
         DietType bal   = dietTypeRepository.findByName("Балансирана").orElseThrow();
         DietType keto  = dietTypeRepository.findByName("Кето").orElseThrow();
         DietType prot  = dietTypeRepository.findByName("Протеинова").orElseThrow();
@@ -222,7 +216,6 @@ public class DataInitializer implements CommandLineRunner {
                         MealType.LUNCH, bal, MeatPreferenceType.NONE,
                         true,  false, false, "балансирана","веган"),
 
-                /* ===== DINNER ===== */
                 new RSeed("Леща с ориз и салата",
                         "Сварете лещата и ориза; поднесете с пресна салата от домати и краставици.",
                         430, 22, 40, 10,
@@ -265,7 +258,7 @@ public class DataInitializer implements CommandLineRunner {
                         MealType.DINNER, bal, MeatPreferenceType.NONE,
                         true,  true,  false, "балансирана","keto-friendly"),
 
-                /* ===== SNACK ===== */
+
                 new RSeed("Орехи с кисело мляко",
                         "Кисело мляко, натрошени орехи и лъжичка мед.",
                         280, 14, 10, 20,
@@ -309,7 +302,7 @@ public class DataInitializer implements CommandLineRunner {
                         true,  true,  false, "балансирана","nostalgia")
         ));
         seeds.addAll(List.of(
-                /* ===== BREAKFAST ===== */
+
                 new RSeed("Овесена каша с ябълка",
                         "Овесени ядки, ябълка, канела, мляко. Сварете овеса с млякото и добавете ябълка и канела.",
                         340, 10, 50, 8,

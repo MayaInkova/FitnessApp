@@ -19,7 +19,7 @@ import java.util.List;
 public class TrainingPlanDTO {
     private Integer id;
     private LocalDate dateGenerated;
-    private String trainingPlanDescription; // Добавено поле за описание
+    private String trainingPlanDescription;
     private Integer daysPerWeek;
     private Integer durationMinutes;
     private Integer userId;
@@ -32,6 +32,6 @@ public class TrainingPlanDTO {
     private Double userHeightSnapshot;
     private String userActivityLevelSnapshotName;
     private TrainingType userTrainingTypeSnapshot;
-    private LevelType userLevelSnapshot; // НОВО: snapshot на нивото на потребителя
-    private String userGoalNameSnapshot; // НОВО: snapshot на целта на потребителя (име)
+    private LevelType userLevelSnapshot;
+    private String userGoalNameSnapshot;
 }

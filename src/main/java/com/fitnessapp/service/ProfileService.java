@@ -18,14 +18,13 @@ public class ProfileService {
     private final DietTypeRepository dietRepo;
     private final UserProfileMapper mapper;
 
-    /* ─────────── ЧЕТЕНЕ ─────────── */
+
     public UserProfileDTO getCurrentProfile(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
         return mapper.toDto(user);
     }
 
-    /* ─────────── ЗАПИС ─────────── */
     public UserProfileDTO updateCurrentProfile(String email, UserProfileDTO incoming) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
