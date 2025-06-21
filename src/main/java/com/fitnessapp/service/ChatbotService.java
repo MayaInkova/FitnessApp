@@ -650,20 +650,15 @@ public class ChatbotService {
         }
     }
 
-    // МОДИФИЦИРАН МЕТОД: handleMealFrequency - вече връща Map<String, Object> със FullPlanDTO
     private Map<String, Object> handleMealFrequency(String sessionId, SessionState session, String message) {
         String input = message.trim();
         try {
             int frequency = Integer.parseInt(input);
             if (frequency >= 2 && frequency <= 6) {
                 session.mealFrequencyPreference = input;
-                session.state = "DONE"; // <-- ЗАДАВАМЕ СЪСТОЯНИЕТО НА DONE
+                session.state = "DONE";
 
-                // ГЕНЕРИРАНЕ И ЗАПАЗВАНЕ НА ПОТРЕБИТЕЛЯ И ПЛАНОВЕТЕ
-                // generateAndSavePlanForUser вече запазва потребителя и генерира плановете
                 User savedOrUpdatedUser = generateAndSavePlanForUser(sessionId);
-
-                // ИЗВЛИЧАНЕ НА FullPlanDTO чрез NutritionPlanService
                 FullPlanDTO fullPlanDTO = nutritionPlanService.getFullPlanByUserId(savedOrUpdatedUser.getId());
 
                 if (fullPlanDTO == null) {
@@ -671,14 +666,12 @@ public class ChatbotService {
                     return Map.of("type", "error", "message", "Възникна грешка при извличане на генерирания план.");
                 }
 
-                // ВРЪЩАНЕ НА FullPlanDTO В ОТГОВОР
                 Map<String, Object> responseMap = new HashMap<>();
-                responseMap.put("type", "plan"); // Използваме "plan", както очаква фронтенда
+                responseMap.put("type", "plan");
                 responseMap.put("message", "Вашият персонализиран план е успешно генериран и запазен!");
-                responseMap.put("isGuest", session.isGuest);
-                responseMap.put("userId", session.userId);
-                responseMap.put("plan", fullPlanDTO); // <-- ДОБАВЯМЕ ЦЕЛИЯ FullPlanDTO ТУК
-
+                responseMap.put("isGuest", session.isGuest); // <-- Ключово
+                responseMap.put("userId", session.userId);   // <-- Ключово
+                responseMap.put("plan", fullPlanDTO);        // <-- Ключово
                 return responseMap;
             } else {
                 return Map.of("type", "text", "message", "Невалидна честота на хранене. Моля, въведете число между 2 и 6.");
