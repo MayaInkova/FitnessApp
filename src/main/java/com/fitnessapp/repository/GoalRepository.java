@@ -9,4 +9,5 @@ public interface GoalRepository extends JpaRepository<Goal, Integer> {
 
     Optional<Goal> findByName(String name);
     Optional<Goal> findByNameIgnoreCase(String name);
+    boolean existsByName(String name);
 }

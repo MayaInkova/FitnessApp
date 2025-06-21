@@ -1,37 +1,36 @@
 package com.fitnessapp.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.EqualsAndHashCode;
+import lombok.*;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
 @Table(name = "recipes")
-@Getter
-@Setter
+@Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Recipe {
+
+    /* ───── базови полета ───── */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
     private Integer id;
 
-    private String name;
-    private String imageUrl;
+    private String  name;
+    private String  imageUrl;
 
-    private Double calories;
-    private Double protein;
-    private Double carbs;
-    private Double fat;
+    private Double  calories;
+    private Double  protein;
+    private Double  carbs;
+    private Double  fat;
+
     private Boolean isVegetarian;
     private Boolean containsDairy;
     private Boolean containsNuts;
@@ -41,20 +40,25 @@ public class Recipe {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "recipe_tags", joinColumns = @JoinColumn(name = "recipe_id"))
-    @Column(name = "tag")
-    @Builder.Default
-    private Set<String> tags = new HashSet<>();
-
     @Enumerated(EnumType.STRING)
     private MealType mealType;
 
     private String instructions;
 
+    /* ───── връзки към други таблици ───── */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diet_type_id")
     private DietType dietType;
+
+    @Enumerated(EnumType.STRING)
+    private MeatPreferenceType meatType;
+
+    /* ───── tag-ове / алергени ───── */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "recipe_tags", joinColumns = @JoinColumn(name = "recipe_id"))
+    @Column(name = "tag")
+    @Builder.Default
+    private Set<String> tags = new HashSet<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "recipe_allergens", joinColumns = @JoinColumn(name = "recipe_id"))
@@ -62,7 +66,21 @@ public class Recipe {
     @Builder.Default
     private Set<String> allergens = new HashSet<>();
 
+    /* ─────────── NEW: съставки ─────────── */
+    @OneToMany(mappedBy = "recipe",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    @Builder.Default
+    private List<RecipeIngredient> ingredients = new ArrayList<>();
 
-    @Enumerated(EnumType.STRING)
-    private MeatPreferenceType meatType;
+    /* helper-и (по желание) */
+    public void addIngredient(RecipeIngredient ri) {
+        ingredients.add(ri);
+        ri.setRecipe(this);
+    }
+    public void removeIngredient(RecipeIngredient ri) {
+        ingredients.remove(ri);
+        ri.setRecipe(null);
+    }
 }

@@ -1,5 +1,6 @@
 package com.fitnessapp.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,6 +14,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class WeeklyNutritionPlanDTO {
     private Integer id; // Може да има ID, ако го запазваме в база данни
     private Integer userId;

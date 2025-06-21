@@ -28,9 +28,6 @@ public class NutritionPlanService {
     private final TrainingPlanService            trainingPlanService;
     private final WeeklyNutritionPlanRepository  weeklyNutritionPlanRepository;
 
-    /* ------------------------------------------------------------------ */
-    /*  ЕДИН ДНЕВЕН ПЛАН                                                  */
-    /* ------------------------------------------------------------------ */
     @Transactional
     public NutritionPlanDTO generateAndSaveNutritionPlanForUserDTO(User user){
         logger.info("Генериране и запазване на хранителен план за потребител: {}", user.getFullName());
@@ -53,9 +50,6 @@ public class NutritionPlanService {
         return convertNutritionPlanToDTO(entity);
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  СЕДМИЧЕН ПЛАН – генерира 7 NutritionPlan записа и ги връзва       */
-    /* ------------------------------------------------------------------ */
     @Transactional
     public WeeklyNutritionPlanDTO generateAndSaveWeeklyNutritionPlanForUserDTO(User user) {
         logger.info("Генериране на седмичен хранителен план за потребител: {}", user.getFullName());
@@ -64,7 +58,7 @@ public class NutritionPlanService {
         LocalDate startDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
         LocalDate endDate   = startDate.plusDays(6);
 
-        /* 1️⃣  Създаваме и пазим седмичния контейнер */
+        /*  Създаваме и пазим седмичния контейнер */
         WeeklyNutritionPlan newWeeklyPlan = WeeklyNutritionPlan.builder()
                 .user(user)
                 .startDate(startDate)
@@ -91,7 +85,7 @@ public class NutritionPlanService {
                     lastTraining.getTrainingSessions().stream().anyMatch(s->s.getDayOfWeek()==dow);
             double dayCalories = isTraining? baseCalories*1.10 : baseCalories;
 
-            /* 2️⃣  Вземаме или създаваме дневния план и го вързваме към weeklyPlan */
+            /*   Вземаме или създаваме дневния план и го вързваме към weeklyPlan */
             NutritionPlan dayPlan = nutritionPlanRepository.findByUserAndDateGenerated(user,current)
                     .map(existing->{
                         if(!weeklyPlan.equals(existing.getWeeklyNutritionPlan())){
@@ -130,29 +124,13 @@ public class NutritionPlanService {
                 .build();
     }
 
-
-    /**
-     * Генерира и запазва един дневен хранителен план.
-     * Този метод вече приема и връзка към WeeklyNutritionPlan, ако планът е част от седмичен.
-     * @param user Потребителят.
-     * @param date Датата на плана.
-     * @param targetCalories Целеви калории.
-     * @param targetProteinGrams Целеви протеини.
-     * @param targetCarbsGrams Целеви въглехидрати.
-     * @param targetFatGrams Целеви мазнини.
-     * @param weeklyPlanEntity WeeklyNutritionPlan, към който принадлежи този дневен план (може да е null).
-     * @return Запазеният NutritionPlan entity.
-     */
     @Transactional
     private NutritionPlan generateDailyNutritionPlan(User user, LocalDate date, double targetCalories, double targetProteinGrams, double targetCarbsGrams, double targetFatGrams, WeeklyNutritionPlan weeklyPlanEntity){
 
         Optional<NutritionPlan> existing = nutritionPlanRepository.findByUserAndDateGenerated(user, date);
         if(existing.isPresent()){
             NutritionPlan plan = existing.get();
-            // Ако съществуващ план е открит, но се генерира като част от НОВ седмичен план,
-            // може да поискате да го актуализирате или да хвърлите грешка.
-            // За простота, сега просто го връщаме, но ако weeklyPlanEntity не е null
-            // и текущият план е свързан с друг weeklyPlan, може да искате да го актуализирате.
+
             if (weeklyPlanEntity != null && !weeklyPlanEntity.equals(plan.getWeeklyNutritionPlan())) {
                 plan.setWeeklyNutritionPlan(weeklyPlanEntity); // Актуализираме връзката, ако е част от нов седмичен план
                 nutritionPlanRepository.save(plan); // Запазваме актуализацията
@@ -219,6 +197,9 @@ public class NutritionPlanService {
 
         NutritionPlan plan = new NutritionPlan();
         plan.setUser(user);
+        plan.setDateGenerated(date);
+        plan.setDayOfWeek(com.fitnessapp.model.DayOfWeek.valueOf(date.getDayOfWeek().name()));
+        plan.setWeeklyNutritionPlan(weeklyPlanEntity);
         plan.setTargetCalories(targetCalories);
         plan.setDateGenerated(date);
         plan.setWeeklyNutritionPlan(weeklyPlanEntity);
@@ -244,11 +225,6 @@ public class NutritionPlanService {
         plan.setUserMealFrequencyPreferenceSnapshot(user.getMealFrequencyPreference());
         plan.setGoal(user.getGoal());
 
-        // Задаваме meals към плана. Тъй като NutritionPlan има addMeal, използваме това
-        // Но ако създаваме нов план и имаме колекция, може просто да я сетнем.
-        // Ако вече имаме plan.setMeals(new ArrayList<>()), тогава добавянето е ОК.
-        // Тъй като вие сте сложили @Builder.Default private List<Meal> meals = new ArrayList<>();
-        // това е достатъчно.
         for (com.fitnessapp.model.Meal m : meals) {
             plan.addMeal(m); // Използваме addMeal, за да установим двупосочната връзка
         }
@@ -282,13 +258,6 @@ public class NutritionPlanService {
                 date, actualCalories, protein, carbs, fat);
         return saved;
     }
-
-
-    /**
-     * Записва даден NutritionPlan entity обект в базата данни.
-     * @param plan NutritionPlan за записване.
-     * @return DTO обект на записания план.
-     */
     @Transactional
     public NutritionPlanDTO saveNutritionPlan(NutritionPlan plan) {
         logger.info("Записване на NutritionPlan (директно): {}", plan.getId());
@@ -298,11 +267,6 @@ public class NutritionPlanService {
         return convertNutritionPlanToDTO(savedPlan);
     }
 
-    /**
-     * Извлича всички хранителни планове за даден потребител.
-     * @param user Потребителят.
-     * @return Списък от DTO обекти на хранителни планове, сортирани по дата (най-новите първи).
-     */
     @Transactional(readOnly = true)
     public List<NutritionPlanDTO> getNutritionPlansByUserDTO(User user) {
         logger.info("Извличане на хранителни планове за потребител: {}", user.getEmail());
@@ -313,10 +277,6 @@ public class NutritionPlanService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Извлича всички хранителни планове от базата данни.
-     * @return Списък от DTO обекти на всички хранителни планове.
-     */
     @Transactional(readOnly = true)
     public List<NutritionPlanDTO> getAllNutritionPlansDTO() {
         logger.info("Извличане на всички хранителни планове.");
@@ -326,11 +286,7 @@ public class NutritionPlanService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Извлича историята на хранителните планове за даден потребител.
-     * @param userId ID на потребителя.
-     * @return Списък от DTO обекти за история на хранителни планове.
-     */
+
     @Transactional(readOnly = true)
     public List<NutritionPlanHistoryDTO> getNutritionPlanHistory(Integer userId) {
         User user = userRepository.findById(userId)
@@ -343,19 +299,11 @@ public class NutritionPlanService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Помощен метод за конвертиране на NutritionPlan entity в NutritionPlanHistoryDTO.
-     * @param plan NutritionPlan entity.
-     * @return NutritionPlanHistoryDTO обект.
-     */
+
     private NutritionPlanHistoryDTO convertNutritionPlanToHistoryDTO(NutritionPlan plan) {
         if (plan == null) return null;
 
-        // Инициализирайте всички Lazy-заредени обекти, които се използват в DTO
-        // Този метод вече инициализира повечето snapshot обекти.
-        // Ако имате други Lazy полета, които се мапват към DTO и не са покрити,
-        // трябва да ги инициализирате тук или в initializePlanLazyFields.
-        initializePlanLazyFields(plan); // Използваме съществуващия метод за инициализация
+        initializePlanLazyFields(plan);
 
         return NutritionPlanHistoryDTO.builder()
                 .id(plan.getId())
@@ -379,13 +327,6 @@ public class NutritionPlanService {
                 .build();
     }
 
-
-    /**
-     * Конвертира NutritionPlan entity в NutritionPlanDTO.
-     * Инициализира Lazy-зареждащи се полета преди конверсия.
-     * @param plan NutritionPlan entity.
-     * @return NutritionPlanDTO обект.
-     */
     @Transactional(readOnly = true) // Може да се ползва readOnly = true тук, защото само четем и инициализираме
     private NutritionPlanDTO convertNutritionPlanToDTO(NutritionPlan plan){
         if(plan==null) return null;
@@ -404,12 +345,6 @@ public class NutritionPlanService {
                 .build();
     }
 
-    /**
-     * Конвертира Meal entity в MealDTO.
-     * Изчислява калориите и макросите за конкретната порция на храненето.
-     * @param meal Meal entity.
-     * @return MealDTO обект.
-     */
     private MealDTO convertMealToMealDTO(com.fitnessapp.model.Meal meal){
         if(meal==null) return null;
 
@@ -435,12 +370,6 @@ public class NutritionPlanService {
                 .build();
     }
 
-    /**
-     * Конвертира Recipe entity в RecipeDTO.
-     * Инициализира Lazy-зареждащи се полета.
-     * @param recipe Recipe entity.
-     * @return RecipeDTO обект.
-     */
     private RecipeDTO convertRecipeToRecipeDTO(Recipe recipe){
         if(recipe==null) return null;
         Hibernate.initialize(recipe.getDietType());
@@ -469,11 +398,6 @@ public class NutritionPlanService {
                 .build();
     }
 
-    /**
-     * Конвертира TrainingPlan entity в TrainingPlanDTO.
-     * @param plan TrainingPlan entity.
-     * @return TrainingPlanDTO обект.
-     */
     private TrainingPlanDTO convertTrainingPlanToDTO(TrainingPlan plan){
         if(plan==null) return null;
         Hibernate.initialize(plan.getTrainingSessions());
@@ -493,11 +417,6 @@ public class NutritionPlanService {
                 .build();
     }
 
-    /**
-     * Конвертира TrainingSession entity в TrainingSessionDTO.
-     * @param session TrainingSession entity.
-     * @return TrainingSessionDTO обект.
-     */
     private TrainingSessionDTO convertTrainingSessionToTrainingSessionDTO(TrainingSession session){
         if(session==null) return null;
         Hibernate.initialize(session.getExercises());
@@ -509,11 +428,6 @@ public class NutritionPlanService {
                 .build();
     }
 
-    /**
-     * Конвертира Exercise entity в ExerciseDTO.
-     * @param ex Exercise entity.
-     * @return ExerciseDTO обект.
-     */
     private ExerciseDTO convertExerciseToExerciseDTO(Exercise ex){
         if(ex==null) return null;
         return ExerciseDTO.builder()
@@ -529,12 +443,6 @@ public class NutritionPlanService {
                 .build();
     }
 
-
-    /**
-     * Извлича пълния план (хранителен и тренировъчен) за даден потребител.
-     * @param userId ID на потребителя.
-     * @return FullPlanDTO обект, съдържащ информация за двата плана.
-     */
     @Transactional(readOnly = true)
     public FullPlanDTO getFullPlanByUserId(Integer userId){
         User user = userRepository.findById(userId).orElse(null);
@@ -577,10 +485,9 @@ public class NutritionPlanService {
                 .build();
     }
 
-    // Добавен помощен метод за резюме на тренировъчен план, който липсваше
+
     private String getTrainingSummary(User user) {
-        // Можете да използвате trainingPlanService за да вземете последния тренировъчен план
-        // и да генерирате описание.
+
         TrainingPlan latestTrainingPlan = trainingPlanRepository.findByUserOrderByDateGeneratedDesc(user)
                 .stream().findFirst().orElse(null);
 
@@ -591,12 +498,6 @@ public class NutritionPlanService {
         return "Няма наличен тренировъчен план.";
     }
 
-
-    /**
-     * Инициализира Lazy-зареждащи се полета на NutritionPlan entity,
-     * за да се избегнат LazyInitializationException при конверсия към DTO.
-     * @param plan NutritionPlan entity.
-     */
     private void initializePlanLazyFields(NutritionPlan plan){
         if (plan == null) return;
         Hibernate.initialize(plan.getMeals());
@@ -621,12 +522,7 @@ public class NutritionPlanService {
         Hibernate.initialize(plan.getUser());
     }
 
-    /**
-     * Валидира потребителския профил за наличие на основни данни,
-     * необходими за генериране на хранителен план.
-     * @param user Потребителят за валидация.
-     * @throws IllegalArgumentException Ако липсват необходими данни.
-     */
+
     private void validateUserProfileForPlanGeneration(User user){
         List<String> missing = new ArrayList<>();
         if(user.getGender()==null)               missing.add("пол");
@@ -644,12 +540,7 @@ public class NutritionPlanService {
             throw new IllegalArgumentException("Липсват следните данни за генериране на хранителен план: "+String.join(", ", missing));
     }
 
-    /**
-     * Помощен метод за филтриране на рецепти въз основа на предпочитанията на потребителя.
-     * @param allRecipes Всички налични рецепти.
-     * @param user Потребителят, чиито предпочитания се използват.
-     * @return Филтриран списък с рецепти.
-     */
+
     private List<Recipe> filterRecipes(List<Recipe> allRecipes, User user) {
         return allRecipes.stream().filter(recipe -> {
             // Филтриране по диетичен тип
@@ -663,10 +554,7 @@ public class NutritionPlanService {
                 if (user.getMeatPreference() == MeatPreferenceType.VEGETARIAN && !Optional.ofNullable(recipe.getIsVegetarian()).orElse(false)) {
                     return false;
                 }
-                // АКО имате isVegan в Recipe, добавете логика:
-                // if (user.getMeatPreference() == MeatPreferenceType.VEGAN && !Optional.ofNullable(recipe.getIsVegan()).orElse(false)) {
-                //     return false;
-                // }
+
                 if (user.getMeatPreference() == MeatPreferenceType.NO_PORK && Optional.ofNullable(recipe.getContainsPork()).orElse(false)) {
                     return false;
                 }
@@ -697,24 +585,13 @@ public class NutritionPlanService {
                 return false; // Потребителят не консумира млечни, а рецептата съдържа
             }
 
-            // Филтриране по други диетични предпочитания (ако имате такива в Recipe)
-            // if (user.getOtherDietaryPreferences() != null && !user.getOtherDietaryPreferences().isEmpty()) {
-            //     // Имплементирайте логика за съпоставяне на тези предпочитания с тагове/характеристики на рецептите
-            // }
 
-            return true; // Рецептата отговаря на всички критерии
+
+            return true;
         }).collect(Collectors.toList());
     }
 
 
-    /**
-     * Помощен метод за избор на най-подходящата рецепта за даден тип хранене
-     * и добавянето й към списъка с хранения с изчислена порция.
-     * @param meals Списък с хранения за добавяне.
-     * @param recipes Налични рецепти за избор.
-     * @param mealType Тип хранене (закуска, обяд, вечеря, междинно).
-     * @param targetCaloriesForMeal Целеви калории за това хранене.
-     */
     private void addMeal(List<com.fitnessapp.model.Meal> meals, List<Recipe> recipes, MealType mealType, double targetCaloriesForMeal) {
         if (recipes == null || recipes.isEmpty()) {
             logger.warn("Няма налични рецепти за {}. Пропускане.", mealType);
@@ -741,10 +618,8 @@ public class NutritionPlanService {
             double portionSize = 1.0; // По подразбиране 1 порция
 
             if (recipeCaloriesPerPortion > 0) {
-                // Изчисляваме размера на порцията, така че калориите да са близо до целевите
                 portionSize = targetCaloriesForMeal / recipeCaloriesPerPortion;
-                // Можете да ограничите portionSize до разумен диапазон (например 0.5 до 2.0)
-                // portionSize = Math.max(0.5, Math.min(2.0, portionSize));
+
             }
 
             com.fitnessapp.model.Meal meal = com.fitnessapp.model.Meal.builder()
@@ -758,5 +633,66 @@ public class NutritionPlanService {
         } else {
             logger.warn("Не беше намерена подходяща рецепта за {}. Моля, проверете наличните рецепти.", mealType);
         }
+    }
+
+    @Transactional
+    public WeeklyNutritionPlanDTO getOrCreateWeeklyPlan(User user) {
+        return weeklyNutritionPlanRepository
+                .findTopByUserOrderByStartDateDesc(user)
+                .map(this::convertToWeeklyNutritionPlanDTO)
+                .orElseGet(() -> generateAndSaveWeeklyNutritionPlanForUserDTO(user));
+    }
+
+    public WeeklyNutritionPlanDTO replaceMeal(
+            Integer planId,
+            Integer originalMealId,
+            Integer substituteRecipeId) {
+
+        WeeklyNutritionPlan plan = weeklyNutritionPlanRepository.findById(planId)
+                .orElseThrow(() -> new RuntimeException("План с ID " + planId + " не е намерен."));
+
+        Meal meal = plan.getDailyPlans().stream()
+                .flatMap(dp -> dp.getMeals().stream())
+                .filter(m -> m.getId().equals(originalMealId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Хранене с ID " + originalMealId + " не е намерено."));
+
+        Recipe newRecipe = recipeRepository.findById(substituteRecipeId)
+                .orElseThrow(() -> new RuntimeException("Рецепта с ID " + substituteRecipeId + " не съществува."));
+
+        meal.setRecipe(newRecipe);
+        weeklyNutritionPlanRepository.save(plan);
+
+        return convertToWeeklyNutritionPlanDTO(plan);
+    }
+
+    public WeeklyNutritionPlanDTO convertToWeeklyNutritionPlanDTO(WeeklyNutritionPlan plan) {
+        if (plan == null) return null;
+
+        Map<DayOfWeek, NutritionPlanDTO> dailyDTOs = plan.getDailyPlans().stream()
+                .collect(Collectors.toMap(
+                        NutritionPlan::getDayOfWeek,
+                        this::convertNutritionPlanToDTO,
+                        (a, b) -> a,
+                        LinkedHashMap::new
+                ));
+
+        double totalCal = dailyDTOs.values().stream().mapToDouble(NutritionPlanDTO::getTargetCalories).sum();
+        double totalProt = dailyDTOs.values().stream().mapToDouble(NutritionPlanDTO::getProtein).sum();
+        double totalCarb = dailyDTOs.values().stream().mapToDouble(NutritionPlanDTO::getCarbohydrates).sum();
+        double totalFat = dailyDTOs.values().stream().mapToDouble(NutritionPlanDTO::getFat).sum();
+
+        return WeeklyNutritionPlanDTO.builder()
+                .id(plan.getId())
+                .userId(plan.getUser().getId())
+                .userEmail(plan.getUser().getEmail())
+                .startDate(plan.getStartDate())
+                .endDate(plan.getEndDate())
+                .dailyPlans(dailyDTOs)
+                .totalTargetCalories(totalCal)
+                .totalProteinGrams(totalProt)
+                .totalCarbsGrams(totalCarb)
+                .totalFatGrams(totalFat)
+                .build();
     }
 }

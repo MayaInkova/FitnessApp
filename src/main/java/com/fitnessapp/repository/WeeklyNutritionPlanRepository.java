@@ -16,4 +16,5 @@ public interface WeeklyNutritionPlanRepository extends JpaRepository<WeeklyNutri
 
     // Метод за намиране на седмичен план за конкретен потребител и начална дата (ако е необходимо)
     Optional<WeeklyNutritionPlan> findByUserAndStartDate(User user, LocalDate startDate);
+    Optional<WeeklyNutritionPlan> findTopByUserOrderByStartDateDesc(User user);
 }

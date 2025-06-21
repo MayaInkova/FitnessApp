@@ -10,6 +10,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -38,6 +40,10 @@ public class RecipeDTO {
     private String dietTypeName;
     private Set<String> allergens;
 
+
     // Променете типа на meatType от MeatType на MeatPreferenceType
-    private MeatPreferenceType meatType; // <-- ПРОМЕНЕНО ТУК!
+    private MeatPreferenceType meatType;
+    @Builder.Default
+    private List<RecipeIngredientDTO> ingredients = Collections.emptyList();
+
 }

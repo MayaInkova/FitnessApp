@@ -118,4 +118,12 @@ public class RecipeService {
                 .meatType(recipe.getMeatType())
                 .build();
     }
+    public List<RecipeDTO> findAlternatives(MealType mealType, Integer excludeId) {
+        return recipeRepository
+                .findByMealTypeAndIdNot(mealType, excludeId)   // използва новия Repo метод
+                .stream()
+                .map(this::convertToRecipeDTO)                 // вече имаш конвертора
+                .limit(20)                                     // по желание: максимум 20
+                .toList();
+    }
 }

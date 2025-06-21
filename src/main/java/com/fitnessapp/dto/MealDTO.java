@@ -21,4 +21,5 @@ public class MealDTO {
     private Double calculatedProtein;
     private Double calculatedCarbs;
     private Double calculatedFat;
+    private Boolean hasAlternatives;
 }

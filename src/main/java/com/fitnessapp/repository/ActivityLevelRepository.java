@@ -9,4 +9,5 @@ public interface ActivityLevelRepository extends JpaRepository<ActivityLevel, In
 
     Optional<ActivityLevel> findByName(String name);
     Optional<ActivityLevel> findByNameIgnoreCase(String name);
+    boolean existsByName(String name);
 }

@@ -25,4 +25,6 @@ public class NutritionPlanDTO {
     private Integer userId;
     private String userEmail;
     private List<MealDTO> meals;
+    private String dietTypeName;
+    private String dietTypeDescription;
 }

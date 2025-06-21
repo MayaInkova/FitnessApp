@@ -54,6 +54,10 @@ public class NutritionPlan {
     private Double carbohydrates;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "day_of_week", nullable = false)
+    private DayOfWeek dayOfWeek;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "user_gender_snapshot")
     private GenderType userGenderSnapshot; // Assuming GenderType is your enum now
 
@@ -93,6 +97,7 @@ public class NutritionPlan {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "goal_id")
     private Goal goal;
+
 
     @OneToMany(mappedBy = "nutritionPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
