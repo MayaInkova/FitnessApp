@@ -1,6 +1,7 @@
 package com.fitnessapp.dto;
 
 // Променете импорта от MeatType към MeatPreferenceType
+import com.fitnessapp.model.DietType;
 import com.fitnessapp.model.MeatPreferenceType; // <-- ТОЗИ ИМПОРТ Е ПРАВИЛНИЯТ!
 import com.fitnessapp.model.MealType; // Този импорт е ОК
 
@@ -40,7 +41,7 @@ public class RecipeDTO {
     private String dietTypeName;
     private Set<String> allergens;
     private MeatPreferenceType meatType;
-
+    private DietType dietType;
     @Builder.Default
     private List<RecipeIngredientDTO> ingredients = Collections.emptyList();
 

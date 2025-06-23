@@ -62,7 +62,6 @@ public class RecipeService {
         return recipeRepository.findById(id).map(recipe -> {
             recipe.setName(updatedRecipe.getName());
             recipe.setDescription(updatedRecipe.getDescription());
-            recipe.setImageUrl(updatedRecipe.getImageUrl());
             recipe.setCalories(updatedRecipe.getCalories());
             recipe.setProtein(updatedRecipe.getProtein());
             recipe.setCarbs(updatedRecipe.getCarbs());
@@ -100,7 +99,6 @@ public class RecipeService {
                 .id(recipe.getId())
                 .name(recipe.getName())
                 .description(recipe.getDescription())
-                .imageUrl(recipe.getImageUrl())
                 .calories(recipe.getCalories())
                 .protein(recipe.getProtein())
                 .carbs(recipe.getCarbs())
@@ -126,4 +124,5 @@ public class RecipeService {
                 .limit(20)
                 .toList();
     }
+
 }

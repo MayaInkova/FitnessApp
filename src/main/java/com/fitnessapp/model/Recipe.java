@@ -24,7 +24,6 @@ public class Recipe {
     private Integer id;
 
     private String  name;
-    private String  imageUrl;
 
     private Double  calories;
     private Double  protein;

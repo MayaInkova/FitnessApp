@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import java.util.Optional;
 
 import java.util.List;
 
@@ -17,7 +18,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, Integer> {
     List<Recipe> findByMealType(MealType mealType);
     List<Recipe> findByDietType(DietType dietType);
     List<Recipe> findByMealTypeAndIdNot(MealType mealType, Integer id);
-    boolean existsByName(String name);
+    boolean existsByNameAndMealType(String name, MealType mealType);
 
 
     @Query("""

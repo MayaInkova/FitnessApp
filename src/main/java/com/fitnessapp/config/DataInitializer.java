@@ -49,7 +49,7 @@ public class DataInitializer implements CommandLineRunner {
         seedDietTypes();
         seedActivityLevels();
         seedGoals();
-        seedRecipes();
+        seedRecipes(); // Този метод ще бъде актуализиран
         seedExercises();
         seedTestUsers();
     }
@@ -113,879 +113,1283 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("✔ Целите синхронизирани");
     }
 
+    // ВАЖНО: Добавени са "fish" и "pork" към RSeed, за да съответстват на предпочитанията за месо.
     private record RSeed(String n, String d, double kcal, double p, double c, double f,
                          MealType meal, DietType diet, MeatPreferenceType meat,
-                         boolean veg, boolean dairy, boolean nuts, String... tags) {
+                         boolean veg, boolean dairy, boolean nuts, boolean fish, boolean pork, String... tags) {
     }
+
 
     private void seedRecipes() {
 
-        DietType bal   = dietTypeRepository.findByName("Балансирана").orElseThrow();
-        DietType keto  = dietTypeRepository.findByName("Кето").orElseThrow();
-        DietType prot  = dietTypeRepository.findByName("Протеинова").orElseThrow();
-        DietType veg   = dietTypeRepository.findByName("Вегетарианска").orElseThrow();
-        DietType vegan = dietTypeRepository.findByName("Веган").orElseThrow();
-        DietType paleo = dietTypeRepository.findByName("Палео").orElseThrow();
-
-        List<RSeed> seeds = new ArrayList<>();
-
-        seeds.addAll(List.of(
-
-                new RSeed("Овесена каша с ябълка",
-                        "Овесени ядки, ябълка, канела, мляко. Сварете овеса с млякото и добавете ябълка и канела.",
-                        340, 10, 50, 8,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","закуска","бързо"),
-
-                new RSeed("Яйца със спанак и пълнозърнест хляб",
-                        "Запържете яйцата със спанака и сервирайте с препечен пълнозърнест хляб.",
-                        360, 18, 20, 20,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","високо-протеин"),
-
-                new RSeed("Кисело мляко с овес и мед",
-                        "Смесете киселото мляко, овесените ядки и меда; поръсете с орехи.",
-                        310, 14, 35, 10,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  true,  "балансирана","бърза"),
-
-                new RSeed("Сандвич с яйце и домат",
-                        "Пълнозърнест хляб, варено яйце и резени домат ­– идеален за път.",
-                        330, 15, 25, 12,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","to-go"),
-
-                new RSeed("Палачинки с извара",
-                        "Овесено брашно, извара и яйца. Изпечете палачинките и сервирайте с плодове.",
-                        350, 18, 30, 14,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","фит-десерт"),
-
-                new RSeed("Чиа пудинг с плодове",
-                        "Накиснете чията за 4-6 ч. в мляко, добавете пресни плодове преди сервиране.",
-                        320, 9, 25, 15,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","prep-friendly"),
-
-                new RSeed("Мюсли с мляко и банан",
-                        "Смесете мюслито с прясно мляко и нарязан банан, оставете 5 мин да омекне.",
-                        340, 10, 40, 8,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","classic"),
-
-                /* ===== LUNCH ===== */
-                new RSeed("Салата с киноа и риба тон",
-                        "Сварете киноата, охладете и разбъркайте с риба тон и пресни зеленчуци.",
-                        420, 28, 40, 14,
-                        MealType.LUNCH, bal, MeatPreferenceType.FISH,
-                        false, false, false, "балансирана","без-глутен"),
-
-                new RSeed("Пилешко със сладки картофи",
-                        "Запечете пилешкото филе и резените сладък картоф във фурна 25 мин при 200 °C.",
-                        480, 38, 35, 16,
-                        MealType.LUNCH, bal, MeatPreferenceType.CHICKEN,
-                        false, false, false, "балансирана","meal-prep"),
-
-                new RSeed("Пъстърва с ориз и зеленчуци",
-                        "Гответе пъстървата на пара; поднесете с кафяв ориз и задушени зеленчуци.",
-                        500, 34, 38, 18,
-                        MealType.LUNCH, bal, MeatPreferenceType.FISH,
-                        false, false, false, "балансирана","omega-3"),
-
-                new RSeed("Свинско със зеле и моркови",
-                        "Задушете свинското месо със зеле и моркови до пълно омекване.",
-                        510, 36, 20, 22,
-                        MealType.LUNCH, bal, MeatPreferenceType.PORK,
-                        false, false, false, "балансирана","low-carb"),
-
-                new RSeed("Телешко с булгур",
-                        "Сварете булгура; задушете телешкото с домати и поднесете заедно.",
-                        530, 40, 30, 20,
-                        MealType.LUNCH, bal, MeatPreferenceType.BEEF,
-                        false, false, false, "балансирана","желязо"),
-
-                new RSeed("Омлет със зеленчуци",
-                        "Яйца с чушки, лук и гъби; изпечете в тефлонов тиган.",
-                        390, 20, 15, 22,
-                        MealType.LUNCH, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","вегетарианска"),
-
-                new RSeed("Тофу с кафяв ориз",
-                        "Запържете тофуто с броколи, сервирайте върху кафяв ориз.",
-                        440, 24, 35, 14,
-                        MealType.LUNCH, bal, MeatPreferenceType.NONE,
-                        true,  false, false, "балансирана","веган"),
-
-                new RSeed("Леща с ориз и салата",
-                        "Сварете лещата и ориза; поднесете с пресна салата от домати и краставици.",
-                        430, 22, 40, 10,
-                        MealType.DINNER, bal, MeatPreferenceType.NONE,
-                        true,  false, false, "балансирана","fiber"),
-
-                new RSeed("Пилешка супа",
-                        "Пилешко, моркови, картоф; вари се 40 мин и се овкусява с магданоз.",
-                        400, 30, 20, 12,
-                        MealType.DINNER, bal, MeatPreferenceType.CHICKEN,
-                        false, false, false, "балансирана","comfort"),
-
-                new RSeed("Рататуй",
-                        "Тиквички, патладжан, домати и чушки – печете 35 мин на 180 °C.",
-                        370, 8, 25, 14,
-                        MealType.DINNER, bal, MeatPreferenceType.NONE,
-                        true,  false, false, "балансирана","low-cal"),
-
-                new RSeed("Тилапия със зелен фасул",
-                        "Изпечете тилапията с лимонов сок; сервирайте със задушен фасул.",
-                        460, 32, 18, 20,
-                        MealType.DINNER, bal, MeatPreferenceType.FISH,
-                        false, false, false, "балансирана","lean-protein"),
-
-                new RSeed("Пълнени чушки с кайма и ориз",
-                        "Чушки, кайма и ориз във фурна с доматен сос.",
-                        490, 28, 30, 18,
-                        MealType.DINNER, bal, MeatPreferenceType.BEEF,
-                        false, false, false, "балансирана","classic-BG"),
-
-                new RSeed("Киноа с печени зеленчуци",
-                        "Сварена киноа, тиквички и моркови, запечени с зехтин и подправки.",
-                        420, 16, 35, 14,
-                        MealType.DINNER, bal, MeatPreferenceType.NONE,
-                        true,  false, false, "балансирана","суперхрана"),
-
-                new RSeed("Яйца с броколи и сирене",
-                        "Запечете яйца, броколи и настъргано сирене в керамичен съд.",
-                        410, 20, 15, 24,
-                        MealType.DINNER, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","keto-friendly"),
-
-
-                new RSeed("Орехи с кисело мляко",
-                        "Кисело мляко, натрошени орехи и лъжичка мед.",
-                        280, 14, 10, 20,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  true,  true,  "балансирана","healthy-fat"),
-
-                new RSeed("Ябълка с фъстъчено масло",
-                        "Нарежете ябълка на резени и намажете с фъстъчено масло.",
-                        270, 6, 25, 14,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  false, true,  "балансирана","on-the-go"),
-
-                new RSeed("Смути с кисело мляко и плодове",
-                        "Пасирайте кисело мляко, банан и горски плодове до гладкост.",
-                        290, 10, 28, 10,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","vitamin-boost"),
-
-                new RSeed("Домашни барове с мюсли",
-                        "Мюсли, мед и ядки – изпечете 15 мин, оставете да стегнат.",
-                        300, 8, 30, 12,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  true,  true,  "балансирана","prep-bars"),
-
-                new RSeed("Фреш от морков и ябълка",
-                        "Изцедете сока от морков, ябълка и лимон; сервирайте охладено.",
-                        150, 2, 28, 1,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  false, false, "балансирана","fresh"),
-
-                new RSeed("Райска ябълка с кисело мляко",
-                        "Смесете нарязана райска ябълка с кисело мляко и мед.",
-                        260, 9, 20, 8,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","seasonal"),
-
-                new RSeed("Грис с мляко",
-                        "Сварете гриса в прясно мляко, поръсете с канела.",
-                        310, 7, 35, 9,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","nostalgia")
-        ));
-        seeds.addAll(List.of(
-
-                new RSeed("Овесена каша с ябълка",
-                        "Овесени ядки, ябълка, канела, мляко. Сварете овеса с млякото и добавете ябълка и канела.",
-                        340, 10, 50, 8,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","закуска","бързо"),
-
-                new RSeed("Яйца със спанак и пълнозърнест хляб",
-                        "Запържете яйцата със спанака и сервирайте с препечен пълнозърнест хляб.",
-                        360, 18, 20, 20,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","високо-протеин"),
-
-                new RSeed("Кисело мляко с овес и мед",
-                        "Смесете киселото мляко, овесените ядки и меда; поръсете с орехи.",
-                        310, 14, 35, 10,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  true,  "балансирана","бърза"),
-
-                new RSeed("Сандвич с яйце и домат",
-                        "Пълнозърнест хляб, варено яйце и резени домат ­– идеален за път.",
-                        330, 15, 25, 12,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","to-go"),
-
-                new RSeed("Палачинки с извара",
-                        "Овесено брашно, извара и яйца. Изпечете палачинките и сервирайте с плодове.",
-                        350, 18, 30, 14,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","фит-десерт"),
-
-                new RSeed("Чиа пудинг с плодове",
-                        "Накиснете чията за 4-6 ч. в мляко, добавете пресни плодове преди сервиране.",
-                        320, 9, 25, 15,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","prep-friendly"),
-
-                new RSeed("Мюсли с мляко и банан",
-                        "Смесете мюслито с прясно мляко и нарязан банан, оставете 5 мин да омекне.",
-                        340, 10, 40, 8,
-                        MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","classic"),
-
-                /* ===== LUNCH ===== */
-                new RSeed("Салата с киноа и риба тон",
-                        "Сварете киноата, охладете и разбъркайте с риба тон и пресни зеленчуци.",
-                        420, 28, 40, 14,
-                        MealType.LUNCH, bal, MeatPreferenceType.FISH,
-                        false, false, false, "балансирана","без-глутен"),
-
-                new RSeed("Пилешко със сладки картофи",
-                        "Запечете пилешкото филе и резените сладък картоф във фурна 25 мин при 200 °C.",
-                        480, 38, 35, 16,
-                        MealType.LUNCH, bal, MeatPreferenceType.CHICKEN,
-                        false, false, false, "балансирана","meal-prep"),
-
-                new RSeed("Пъстърва с ориз и зеленчуци",
-                        "Гответе пъстървата на пара; поднесете с кафяв ориз и задушени зеленчуци.",
-                        500, 34, 38, 18,
-                        MealType.LUNCH, bal, MeatPreferenceType.FISH,
-                        false, false, false, "балансирана","omega-3"),
-
-                new RSeed("Свинско със зеле и моркови",
-                        "Задушете свинското месо със зеле и моркови до пълно омекване.",
-                        510, 36, 20, 22,
-                        MealType.LUNCH, bal, MeatPreferenceType.PORK,
-                        false, false, false, "балансирана","low-carb"),
-
-                new RSeed("Телешко с булгур",
-                        "Сварете булгура; задушете телешкото с домати и поднесете заедно.",
-                        530, 40, 30, 20,
-                        MealType.LUNCH, bal, MeatPreferenceType.BEEF,
-                        false, false, false, "балансирана","желязо"),
-
-                new RSeed("Омлет със зеленчуци",
-                        "Яйца с чушки, лук и гъби; изпечете в тефлонов тиган.",
-                        390, 20, 15, 22,
-                        MealType.LUNCH, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","вегетарианска"),
-
-                new RSeed("Тофу с кафяв ориз",
-                        "Запържете тофуто с броколи, сервирайте върху кафяв ориз.",
-                        440, 24, 35, 14,
-                        MealType.LUNCH, bal, MeatPreferenceType.NONE,
-                        true,  false, false, "балансирана","веган"),
-
-                /* ===== DINNER ===== */
-                new RSeed("Леща с ориз и салата",
-                        "Сварете лещата и ориза; поднесете с пресна салата от домати и краставици.",
-                        430, 22, 40, 10,
-                        MealType.DINNER, bal, MeatPreferenceType.NONE,
-                        true,  false, false, "балансирана","fiber"),
-
-                new RSeed("Пилешка супа",
-                        "Пилешко, моркови, картоф; вари се 40 мин и се овкусява с магданоз.",
-                        400, 30, 20, 12,
-                        MealType.DINNER, bal, MeatPreferenceType.CHICKEN,
-                        false, false, false, "балансирана","comfort"),
-
-                new RSeed("Рататуй",
-                        "Тиквички, патладжан, домати и чушки – печете 35 мин на 180 °C.",
-                        370, 8, 25, 14,
-                        MealType.DINNER, bal, MeatPreferenceType.NONE,
-                        true,  false, false, "балансирана","low-cal"),
-
-                new RSeed("Тилапия със зелен фасул",
-                        "Изпечете тилапията с лимонов сок; сервирайте със задушен фасул.",
-                        460, 32, 18, 20,
-                        MealType.DINNER, bal, MeatPreferenceType.FISH,
-                        false, false, false, "балансирана","lean-protein"),
-
-                new RSeed("Пълнени чушки с кайма и ориз",
-                        "Чушки, кайма и ориз във фурна с доматен сос.",
-                        490, 28, 30, 18,
-                        MealType.DINNER, bal, MeatPreferenceType.BEEF,
-                        false, false, false, "балансирана","classic-BG"),
-
-                new RSeed("Киноа с печени зеленчуци",
-                        "Сварена киноа, тиквички и моркови, запечени с зехтин и подправки.",
-                        420, 16, 35, 14,
-                        MealType.DINNER, bal, MeatPreferenceType.NONE,
-                        true,  false, false, "балансирана","суперхрана"),
-
-                new RSeed("Яйца с броколи и сирене",
-                        "Запечете яйца, броколи и настъргано сирене в керамичен съд.",
-                        410, 20, 15, 24,
-                        MealType.DINNER, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","keto-friendly"),
-
-                /* ===== SNACK ===== */
-                new RSeed("Орехи с кисело мляко",
-                        "Кисело мляко, натрошени орехи и лъжичка мед.",
-                        280, 14, 10, 20,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  true,  true,  "балансирана","healthy-fat"),
-
-                new RSeed("Ябълка с фъстъчено масло",
-                        "Нарежете ябълка на резени и намажете с фъстъчено масло.",
-                        270, 6, 25, 14,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  false, true,  "балансирана","on-the-go"),
-
-                new RSeed("Смути с кисело мляко и плодове",
-                        "Пасирайте кисело мляко, банан и горски плодове до гладкост.",
-                        290, 10, 28, 10,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","vitamin-boost"),
-
-                new RSeed("Домашни барове с мюсли",
-                        "Мюсли, мед и ядки – изпечете 15 мин, оставете да стегнат.",
-                        300, 8, 30, 12,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  true,  true,  "балансирана","prep-bars"),
-
-                new RSeed("Фреш от морков и ябълка",
-                        "Изцедете сока от морков, ябълка и лимон; сервирайте охладено.",
-                        150, 2, 28, 1,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  false, false, "балансирана","fresh"),
-
-                new RSeed("Райска ябълка с кисело мляко",
-                        "Смесете нарязана райска ябълка с кисело мляко и мед.",
-                        260, 9, 20, 8,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","seasonal"),
-
-                new RSeed("Грис с мляко",
-                        "Сварете гриса в прясно мляко, поръсете с канела.",
-                        310, 7, 35, 9,
-                        MealType.SNACK, bal, MeatPreferenceType.NONE,
-                        true,  true,  false, "балансирана","nostalgia")
-        ));
-        seeds.addAll(List.of(
-
-                // ==== PROTEIN-RICH RECIPES ====
-                new RSeed("Омлет с извара", "Необходими продукти: яйца, извара, чери домати.\nПриготвяне: запържете омлета, поднесете с домати.", 360, 30, 8, 20, MealType.BREAKFAST, prot, MeatPreferenceType.NONE, true, true, false, "протеинова", "закуска"),
-                new RSeed("Кисело мляко с орехи", "Необходими продукти: кисело мляко, орехи, мед.\nПриготвяне: смесете съставките.", 320, 18, 10, 15, MealType.BREAKFAST, prot, MeatPreferenceType.NONE, true, true, true, "протеинова", "закуска"),
-                new RSeed("Яйца по бенедиктински", "Необходими продукти: яйца, шунка, пълнозърнест хляб.\nПриготвяне: запечете и сервирайте с холандез сос.", 410, 22, 20, 24, MealType.BREAKFAST, prot, MeatPreferenceType.PORK, false, true, false, "протеинова", "закуска"),
-                new RSeed("Протеинови палачинки", "Необходими продукти: протеин, яйца, банан.\nПриготвяне: направете палачинки от сместа.", 370, 28, 18, 14, MealType.BREAKFAST, prot, MeatPreferenceType.NONE, true, true, false, "протеинова", "закуска"),
-
-                new RSeed("Пуешко с киноа", "Необходими продукти: пуешко филе, киноа, броколи.\nПриготвяне: изпечете пуешкото и сервирайте с киноа и броколи.", 520, 42, 35, 18, MealType.LUNCH, prot, MeatPreferenceType.CHICKEN, false, false, false, "протеинова", "обяд"),
-                new RSeed("Телешки стек със зелен фасул", "Необходими продукти: телешки стек, зелен фасул.\nПриготвяне: изпечете стека и задушете фасула.", 540, 45, 10, 28, MealType.LUNCH, prot, MeatPreferenceType.BEEF, false, false, false, "протеинова", "обяд"),
-                new RSeed("Риба тон със зеленчуци", "Необходими продукти: риба тон, чушки, лук, домати.\nПриготвяне: запечете и поднесете.", 490, 38, 14, 22, MealType.LUNCH, prot, MeatPreferenceType.FISH, false, false, false, "протеинова", "обяд"),
-                new RSeed("Пилешка салата с яйца", "Необходими продукти: пилешко филе, яйца, зелена салата.\nПриготвяне: нарежете и комбинирайте.", 480, 40, 8, 20, MealType.LUNCH, prot, MeatPreferenceType.CHICKEN, false, true, false, "протеинова", "обяд"),
-
-                new RSeed("Сьомга на скара", "Необходими продукти: филе от сьомга, подправки, лимон.\nПриготвяне: изпечете на скара с подправки и лимонов сок.", 460, 38, 5, 28, MealType.DINNER, prot, MeatPreferenceType.FISH, false, false, false, "протеинова", "вечеря"),
-                new RSeed("Пилешко с гъби", "Необходими продукти: пилешко, гъби, сметана.\nПриготвяне: задушете до готовност.", 490, 36, 6, 24, MealType.DINNER, prot, MeatPreferenceType.CHICKEN, false, true, false, "протеинова", "вечеря"),
-                new RSeed("Пълнени тиквички с месо", "Необходими продукти: тиквички, кайма, подправки.\nПриготвяне: напълнете и запечете.", 520, 42, 12, 26, MealType.DINNER, prot, MeatPreferenceType.NO_PREFERENCE, false, false, false, "протеинова", "вечеря"),
-                new RSeed("Печена пъстърва", "Необходими продукти: пъстърва, подправки, лимон.\nПриготвяне: изпечете във фурна.", 470, 35, 4, 22, MealType.DINNER, prot, MeatPreferenceType.FISH, false, false, false, "протеинова", "вечеря"),
-
-                new RSeed("Протеинов бар с фурми", "Необходими продукти: фурми, фъстъчено масло, протеин.\nПриготвяне: смесете и оформете барове.", 300, 24, 22, 12, MealType.SNACK, prot, MeatPreferenceType.NONE, true, false, true, "протеинова", "снак"),
-                new RSeed("Кисело мляко с протеин", "Необходими продукти: кисело мляко, протеин на прах.\nПриготвяне: разбъркайте добре.", 280, 22, 10, 10, MealType.SNACK, prot, MeatPreferenceType.NONE, true, true, false, "протеинова", "снак"),
-                new RSeed("Сурови ядки и сушени плодове", "Необходими продукти: орехи, бадеми, сушени кайсии.\nПриготвяне: смесете.", 320, 12, 20, 20, MealType.SNACK, prot, MeatPreferenceType.NONE, true, false, true, "протеинова", "снак"),
-                new RSeed("Извара с плодове", "Необходими продукти: извара, ябълка, канела.\nПриготвяне: нарежете и разбъркайте.", 290, 20, 15, 12, MealType.SNACK, prot, MeatPreferenceType.NONE, true, true, false, "протеинова", "снак")
-        ));
-
-        seeds.addAll(List.of(
-                // BREAKFAST
-                new RSeed("Палео омлет със спанак", "Яйца, спанак, кокосово масло. Запържете всичко заедно.", 340, 20, 6, 28, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Палачинки от банан и яйца", "Банан, яйца, кокосово масло. Изпечете палачинки.", 370, 14, 24, 24, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Салата с авокадо и бекон", "Авокадо, бекон, рукола, зехтин. Смесете съставките.", 410, 16, 8, 36, MealType.BREAKFAST, paleo, MeatPreferenceType.PORK, false, false, false, "палео", "закуска"),
-                new RSeed("Смути с бадемово мляко и ягоди", "Бадемово мляко, ягоди, чия. Пасирайте всичко.", 300, 10, 15, 20, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Яйца с авокадо и домати", "Яйца, авокадо, домати. Сварете яйцата, нарежете и поднесете.", 360, 18, 10, 28, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Печени зеленчуци с яйца", "Тиквички, патладжан, яйца. Изпечете заедно.", 330, 12, 8, 22, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Скариди с яйце и рукола", "Скариди, яйце, рукола. Изпечете и поднесете.", 380, 22, 4, 30, MealType.BREAKFAST, paleo, MeatPreferenceType.FISH, false, false, false, "палео", "закуска"),
-
-                // LUNCH
-                new RSeed("Пилешки гърди с тиквички", "Пилешко филе, тиквички, подправки. Изпечете във фурна.", 480, 38, 10, 24, MealType.LUNCH, paleo, MeatPreferenceType.CHICKEN, false, false, false, "палео", "обяд"),
-                new RSeed("Говеждо с броколи", "Телешко месо, броколи, зехтин. Задушете заедно.", 520, 40, 8, 28, MealType.LUNCH, paleo, MeatPreferenceType.BEEF, false, false, false, "палео", "обяд"),
-                new RSeed("Сьомга с авокадо", "Сьомга, авокадо, лимон. Изпечете и сервирайте.", 510, 36, 5, 34, MealType.LUNCH, paleo, MeatPreferenceType.FISH, false, false, false, "палео", "обяд"),
-                new RSeed("Тиквички с яйца и месо", "Тиквички, яйца, кайма. Изпечете всичко заедно.", 500, 34, 10, 30, MealType.LUNCH, paleo, MeatPreferenceType.NO_PREFERENCE, false, false, false, "палео", "обяд"),
-                new RSeed("Кюфтета с доматен сос", "Кайма, домати, подправки. Запечете с доматен сос.", 490, 32, 6, 26, MealType.LUNCH, paleo, MeatPreferenceType.BEEF, false, false, false, "палео", "обяд"),
-                new RSeed("Салата с пиле и маслини", "Пиле, маслини, домати, краставици. Смесете всичко.", 460, 30, 12, 22, MealType.LUNCH, paleo, MeatPreferenceType.CHICKEN, false, false, false, "палео", "обяд"),
-                new RSeed("Задушен заек с зеленчуци", "Заешко месо, моркови, лук. Задушете до готовност.", 500, 36, 9, 26, MealType.LUNCH, paleo, MeatPreferenceType.NO_PREFERENCE, false, false, false, "палео", "обяд"),
-
-                // DINNER
-                new RSeed("Риба на скара със зеленчуци", "Риба, тиквички, домати. Изпечете на скара.", 460, 34, 8, 28, MealType.DINNER, paleo, MeatPreferenceType.FISH, false, false, false, "палео", "вечеря"),
-                new RSeed("Печени пилешки бутчета", "Пилешки бутчета, подправки. Изпечете до златисто.", 480, 36, 6, 30, MealType.DINNER, paleo, MeatPreferenceType.CHICKEN, false, false, false, "палео", "вечеря"),
-                new RSeed("Пълнени чушки с месо", "Чушки, кайма, подправки. Напълнете и запечете.", 470, 32, 10, 24, MealType.DINNER, paleo, MeatPreferenceType.NO_PREFERENCE, false, false, false, "палео", "вечеря"),
-                new RSeed("Яйца с гъби и лук", "Яйца, гъби, лук. Запържете всичко заедно.", 390, 20, 6, 22, MealType.DINNER, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "вечеря"),
-                new RSeed("Телешко със спанак", "Телешко месо, спанак. Задушете заедно.", 500, 40, 5, 28, MealType.DINNER, paleo, MeatPreferenceType.BEEF, false, false, false, "палео", "вечеря"),
-                new RSeed("Печена скумрия с лимон", "Скумрия, лимон, подправки. Изпечете рибата.", 480, 34, 4, 32, MealType.DINNER, paleo, MeatPreferenceType.FISH, false, false, false, "палео", "вечеря"),
-                new RSeed("Зеленчукова яхния с пиле", "Пилешко, моркови, чушки. Задушете в тенджера.", 460, 30, 10, 22, MealType.DINNER, paleo, MeatPreferenceType.CHICKEN, false, false, false, "палео", "вечеря"),
-
-                // SNACK
-                new RSeed("Ядки микс", "Бадеми, орехи, лешници. Смесете.", 280, 10, 8, 22, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, true, "палео", "снак"),
-                new RSeed("Ябълка с бадемово масло", "Ябълка, бадемово масло. Нарежете и намажете.", 260, 6, 22, 16, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, true, "палео", "снак"),
-                new RSeed("Сушено месо", "Сушено телешко месо. Поднесете като снак.", 300, 25, 2, 18, MealType.SNACK, paleo, MeatPreferenceType.BEEF, false, false, false, "палео", "снак"),
-                new RSeed("Авокадо с лимон", "Авокадо, лимон. Нарежете и полейте със сок.", 270, 4, 6, 24, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "снак"),
-                new RSeed("Яйце със спанак", "Сварено яйце, пресен спанак. Поднесете охладено.", 240, 12, 4, 16, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "снак"),
-                new RSeed("Смути с кокосово мляко", "Кокосово мляко, горски плодове. Пасирайте.", 290, 8, 14, 20, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "снак"),
-                new RSeed("Моркови с гуакамоле", "Моркови, гуакамоле. Потопете и хапвайте.", 250, 4, 10, 18, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "снак")
-        ));
-        seeds.addAll(List.of(
-                // === VEGETARIAN (7-Day Plan) ===
-                // --- BREAKFAST ---
-                new RSeed("Овесена каша с плодове", "Овес, мляко, сезонни плодове. Сварете и поднесете.", 320, 10, 40, 8, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Палачинки с извара", "Извара, яйца, овесено брашно. Смесете и изпечете.", 340, 18, 30, 14, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Кисело мляко с мед и орехи", "Кисело мляко, мед, орехи. Смесете всичко.", 310, 14, 25, 12, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, true, "вегетарианска", "закуска"),
-                new RSeed("Тост с авокадо и яйце", "Пълнозърнест хляб, авокадо, варено яйце. Нарежете и подредете.", 350, 12, 28, 16, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Смути с банан и спанак", "Банан, спанак, мляко. Пасирайте съставките.", 300, 8, 30, 10, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Мюсли с мляко и ябълка", "Мюсли, мляко, нарязана ябълка. Смесете.", 330, 10, 38, 9, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Извара с ягоди", "Извара, ягоди, ванилия. Смесете леко.", 290, 16, 18, 10, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-
-                // --- LUNCH ---
-                new RSeed("Зеленчукова лазаня", "Тиквички, патладжан, домати, сирене. Подредете и изпечете.", 450, 20, 30, 20, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Салата с яйце и сирене", "Зелена салата, варено яйце, сирене. Смесете всичко.", 400, 18, 15, 28, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Ризото с гъби", "Ориз, гъби, масло. Задушете и разбъркайте.", 470, 14, 40, 18, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Омлет със сирене и зеленчуци", "Яйца, сирене, чушки, лук. Запържете леко.", 430, 20, 12, 25, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Пълнени чушки с ориз и сирене", "Чушки, ориз, сирене. Напълнете и изпечете.", 480, 15, 38, 20, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Картофена яхния", "Картофи, лук, морков, подправки. Задушете до готовност.", 440, 10, 35, 16, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Киноа с печени зеленчуци", "Киноа, моркови, тиквички, подправки. Изпечете и поднесете.", 420, 12, 30, 18, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-
-                // --- DINNER ---
-                new RSeed("Печени зеленчуци с яйца", "Тиквички, патладжан, яйца. Изпечете и добавете яйцата.", 410, 18, 20, 22, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Крем супа от броколи", "Броколи, картоф, сметана. Сварете и пасирайте.", 390, 10, 28, 15, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Тофу с тиквички", "Тофу, тиквички, чесън. Запържете леко.", 420, 22, 12, 18, MealType.DINNER, veg, MeatPreferenceType.NONE, true, false, false, "вегетарианска", "вечеря"),
-                new RSeed("Печени картофи със сирене", "Картофи, сирене, подправки. Изпечете и поднесете.", 430, 14, 36, 18, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Фритата със зеленчуци", "Яйца, чушки, броколи. Изпечете във фурна.", 400, 20, 18, 22, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Гъби със спанак и сметана", "Гъби, спанак, сметана. Задушете всичко.", 450, 18, 14, 24, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Ориз със зеленчуци", "Кафяв ориз, грах, моркови. Сварете и поднесете.", 440, 12, 42, 10, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-
-                // --- SNACK ---
-                new RSeed("Орехи с кисело мляко", "Кисело мляко, орехи. Смесете и охладете.", 280, 14, 10, 20, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, true, "вегетарианска", "снак"),
-                new RSeed("Ябълка с фъстъчено масло", "Ябълка, фъстъчено масло. Нарежете и намажете.", 270, 6, 25, 14, MealType.SNACK, veg, MeatPreferenceType.NONE, true, false, true, "вегетарианска", "снак"),
-                new RSeed("Домашни мюсли барчета", "Мюсли, мед, ядки. Смесете и запечете.", 300, 8, 30, 12, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, true, "вегетарианска", "снак"),
-                new RSeed("Смути с кисело мляко и плодове", "Кисело мляко, банан, ягоди. Пасирайте всичко.", 290, 10, 28, 10, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "снак"),
-                new RSeed("Грис с мляко и мед", "Грис, мляко, мед. Сварете и поднесете.", 310, 7, 35, 9, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "снак"),
-                new RSeed("Печени ябълки с канела", "Ябълки, канела, мед. Запечете леко.", 260, 4, 30, 8, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, true, "вегетарианска", "снак"),
-                new RSeed("Извара с праскова", "Извара, праскова, ванилия. Смесете леко.", 290, 16, 20, 10, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "снак")
-        ));
-
-        seeds.addAll(List.of(
-                new RSeed("Смути от боровинки и овес", "Бадемово мляко, овес, боровинки. Пасирайте съставките.", 310, 9, 38, 10, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Тост с авокадо и чери домати", "Пълнозърнест хляб, авокадо, чери домати. Намачкайте авокадото, нарежете доматите, сервирайте.", 350, 7, 30, 22, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Киноа с ядки и банан", "Сварена киноа, бадеми, банан. Смесете и гарнирайте.", 400, 10, 40, 18, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, true),
-                new RSeed("Чиа пудинг с манго", "Чиа, бадемово мляко, манго. Накиснете чията, добавете манго.", 320, 8, 28, 16, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Овес с какао и круша", "Овес, какао, круша, бадемово мляко. Сварете и разбъркайте.", 330, 7, 35, 12, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Смути с спанак и ябълка", "Спанак, ябълка, ленено семе, вода. Пасирайте всичко.", 280, 6, 25, 10, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Палачинки от овес и банан", "Овесено брашно, банан, вода. Изпечете в тиган.", 360, 9, 40, 14, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false),
-
-                new RSeed("Ориз със зеленчуци", "Кафяв ориз, чушки, моркови, грах. Сварете ориза, добавете зеленчуци.", 420, 10, 60, 8, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Леща яхния", "Леща, лук, морков, домат. Сварете до готовност.", 450, 18, 40, 12, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Салата с киноа", "Киноа, домати, краставица, зехтин. Смесете всичко.", 400, 12, 35, 14, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Бургер с нахут", "Питка, нахут кюфте, зеленчуци. Запечете и сглобете.", 480, 20, 45, 16, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Печен батат с тахан", "Сладък картоф, тахан, семена. Изпечете и полейте.", 430, 9, 50, 15, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, true),
-                new RSeed("Тофу с зеленчуци", "Тофу, броколи, моркови, соев сос. Запържете леко.", 460, 22, 30, 18, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Киноа с авокадо и боб", "Киноа, черен боб, авокадо, чушка. Смесете и овкусете.", 440, 16, 40, 20, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false),
-
-                new RSeed("Къри с нахут", "Нахут, кокосово мляко, къри, домати. Гответе заедно.", 450, 14, 45, 18, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Тофу със спанак", "Тофу, спанак, чесън, зехтин. Запържете леко.", 400, 20, 20, 18, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Фалафел с таханов сос", "Нахут, подправки, тахан. Изпечете и сервирайте със сос.", 480, 18, 35, 22, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, true),
-                new RSeed("Печен зеленчуков микс", "Тиквички, патладжан, моркови. Изпечете във фурна.", 390, 6, 30, 14, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Гъби с ориз", "Гъби, кафяв ориз, лук, подправки. Сварете и задушете.", 420, 10, 50, 10, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Авокадо с киноа и царевица", "Авокадо, царевица, киноа, чушка. Смесете и овкусете.", 430, 12, 40, 18, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Тиквено ризото", "Ориз, тиква, зеленчуков бульон. Гответе до кремообразност.", 410, 8, 50, 12, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false),
-
-                new RSeed("Ядки с плодове", "Смесени ядки, нарязани плодове. Смесете и сервирайте.", 300, 8, 22, 20, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true),
-                new RSeed("Хумус с моркови", "Хумус, нарязани моркови. Потопете и хапвайте.", 280, 7, 20, 14, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true),
-                new RSeed("Фурми с тахан", "Фурми, тахан. Напълнете фурмите с тахан.", 260, 4, 35, 10, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true),
-                new RSeed("Оризовки с фъстъчено масло", "Оризовки, фъстъчено масло. Намажете и хапвайте.", 310, 6, 30, 16, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true),
-                new RSeed("Банан с бадемово масло", "Банан, бадемово масло. Нарежете и намажете.", 290, 5, 28, 14, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true),
-                new RSeed("Смути с ягоди и чия", "Ягоди, чия, вода. Пасирайте всичко.", 270, 6, 25, 10, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, false),
-                new RSeed("Гранола бар домашен", "Овес, ядки, сушени плодове. Смесете и запечете.", 320, 8, 30, 14, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true)
-        ));
-        seeds.addAll(List.of(
-                // --- BREAKFAST ---
-                new RSeed("Авокадо с яйце", "Необходими продукти: авокадо, яйца.\nПриготвяне: разрежете авокадото, запечете яйце в средата.", 380, 18, 5, 30, MealType.BREAKFAST, keto, MeatPreferenceType.NONE, true, true, false, "кето", "закуска"),
-                new RSeed("Кето палачинки с бадемово брашно", "Необходими продукти: яйца, бадемово брашно, сметана.\nПриготвяне: смесете съставките и изпържете палачинки.", 320, 16, 4, 26, MealType.BREAKFAST, keto, MeatPreferenceType.NONE, true, true, true, "кето", "закуска"),
-                new RSeed("Чиа пудинг с кокосово мляко", "Необходими продукти: чиа, кокосово мляко, стевия.\nПриготвяне: оставете чиа семената да набъбнат в млякото за 4 часа.", 290, 10, 8, 24, MealType.BREAKFAST, keto, MeatPreferenceType.NONE, true, false, false, "кето", "закуска"),
-                new RSeed("Омлет с шунка и сирене", "Необходими продукти: яйца, шунка, кашкавал.\nПриготвяне: запържете шунката и яйцата, добавете кашкавала.", 400, 22, 3, 34, MealType.BREAKFAST, keto, MeatPreferenceType.PORK, false, true, false, "кето", "закуска"),
-                new RSeed("Яйца с бекон и спанак", "Необходими продукти: яйца, бекон, спанак.\nПриготвяне: изпържете бекона и яйцата със спанак.", 410, 28, 4, 35, MealType.BREAKFAST, keto, MeatPreferenceType.PORK, false, true, false, "кето", "закуска"),
-                new RSeed("Кокосови палачинки", "Необходими продукти: кокосово брашно, яйца, ванилия.\nПриготвяне: разбийте и изпържете.", 340, 14, 6, 28, MealType.BREAKFAST, keto, MeatPreferenceType.NONE, true, true, false, "кето", "закуска"),
-                new RSeed("Скумрия със зеленчуци", "Необходими продукти: скумрия, тиквички, яйца.\nПриготвяне: задушете всичко заедно.", 430, 26, 4, 30, MealType.BREAKFAST, keto, MeatPreferenceType.FISH, false, false, false, "кето", "закуска"),
-
-                // --- LUNCH ---
-                new RSeed("Пилешки бутчета с карфиол", "Необходими продукти: пилешки бутчета, карфиол, масло.\nПриготвяне: изпечете до златисто в тава.", 510, 36, 6, 38, MealType.LUNCH, keto, MeatPreferenceType.CHICKEN, false, true, false, "кето", "обяд"),
-                new RSeed("Кето бургер без хляб", "Необходими продукти: телешка кюфте, салата, домат, сирене.\nПриготвяне: сглобете бургер между листа салата.", 580, 40, 4, 45, MealType.LUNCH, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "обяд"),
-                new RSeed("Пълнени гъби с кайма", "Необходими продукти: големи гъби, телешка кайма, кашкавал.\nПриготвяне: запълнете гъбите и запечете.", 490, 35, 5, 39, MealType.LUNCH, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "обяд"),
-                new RSeed("Салата с авокадо и яйце", "Необходими продукти: авокадо, варено яйце, зехтин.\nПриготвяне: нарежете и овкусете.", 440, 20, 4, 38, MealType.LUNCH, keto, MeatPreferenceType.NONE, true, true, false, "кето", "обяд"),
-                new RSeed("Свинско със зелен фасул", "Необходими продукти: свинско, зелен фасул, чесън.\nПриготвяне: запържете леко.", 520, 38, 8, 36, MealType.LUNCH, keto, MeatPreferenceType.PORK, false, true, false, "кето", "обяд"),
-                new RSeed("Риба тон с авокадо", "Необходими продукти: риба тон, авокадо, зелена салата.\nПриготвяне: смесете всичко.", 460, 34, 6, 32, MealType.LUNCH, keto, MeatPreferenceType.FISH, false, true, false, "кето", "обяд"),
-                new RSeed("Патладжан с кайма", "Необходими продукти: патладжан, телешка кайма, домати.\nПриготвяне: запечете във фурна.", 500, 36, 10, 33, MealType.LUNCH, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "обяд"),
-
-                // --- DINNER ---
-                new RSeed("Свинско със зеле", "Необходими продукти: свинско месо, зеле, подправки.\nПриготвяне: задушете месото със зелето.", 600, 45, 10, 40, MealType.DINNER, keto, MeatPreferenceType.PORK, false, false, false, "кето", "вечеря"),
-                new RSeed("Скумрия на скара с броколи", "Необходими продукти: скумрия, броколи, зехтин.\nПриготвяне: изпечете рибата и сервирайте със задушени броколи.", 520, 38, 4, 36, MealType.DINNER, keto, MeatPreferenceType.FISH, false, false, false, "кето", "вечеря"),
-                new RSeed("Мусака с карфиол", "Необходими продукти: карфиол, кайма, яйца, сметана.\nПриготвяне: подредете и запечете като мусака.", 540, 33, 7, 42, MealType.DINNER, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "вечеря"),
-                new RSeed("Яйца по бенедиктински с шунка", "Необходими продукти: яйца, шунка, холандез сос.\nПриготвяне: приготвят се яйца по пош и се заливат със сос.", 470, 28, 6, 37, MealType.DINNER, keto, MeatPreferenceType.PORK, false, true, false, "кето", "вечеря"),
-                new RSeed("Задушена риба с тиквички", "Необходими продукти: бяла риба, тиквички, масло.\nПриготвяне: задушете леко.", 510, 34, 6, 35, MealType.DINNER, keto, MeatPreferenceType.FISH, false, false, false, "кето", "вечеря"),
-                new RSeed("Кюфтета с гъбен сос", "Необходими продукти: кайма, гъби, сметана.\nПриготвяне: запържете и добавете сос.", 560, 39, 6, 41, MealType.DINNER, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "вечеря"),
-                new RSeed("Печена сьомга със спанак", "Необходими продукти: филе от сьомга, спанак, лимон.\nПриготвяне: изпечете рибата и поднесете със задушен спанак.", 480, 36, 4, 38, MealType.DINNER, keto, MeatPreferenceType.FISH, false, false, false, "кето", "вечеря"),
-
-                // --- SNACK ---
-                new RSeed("Маслини и кашкавал", "Необходими продукти: зелени маслини, твърд кашкавал.\nПриготвяне: поднесете нарязани.", 260, 14, 2, 22, MealType.SNACK, keto, MeatPreferenceType.NONE, true, true, false, "кето", "снак"),
-                new RSeed("Селъри с фъстъчено масло", "Необходими продукти: стъбла селъри, фъстъчено масло.\nПриготвяне: напълнете селърито с фъстъчено масло.", 220, 8, 5, 18, MealType.SNACK, keto, MeatPreferenceType.NONE, true, false, true, "кето", "снак"),
-                new RSeed("Сушени меса и сирена", "Необходими продукти: прошуто, салам, сирена.\nПриготвяне: подредете като плато.", 330, 20, 1, 28, MealType.SNACK, keto, MeatPreferenceType.NO_FISH, false, true, false, "кето", "снак"),
-                new RSeed("Кето ядки микс", "Необходими продукти: бадеми, орехи, лешници.\nПриготвяне: смесете ядките в купа.", 290, 10, 6, 26, MealType.SNACK, keto, MeatPreferenceType.NONE, true, false, true, "кето", "снак"),
-                new RSeed("Кашкавал с орехи", "Необходими продукти: кашкавал, орехи.\nПриготвяне: нарежете и комбинирайте.", 270, 12, 3, 23, MealType.SNACK, keto, MeatPreferenceType.NONE, true, true, true, "кето", "снак"),
-                new RSeed("Салата с риба тон", "Необходими продукти: риба тон, маслини, зелена салата.\nПриготвяне: смесете съставките.", 310, 20, 4, 20, MealType.SNACK, keto, MeatPreferenceType.FISH, false, true, false, "кето", "снак"),
-                new RSeed("Кокосов крем с чия", "Необходими продукти: кокосово мляко, чия, ванилия.\nПриготвяне: оставете да стегне.", 280, 9, 6, 22, MealType.SNACK, keto, MeatPreferenceType.NONE, true, false, false, "кето", "снак")
-        ));
-
-        seeds.addAll(List.of(
-                // BREAKFAST (Paleo - existing)
-                new RSeed("Палео омлет със спанак", "Яйца, спанак, кокосово масло. Запържете всичко заедно.", 340, 20, 6, 28, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Палачинки от банан и яйца", "Банан, яйца, кокосово масло. Изпечете палачинки.", 370, 14, 24, 24, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Салата с авокадо и бекон", "Авокадо, бекон, рукола, зехтин. Смесете съставките.", 410, 16, 8, 36, MealType.BREAKFAST, paleo, MeatPreferenceType.PORK, false, false, false, "палео", "закуска"),
-                new RSeed("Смути с бадемово мляко и ягоди", "Бадемово мляко, ягоди, чия. Пасирайте всичко.", 300, 10, 15, 20, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Яйца с авокадо и домати", "Яйца, авокадо, домати. Сварете яйцата, нарежете и поднесете.", 360, 18, 10, 28, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Печени зеленчуци с яйца", "Тиквички, патладжан, яйца. Изпечете заедно.", 330, 12, 8, 22, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Скариди с яйце и рукола", "Скариди, яйце, рукола. Изпечете и поднесете.", 380, 22, 4, 30, MealType.BREAKFAST, paleo, MeatPreferenceType.FISH, false, false, false, "палео", "закуска"),
-
-                // LUNCH (Paleo - existing)
-                new RSeed("Пилешки гърди с тиквички", "Пилешко филе, тиквички, подправки. Изпечете във фурна.", 480, 38, 10, 24, MealType.LUNCH, paleo, MeatPreferenceType.CHICKEN, false, false, false, "палео", "обяд"),
-                new RSeed("Говеждо с броколи", "Телешко месо, броколи, зехтин. Задушете заедно.", 520, 40, 8, 28, MealType.LUNCH, paleo, MeatPreferenceType.BEEF, false, false, false, "палео", "обяд"),
-                new RSeed("Сьомга с авокадо", "Сьомга, авокадо, лимон. Изпечете и сервирайте.", 510, 36, 5, 34, MealType.LUNCH, paleo, MeatPreferenceType.FISH, false, false, false, "палео", "обяд"),
-                new RSeed("Тиквички с яйца и месо", "Тиквички, яйца, кайма. Изпечете всичко заедно.", 500, 34, 10, 30, MealType.LUNCH, paleo, MeatPreferenceType.NO_PREFERENCE, false, false, false, "палео", "обяд"),
-                new RSeed("Кюфтета с доматен сос", "Кайма, домати, подправки. Запечете с доматен сос.", 490, 32, 6, 26, MealType.LUNCH, paleo, MeatPreferenceType.BEEF, false, false, false, "палео", "обяд"),
-                new RSeed("Салата с пиле и маслини", "Пиле, маслини, домати, краставици. Смесете всичко.", 460, 30, 12, 22, MealType.LUNCH, paleo, MeatPreferenceType.CHICKEN, false, false, false, "палео", "обяд"),
-                new RSeed("Задушен заек с зеленчуци", "Заешко месо, моркови, лук. Задушете до готовност.", 500, 36, 9, 26, MealType.LUNCH, paleo, MeatPreferenceType.NO_PREFERENCE, false, false, false, "палео", "обяд"),
-
-                // DINNER (Paleo - existing)
-                new RSeed("Риба на скара със зеленчуци", "Риба, тиквички, домати. Изпечете на скара.", 460, 34, 8, 28, MealType.DINNER, paleo, MeatPreferenceType.FISH, false, false, false, "палео", "вечеря"),
-                new RSeed("Печени пилешки бутчета", "Пилешки бутчета, подправки. Изпечете до златисто.", 480, 36, 6, 30, MealType.DINNER, paleo, MeatPreferenceType.CHICKEN, false, false, false, "палео", "вечеря"),
-                new RSeed("Пълнени чушки с месо", "Чушки, кайма, подправки. Напълнете и запечете.", 470, 32, 10, 24, MealType.DINNER, paleo, MeatPreferenceType.NO_PREFERENCE, false, false, false, "палео", "вечеря"),
-                new RSeed("Яйца с гъби и лук", "Яйца, гъби, лук. Запържете всичко заедно.", 390, 20, 6, 22, MealType.DINNER, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "вечеря"),
-                new RSeed("Телешко със спанак", "Телешко месо, спанак. Задушете заедно.", 500, 40, 5, 28, MealType.DINNER, paleo, MeatPreferenceType.BEEF, false, false, false, "палео", "вечеря"),
-                new RSeed("Печена скумрия с лимон", "Скумрия, лимон, подправки. Изпечете рибата.", 480, 34, 4, 32, MealType.DINNER, paleo, MeatPreferenceType.FISH, false, false, false, "палео", "вечеря"),
-                new RSeed("Зеленчукова яхния с пиле", "Пилешко, моркови, чушки. Задушете в тенджера.", 460, 30, 10, 22, MealType.DINNER, paleo, MeatPreferenceType.CHICKEN, false, false, false, "палео", "вечеря"),
-
-                // SNACK (Paleo - existing)
-                new RSeed("Ядки микс", "Бадеми, орехи, лешници. Смесете.", 280, 10, 8, 22, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, true, "палео", "снак"),
-                new RSeed("Ябълка с бадемово масло", "Ябълка, бадемово масло. Нарежете и намажете.", 260, 6, 22, 16, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, true, "палео", "снак"),
-                new RSeed("Сушено месо", "Сушено телешко месо. Поднесете като снак.", 300, 25, 2, 18, MealType.SNACK, paleo, MeatPreferenceType.BEEF, false, false, false, "палео", "снак"),
-                new RSeed("Авокадо с лимон", "Авокадо, лимон. Нарежете и полейте със сок.", 270, 4, 6, 24, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "снак"),
-                new RSeed("Яйце със спанак", "Сварено яйце, пресен спанак. Поднесете охладено.", 240, 12, 4, 16, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "снак"),
-                new RSeed("Смути с кокосово мляко", "Кокосово мляко, горски плодове. Пасирайте.", 290, 8, 14, 20, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "снак"),
-                new RSeed("Моркови с гуакамоле", "Моркови, гуакамоле. Потопете и хапвайте.", 250, 4, 10, 18, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "снак"),
-
-                // === VEGETARIAN (Existing) ===
-                // --- BREAKFAST ---
-                new RSeed("Овесена каша с плодове", "Овес, мляко, сезонни плодове. Сварете и поднесете.", 320, 10, 40, 8, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Палачинки с извара", "Извара, яйца, овесено брашно. Смесете и изпечете.", 340, 18, 30, 14, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Кисело мляко с мед и орехи", "Кисело мляко, мед, орехи. Смесете всичко.", 310, 14, 25, 12, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, true, "вегетарианска", "закуска"),
-                new RSeed("Тост с авокадо и яйце", "Пълнозърнест хляб, авокадо, варено яйце. Нарежете и подредете.", 350, 12, 28, 16, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Смути с банан и спанак", "Банан, спанак, мляко. Пасирайте съставките.", 300, 8, 30, 10, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Мюсли с мляко и ябълка", "Мюсли, мляко, нарязана ябълка. Смесете.", 330, 10, 38, 9, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Извара с ягоди", "Извара, ягоди, ванилия. Смесете леко.", 290, 16, 18, 10, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-
-                // --- LUNCH ---
-                new RSeed("Зеленчукова лазаня", "Тиквички, патладжан, домати, сирене. Подредете и изпечете.", 450, 20, 30, 20, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Салата с яйце и сирене", "Зелена салата, варено яйце, сирене. Смесете всичко.", 400, 18, 15, 28, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Ризото с гъби", "Ориз, гъби, масло. Задушете и разбъркайте.", 470, 14, 40, 18, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Омлет със сирене и зеленчуци", "Яйца, сирене, чушки, лук. Запържете леко.", 430, 20, 12, 25, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Пълнени чушки с ориз и сирене", "Чушки, ориз, сирене. Напълнете и изпечете.", 480, 15, 38, 20, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Картофена яхния", "Картофи, лук, морков, подправки. Задушете до готовност.", 440, 10, 35, 16, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Киноа с печени зеленчуци", "Киноа, моркови, тиквички, подправки. Изпечете и поднесете.", 420, 12, 30, 18, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-
-                // --- DINNER ---
-                new RSeed("Печени зеленчуци с яйца", "Тиквички, патладжан, яйца. Изпечете и добавете яйцата.", 410, 18, 20, 22, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Крем супа от броколи", "Броколи, картоф, сметана. Сварете и пасирайте.", 390, 10, 28, 15, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Тофу с тиквички", "Тофу, тиквички, чесън. Запържете леко.", 420, 22, 12, 18, MealType.DINNER, veg, MeatPreferenceType.NONE, true, false, false, "вегетарианска", "вечеря"),
-                new RSeed("Печени картофи със сирене", "Картофи, сирене, подправки. Изпечете и поднесете.", 430, 14, 36, 18, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Фритата със зеленчуци", "Яйца, чушки, броколи. Изпечете във фурна.", 400, 20, 18, 22, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Гъби със спанак и сметана", "Гъби, спанак, сметана. Задушете всичко.", 450, 18, 14, 24, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Ориз със зеленчуци", "Кафяв ориз, грах, моркови. Сварете и поднесете.", 440, 12, 42, 10, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-
-                // --- SNACK ---
-                new RSeed("Орехи с кисело мляко", "Кисело мляко, орехи. Смесете и охладете.", 280, 14, 10, 20, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, true, "вегетарианска", "снак"),
-                new RSeed("Ябълка с фъстъчено масло", "Ябълка, фъстъчено масло. Нарежете и намажете.", 270, 6, 25, 14, MealType.SNACK, veg, MeatPreferenceType.NONE, true, false, true, "вегетарианска", "снак"),
-                new RSeed("Домашни мюсли барчета", "Мюсли, мед, ядки. Смесете и запечете.", 300, 8, 30, 12, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, true, "вегетарианска", "снак"),
-                new RSeed("Смути с кисело мляко и плодове", "Кисело мляко, банан, ягоди. Пасирайте всичко.", 290, 10, 28, 10, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "снак"),
-                new RSeed("Грис с мляко и мед", "Грис, мляко, мед. Сварете и поднесете.", 310, 7, 35, 9, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "снак"),
-                new RSeed("Печени ябълки с канела", "Ябълки, канела, мед. Запечете леко.", 260, 4, 30, 8, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, true, "вегетарианска", "снак"),
-                new RSeed("Извара с праскова", "Извара, праскова, ванилия. Смесете леко.", 290, 16, 20, 10, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "снак"),
-
-                // === VEGAN (Existing) ===
-                new RSeed("Смути от боровинки и овес", "Бадемово мляко, овес, боровинки. Пасирайте съставките.", 310, 9, 38, 10, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "закуска"),
-                new RSeed("Тост с авокадо и чери домати", "Пълнозърнест хляб, авокадо, чери домати. Намачкайте авокадото, нарежете доматите, сервирайте.", 350, 7, 30, 22, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "закуска"),
-                new RSeed("Киноа с ядки и банан", "Сварена киноа, бадеми, банан. Смесете и гарнирайте.", 400, 10, 40, 18, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "закуска"),
-                new RSeed("Чиа пудинг с манго", "Чиа, бадемово мляко, манго. Накиснете чията, добавете манго.", 320, 8, 28, 16, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "закуска"),
-                new RSeed("Овес с какао и круша", "Овес, какао, круша, бадемово мляко. Сварете и разбъркайте.", 330, 7, 35, 12, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "закуска"),
-                new RSeed("Смути с спанак и ябълка", "Спанак, ябълка, ленено семе, вода. Пасирайте всичко.", 280, 6, 25, 10, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "закуска"),
-                new RSeed("Палачинки от овес и банан", "Овесено брашно, банан, вода. Изпечете в тиган.", 360, 9, 40, 14, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "закуска"),
-
-                new RSeed("Ориз със зеленчуци", "Кафяв ориз, чушки, моркови, грах. Сварете ориза, добавете зеленчуци.", 420, 10, 60, 8, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-                new RSeed("Леща яхния", "Леща, лук, морков, домат. Сварете до готовност.", 450, 18, 40, 12, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-                new RSeed("Салата с киноа", "Киноа, домати, краставица, зехтин. Смесете всичко.", 400, 12, 35, 14, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-                new RSeed("Бургер с нахут", "Питка, нахут кюфте, зеленчуци. Запечете и сглобете.", 480, 20, 45, 16, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-                new RSeed("Печен батат с тахан", "Сладък картоф, тахан, семена. Изпечете и полейте.", 430, 9, 50, 15, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "обяд"),
-                new RSeed("Тофу с зеленчуци", "Тофу, броколи, моркови, соев сос. Запържете леко.", 460, 22, 30, 18, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-                new RSeed("Киноа с авокадо и боб", "Киноа, черен боб, авокадо, чушка. Смесете и овкусете.", 440, 16, 40, 20, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-
-                new RSeed("Къри с нахут", "Нахут, кокосово мляко, къри, домати. Гответе заедно.", 450, 14, 45, 18, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-                new RSeed("Тофу със спанак", "Тофу, спанак, чесън, зехтин. Запържете леко.", 400, 20, 20, 18, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-                new RSeed("Фалафел с таханов сос", "Нахут, подправки, тахан. Изпечете и сервирайте със сос.", 480, 18, 35, 22, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "вечеря"),
-                new RSeed("Печен зеленчуков микс", "Тиквички, патладжан, моркови. Изпечете във фурна.", 390, 6, 30, 14, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-                new RSeed("Гъби с ориз", "Гъби, кафяв ориз, лук, подправки. Сварете и задушете.", 420, 10, 50, 10, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-                new RSeed("Авокадо с киноа и царевица", "Авокадо, царевица, киноа, чушка. Смесете и овкусете.", 430, 12, 40, 18, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-                new RSeed("Тиквено ризото", "Ориз, тиква, зеленчуков бульон. Гответе до кремообразност.", 410, 8, 50, 12, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-
-                new RSeed("Ядки с плодове", "Смесени ядки, нарязани плодове. Смесете и сервирайте.", 300, 8, 22, 20, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-                new RSeed("Хумус с моркови", "Хумус, нарязани моркови. Потопете и хапвайте.", 280, 7, 20, 14, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-                new RSeed("Фурми с тахан", "Фурми, тахан. Напълнете фурмите с тахан.", 260, 4, 35, 10, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-                new RSeed("Оризовки с фъстъчено масло", "Оризовки, фъстъчено масло. Намажете и хапвайте.", 310, 6, 30, 16, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-                new RSeed("Банан с бадемово масло", "Банан, бадемово масло. Нарежете и намажете.", 290, 5, 28, 14, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-                new RSeed("Смути с ягоди и чия", "Ягоди, чия, вода. Пасирайте всичко.", 270, 6, 25, 10, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "снак"),
-                new RSeed("Гранола бар домашен", "Овес, ядки, сушени плодове. Смесете и запечете.", 320, 8, 30, 14, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-
-                // === KETO (Existing) ===
-                // --- BREAKFAST ---
-                new RSeed("Авокадо с яйце", "Необходими продукти: авокадо, яйца.\nПриготвяне: разрежете авокадото, запечете яйце в средата.", 380, 18, 5, 30, MealType.BREAKFAST, keto, MeatPreferenceType.NONE, true, true, false, "кето", "закуска"),
-                new RSeed("Кето палачинки с бадемово брашно", "Необходими продукти: яйца, бадемово брашно, сметана.\nПриготвяне: смесете съставките и изпържете палачинки.", 320, 16, 4, 26, MealType.BREAKFAST, keto, MeatPreferenceType.NONE, true, true, true, "кето", "закуска"),
-                new RSeed("Чиа пудинг с кокосово мляко", "Необходими продукти: чиа, кокосово мляко, стевия.\nПриготвяне: оставете чиа семената да набъбнат в млякото за 4 часа.", 290, 10, 8, 24, MealType.BREAKFAST, keto, MeatPreferenceType.NONE, true, false, false, "кето", "закуска"),
-                new RSeed("Омлет с шунка и сирене", "Необходими продукти: яйца, шунка, кашкавал.\nПриготвяне: запържете шунката и яйцата, добавете кашкавала.", 400, 22, 3, 34, MealType.BREAKFAST, keto, MeatPreferenceType.PORK, false, true, false, "кето", "закуска"),
-                new RSeed("Яйца с бекон и спанак", "Необходими продукти: яйца, бекон, спанак.\nПриготвяне: изпържете бекона и яйцата със спанак.", 410, 28, 4, 35, MealType.BREAKFAST, keto, MeatPreferenceType.PORK, false, true, false, "кето", "закуска"),
-                new RSeed("Кокосови палачинки", "Необходими продукти: кокосово брашно, яйца, ванилия.\nПриготвяне: разбийте и изпържете.", 340, 14, 6, 28, MealType.BREAKFAST, keto, MeatPreferenceType.NONE, true, true, false, "кето", "закуска"),
-                new RSeed("Скумрия със зеленчуци", "Необходими продукти: скумрия, тиквички, яйца.\nПриготвяне: задушете всичко заедно.", 430, 26, 4, 30, MealType.BREAKFAST, keto, MeatPreferenceType.FISH, false, false, false, "кето", "закуска"),
-
-                // --- LUNCH ---
-                new RSeed("Пилешки бутчета с карфиол", "Необходими продукти: пилешки бутчета, карфиол, масло.\nПриготвяне: изпечете до златисто в тава.", 510, 36, 6, 38, MealType.LUNCH, keto, MeatPreferenceType.CHICKEN, false, true, false, "кето", "обяд"),
-                new RSeed("Кето бургер без хляб", "Необходими продукти: телешка кюфте, салата, домат, сирене.\nПриготвяне: сглобете бургер между листа салата.", 580, 40, 4, 45, MealType.LUNCH, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "обяд"),
-                new RSeed("Пълнени гъби с кайма", "Необходими продукти: големи гъби, телешка кайма, кашкавал.\nПриготвяне: запълнете гъбите и запечете.", 490, 35, 5, 39, MealType.LUNCH, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "обяд"),
-                new RSeed("Салата с авокадо и яйце", "Необходими продукти: авокадо, варено яйце, зехтин.\nПриготвяне: нарежете и овкусете.", 440, 20, 4, 38, MealType.LUNCH, keto, MeatPreferenceType.NONE, true, true, false, "кето", "обяд"),
-                new RSeed("Свинско със зелен фасул", "Необходими продукти: свинско, зелен фасул, чесън.\nПриготвяне: запържете леко.", 520, 38, 8, 36, MealType.LUNCH, keto, MeatPreferenceType.PORK, false, true, false, "кето", "обяд"),
-                new RSeed("Риба тон с авокадо", "Необходими продукти: риба тон, авокадо, зелена салата.\nПриготвяне: смесете всичко.", 460, 34, 6, 32, MealType.LUNCH, keto, MeatPreferenceType.FISH, false, true, false, "кето", "обяд"),
-                new RSeed("Патладжан с кайма", "Необходими продукти: патладжан, телешка кайма, домати.\nПриготвяне: запечете във фурна.", 500, 36, 10, 33, MealType.LUNCH, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "обяд"),
-
-                // --- DINNER ---
-                new RSeed("Свинско със зеле", "Необходими продукти: свинско месо, зеле, подправки.\nПриготвяне: задушете месото със зелето.", 600, 45, 10, 40, MealType.DINNER, keto, MeatPreferenceType.PORK, false, false, false, "кето", "вечеря"),
-                new RSeed("Скумрия на скара с броколи", "Необходими продукти: скумрия, броколи, зехтин.\nПриготвяне: изпечете рибата и сервирайте със задушени броколи.", 520, 38, 4, 36, MealType.DINNER, keto, MeatPreferenceType.FISH, false, false, false, "кето", "вечеря"),
-                new RSeed("Мусака с карфиол", "Необходими продукти: карфиол, кайма, яйца, сметана.\nПриготвяне: подредете и запечете като мусака.", 540, 33, 7, 42, MealType.DINNER, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "вечеря"),
-                new RSeed("Яйца по бенедиктински с шунка", "Необходими продукти: яйца, шунка, холандез сос.\nПриготвяне: приготвят се яйца по пош и се заливат със сос.", 470, 28, 6, 37, MealType.DINNER, keto, MeatPreferenceType.PORK, false, true, false, "кето", "вечеря"),
-                new RSeed("Задушена риба с тиквички", "Необходими продукти: бяла риба, тиквички, масло.\nПриготвяне: задушете леко.", 510, 34, 6, 35, MealType.DINNER, keto, MeatPreferenceType.FISH, false, false, false, "кето", "вечеря"),
-                new RSeed("Кюфтета с гъбен сос", "Необходими продукти: кайма, гъби, сметана.\nПриготвяне: запържете и добавете сос.", 560, 39, 6, 41, MealType.DINNER, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "вечеря"),
-                new RSeed("Печена сьомга със спанак", "Необходими продукти: филе от сьомга, спанак, лимон.\nПриготвяне: изпечете рибата и поднесете със задушен спанак.", 480, 36, 4, 38, MealType.DINNER, keto, MeatPreferenceType.FISH, false, false, false, "кето", "вечеря"),
-
-                // --- SNACK ---
-                new RSeed("Маслини и кашкавал", "Необходими продукти: зелени маслини, твърд кашкавал.\nПриготвяне: поднесете нарязани.", 260, 14, 2, 22, MealType.SNACK, keto, MeatPreferenceType.NONE, true, true, false, "кето", "снак"),
-                new RSeed("Селъри с фъстъчено масло", "Необходими продукти: стъбла селъри, фъстъчено масло.\nПриготвяне: напълнете селърито с фъстъчено масло.", 220, 8, 5, 18, MealType.SNACK, keto, MeatPreferenceType.NONE, true, false, true, "кето", "снак"),
-                new RSeed("Сушени меса и сирена", "Необходими продукти: прошуто, салам, сирена.\nПриготвяне: подредете като плато.", 330, 20, 1, 28, MealType.SNACK, keto, MeatPreferenceType.NO_FISH, false, true, false, "кето", "снак"),
-                new RSeed("Кето ядки микс", "Необходими продукти: бадеми, орехи, лешници.\nПриготвяне: смесете ядките в купа.", 290, 10, 6, 26, MealType.SNACK, keto, MeatPreferenceType.NONE, true, false, true, "кето", "снак"),
-                new RSeed("Кашкавал с орехи", "Необходими продукти: кашкавал, орехи.\nПриготвяне: нарежете и комбинирайте.", 270, 12, 3, 23, MealType.SNACK, keto, MeatPreferenceType.NONE, true, true, true, "кето", "снак"),
-                new RSeed("Салата с риба тон", "Необходими продукти: риба тон, маслини, зелена салата.\nПриготвяне: смесете съставките.", 310, 20, 4, 20, MealType.SNACK, keto, MeatPreferenceType.FISH, false, true, false, "кето", "снак"),
-                new RSeed("Кокосов крем с чия", "Необходими продукти: кокосово мляко, чия, ванилия.\nПриготвяне: оставете да стегне.", 280, 9, 6, 22, MealType.SNACK, keto, MeatPreferenceType.NONE, true, false, false, "кето", "снак")
-
-                ));
-
-        seeds.addAll(List.of(
-                // BREAKFAST (Paleo - existing)
-                new RSeed("Палео омлет със спанак", "Яйца, спанак, кокосово масло. Запържете всичко заедно.", 340, 20, 6, 28, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Палачинки от банан и яйца", "Банан, яйца, кокосово масло. Изпечете палачинки.", 370, 14, 24, 24, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Салата с авокадо и бекон", "Авокадо, бекон, рукола, зехтин. Смесете съставките.", 410, 16, 8, 36, MealType.BREAKFAST, paleo, MeatPreferenceType.PORK, false, false, false, "палео", "закуска"),
-                new RSeed("Смути с бадемово мляко и ягоди", "Бадемово мляко, ягоди, чия. Пасирайте всичко.", 300, 10, 15, 20, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Яйца с авокадо и домати", "Яйца, авокадо, домати. Сварете яйцата, нарежете и поднесете.", 360, 18, 10, 28, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Печени зеленчуци с яйца", "Тиквички, патладжан, яйца. Изпечете заедно.", 330, 12, 8, 22, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "закуска"),
-                new RSeed("Скариди с яйце и рукола", "Скариди, яйце, рукола. Изпечете и поднесете.", 380, 22, 4, 30, MealType.BREAKFAST, paleo, MeatPreferenceType.FISH, false, false, false, "палео", "закуска"),
-
-                // LUNCH (Paleo - existing)
-                new RSeed("Пилешки гърди с тиквички", "Пилешко филе, тиквички, подправки. Изпечете във фурна.", 480, 38, 10, 24, MealType.LUNCH, paleo, MeatPreferenceType.CHICKEN, false, false, false, "палео", "обяд"),
-                new RSeed("Говеждо с броколи", "Телешко месо, броколи, зехтин. Задушете заедно.", 520, 40, 8, 28, MealType.LUNCH, paleo, MeatPreferenceType.BEEF, false, false, false, "палео", "обяд"),
-                new RSeed("Сьомга с авокадо", "Сьомга, авокадо, лимон. Изпечете и сервирайте.", 510, 36, 5, 34, MealType.LUNCH, paleo, MeatPreferenceType.FISH, false, false, false, "палео", "обяд"),
-                new RSeed("Тиквички с яйца и месо", "Тиквички, яйца, кайма. Изпечете всичко заедно.", 500, 34, 10, 30, MealType.LUNCH, paleo, MeatPreferenceType.NO_PREFERENCE, false, false, false, "палео", "обяд"),
-                new RSeed("Кюфтета с доматен сос", "Кайма, домати, подправки. Запечете с доматен сос.", 490, 32, 6, 26, MealType.LUNCH, paleo, MeatPreferenceType.BEEF, false, false, false, "палео", "обяд"),
-                new RSeed("Салата с пиле и маслини", "Пиле, маслини, домати, краставици. Смесете всичко.", 460, 30, 12, 22, MealType.LUNCH, paleo, MeatPreferenceType.CHICKEN, false, false, false, "палео", "обяд"),
-                new RSeed("Задушен заек с зеленчуци", "Заешко месо, моркови, лук. Задушете до готовност.", 500, 36, 9, 26, MealType.LUNCH, paleo, MeatPreferenceType.NO_PREFERENCE, false, false, false, "палео", "обяд"),
-
-                // DINNER (Paleo - existing)
-                new RSeed("Риба на скара със зеленчуци", "Риба, тиквички, домати. Изпечете на скара.", 460, 34, 8, 28, MealType.DINNER, paleo, MeatPreferenceType.FISH, false, false, false, "палео", "вечеря"),
-                new RSeed("Печени пилешки бутчета", "Пилешки бутчета, подправки. Изпечете до златисто.", 480, 36, 6, 30, MealType.DINNER, paleo, MeatPreferenceType.CHICKEN, false, false, false, "палео", "вечеря"),
-                new RSeed("Пълнени чушки с месо", "Чушки, кайма, подправки. Напълнете и запечете.", 470, 32, 10, 24, MealType.DINNER, paleo, MeatPreferenceType.NO_PREFERENCE, false, false, false, "палео", "вечеря"),
-                new RSeed("Яйца с гъби и лук", "Яйца, гъби, лук. Запържете всичко заедно.", 390, 20, 6, 22, MealType.DINNER, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "вечеря"),
-                new RSeed("Телешко със спанак", "Телешко месо, спанак. Задушете заедно.", 500, 40, 5, 28, MealType.DINNER, paleo, MeatPreferenceType.BEEF, false, false, false, "палео", "вечеря"),
-                new RSeed("Печена скумрия с лимон", "Скумрия, лимон, подправки. Изпечете рибата.", 480, 34, 4, 32, MealType.DINNER, paleo, MeatPreferenceType.FISH, false, false, false, "палео", "вечеря"),
-                new RSeed("Зеленчукова яхния с пиле", "Пилешко, моркови, чушки. Задушете в тенджера.", 460, 30, 10, 22, MealType.DINNER, paleo, MeatPreferenceType.CHICKEN, false, false, false, "палео", "вечеря"),
-
-                // SNACK (Paleo - existing)
-                new RSeed("Ядки микс", "Бадеми, орехи, лешници. Смесете.", 280, 10, 8, 22, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, true, "палео", "снак"),
-                new RSeed("Ябълка с бадемово масло", "Ябълка, бадемово масло. Нарежете и намажете.", 260, 6, 22, 16, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, true, "палео", "снак"),
-                new RSeed("Сушено месо", "Сушено телешко месо. Поднесете като снак.", 300, 25, 2, 18, MealType.SNACK, paleo, MeatPreferenceType.BEEF, false, false, false, "палео", "снак"),
-                new RSeed("Авокадо с лимон", "Авокадо, лимон. Нарежете и полейте със сок.", 270, 4, 6, 24, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "снак"),
-                new RSeed("Яйце със спанак", "Сварено яйце, пресен спанак. Поднесете охладено.", 240, 12, 4, 16, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "снак"),
-                new RSeed("Смути с кокосово мляко", "Кокосово мляко, горски плодове. Пасирайте.", 290, 8, 14, 20, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "снак"),
-                new RSeed("Моркови с гуакамоле", "Моркови, гуакамоле. Потопете и хапвайте.", 250, 4, 10, 18, MealType.SNACK, paleo, MeatPreferenceType.NONE, true, false, false, "палео", "снак"),
-
-                // === VEGETARIAN (Existing) ===
-                // --- BREAKFAST ---
-                new RSeed("Овесена каша с плодове", "Овес, мляко, сезонни плодове. Сварете и поднесете.", 320, 10, 40, 8, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Палачинки с извара", "Извара, яйца, овесено брашно. Смесете и изпечете.", 340, 18, 30, 14, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Кисело мляко с мед и орехи", "Кисело мляко, мед, орехи. Смесете всичко.", 310, 14, 25, 12, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, true, "вегетарианска", "закуска"),
-                new RSeed("Тост с авокадо и яйце", "Пълнозърнест хляб, авокадо, варено яйце. Нарежете и подредете.", 350, 12, 28, 16, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Смути с банан и спанак", "Банан, спанак, мляко. Пасирайте съставките.", 300, 8, 30, 10, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Мюсли с мляко и ябълка", "Мюсли, мляко, нарязана ябълка. Смесете.", 330, 10, 38, 9, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-                new RSeed("Извара с ягоди", "Извара, ягоди, ванилия. Смесете леко.", 290, 16, 18, 10, MealType.BREAKFAST, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "закуска"),
-
-                // --- LUNCH ---
-                new RSeed("Зеленчукова лазаня", "Тиквички, патладжан, домати, сирене. Подредете и изпечете.", 450, 20, 30, 20, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Салата с яйце и сирене", "Зелена салата, варено яйце, сирене. Смесете всичко.", 400, 18, 15, 28, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Ризото с гъби", "Ориз, гъби, масло. Задушете и разбъркайте.", 470, 14, 40, 18, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Омлет със сирене и зеленчуци", "Яйца, сирене, чушки, лук. Запържете леко.", 430, 20, 12, 25, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Пълнени чушки с ориз и сирене", "Чушки, ориз, сирене. Напълнете и изпечете.", 480, 15, 38, 20, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Картофена яхния", "Картофи, лук, морков, подправки. Задушете до готовност.", 440, 10, 35, 16, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-                new RSeed("Киноа с печени зеленчуци", "Киноа, моркови, тиквички, подправки. Изпечете и поднесете.", 420, 12, 30, 18, MealType.LUNCH, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "обяд"),
-
-                // --- DINNER ---
-                new RSeed("Печени зеленчуци с яйца", "Тиквички, патладжан, яйца. Изпечете и добавете яйцата.", 410, 18, 20, 22, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Крем супа от броколи", "Броколи, картоф, сметана. Сварете и пасирайте.", 390, 10, 28, 15, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Тофу с тиквички", "Тофу, тиквички, чесън. Запържете леко.", 420, 22, 12, 18, MealType.DINNER, veg, MeatPreferenceType.NONE, true, false, false, "вегетарианска", "вечеря"),
-                new RSeed("Печени картофи със сирене", "Картофи, сирене, подправки. Изпечете и поднесете.", 430, 14, 36, 18, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Фритата със зеленчуци", "Яйца, чушки, броколи. Изпечете във фурна.", 400, 20, 18, 22, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Гъби със спанак и сметана", "Гъби, спанак, сметана. Задушете всичко.", 450, 18, 14, 24, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-                new RSeed("Ориз със зеленчуци", "Кафяв ориз, грах, моркови. Сварете и поднесете.", 440, 12, 42, 10, MealType.DINNER, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "вечеря"),
-
-                // --- SNACK ---
-                new RSeed("Орехи с кисело мляко", "Кисело мляко, орехи. Смесете и охладете.", 280, 14, 10, 20, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, true, "вегетарианска", "снак"),
-                new RSeed("Ябълка с фъстъчено масло", "Ябълка, фъстъчено масло. Нарежете и намажете.", 270, 6, 25, 14, MealType.SNACK, veg, MeatPreferenceType.NONE, true, false, true, "вегетарианска", "снак"),
-                new RSeed("Домашни мюсли барчета", "Мюсли, мед, ядки. Смесете и запечете.", 300, 8, 30, 12, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, true, "вегетарианска", "снак"),
-                new RSeed("Смути с кисело мляко и плодове", "Кисело мляко, банан, ягоди. Пасирайте всичко.", 290, 10, 28, 10, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "снак"),
-                new RSeed("Грис с мляко и мед", "Грис, мляко, мед. Сварете и поднесете.", 310, 7, 35, 9, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "снак"),
-                new RSeed("Печени ябълки с канела", "Ябълки, канела, мед. Запечете леко.", 260, 4, 30, 8, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, true, "вегетарианска", "снак"),
-                new RSeed("Извара с праскова", "Извара, праскова, ванилия. Смесете леко.", 290, 16, 20, 10, MealType.SNACK, veg, MeatPreferenceType.NONE, true, true, false, "вегетарианска", "снак"),
-
-                // === VEGAN (Existing) ===
-                new RSeed("Смути от боровинки и овес", "Бадемово мляко, овес, боровинки. Пасирайте съставките.", 310, 9, 38, 10, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "закуска"),
-                new RSeed("Тост с авокадо и чери домати", "Пълнозърнест хляб, авокадо, чери домати. Намачкайте авокадото, нарежете доматите, сервирайте.", 350, 7, 30, 22, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "закуска"),
-                new RSeed("Киноа с ядки и банан", "Сварена киноа, бадеми, банан. Смесете и гарнирайте.", 400, 10, 40, 18, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "закуска"),
-                new RSeed("Чиа пудинг с манго", "Чиа, бадемово мляко, манго. Накиснете чията, добавете манго.", 320, 8, 28, 16, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "закуска"),
-                new RSeed("Овес с какао и круша", "Овес, какао, круша, бадемово мляко. Сварете и разбъркайте.", 330, 7, 35, 12, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "закуска"),
-                new RSeed("Смути с спанак и ябълка", "Спанак, ябълка, ленено семе, вода. Пасирайте всичко.", 280, 6, 25, 10, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "закуска"),
-                new RSeed("Палачинки от овес и банан", "Овесено брашно, банан, вода. Изпечете в тиган.", 360, 9, 40, 14, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "закуска"),
-
-                new RSeed("Ориз със зеленчуци", "Кафяв ориз, чушки, моркови, грах. Сварете ориза, добавете зеленчуци.", 420, 10, 60, 8, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-                new RSeed("Леща яхния", "Леща, лук, морков, домат. Сварете до готовност.", 450, 18, 40, 12, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-                new RSeed("Салата с киноа", "Киноа, домати, краставица, зехтин. Смесете всичко.", 400, 12, 35, 14, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-                new RSeed("Бургер с нахут", "Питка, нахут кюфте, зеленчуци. Запечете и сглобете.", 480, 20, 45, 16, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-                new RSeed("Печен батат с тахан", "Сладък картоф, тахан, семена. Изпечете и полейте.", 430, 9, 50, 15, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "обяд"),
-                new RSeed("Тофу с зеленчуци", "Тофу, броколи, моркови, соев сос. Запържете леко.", 460, 22, 30, 18, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-                new RSeed("Киноа с авокадо и боб", "Киноа, черен боб, авокадо, чушка. Смесете и овкусете.", 440, 16, 40, 20, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-
-                new RSeed("Къри с нахут", "Нахут, кокосово мляко, къри, домати. Гответе заедно.", 450, 14, 45, 18, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-                new RSeed("Тофу със спанак", "Тофу, спанак, чесън, зехтин. Запържете леко.", 400, 20, 20, 18, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-                new RSeed("Фалафел с таханов сос", "Нахут, подправки, тахан. Изпечете и сервирайте със сос.", 480, 18, 35, 22, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "вечеря"),
-                new RSeed("Печен зеленчуков микс", "Тиквички, патладжан, моркови. Изпечете във фурна.", 390, 6, 30, 14, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-                new RSeed("Гъби с ориз", "Гъби, кафяв ориз, лук, подправки. Сварете и задушете.", 420, 10, 50, 10, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-                new RSeed("Авокадо с киноа и царевица", "Авокадо, царевица, киноа, чушка. Смесете и овкусете.", 430, 12, 40, 18, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-                new RSeed("Тиквено ризото", "Ориз, тиква, зеленчуков бульон. Гответе до кремообразност.", 410, 8, 50, 12, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-
-                new RSeed("Ядки с плодове", "Смесени ядки, нарязани плодове. Смесете и сервирайте.", 300, 8, 22, 20, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-                new RSeed("Хумус с моркови", "Хумус, нарязани моркови. Потопете и хапвайте.", 280, 7, 20, 14, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-                new RSeed("Фурми с тахан", "Фурми, тахан. Напълнете фурмите с тахан.", 260, 4, 35, 10, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-                new RSeed("Оризовки с фъстъчено масло", "Оризовки, фъстъчено масло. Намажете и хапвайте.", 310, 6, 30, 16, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-                new RSeed("Банан с бадемово масло", "Банан, бадемово масло. Нарежете и намажете.", 290, 5, 28, 14, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-                new RSeed("Смути с ягоди и чия", "Ягоди, чия, вода. Пасирайте всичко.", 270, 6, 25, 10, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "снак"),
-                new RSeed("Гранола бар домашен", "Овес, ядки, сушени плодове. Смесете и запечете.", 320, 8, 30, 14, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-
-                // === KETO (Existing) ===
-                // --- BREAKFAST ---
-                new RSeed("Авокадо с яйце", "Необходими продукти: авокадо, яйца.\nПриготвяне: разрежете авокадото, запечете яйце в средата.", 380, 18, 5, 30, MealType.BREAKFAST, keto, MeatPreferenceType.NONE, true, true, false, "кето", "закуска"),
-                new RSeed("Кето палачинки с бадемово брашно", "Необходими продукти: яйца, бадемово брашно, сметана.\nПриготвяне: смесете съставките и изпържете палачинки.", 320, 16, 4, 26, MealType.BREAKFAST, keto, MeatPreferenceType.NONE, true, true, true, "кето", "закуска"),
-                new RSeed("Чиа пудинг с кокосово мляко", "Необходими продукти: чиа, кокосово мляко, стевия.\nПриготвяне: оставете чиа семената да набъбнат в млякото за 4 часа.", 290, 10, 8, 24, MealType.BREAKFAST, keto, MeatPreferenceType.NONE, true, false, false, "кето", "закуска"),
-                new RSeed("Омлет с шунка и сирене", "Необходими продукти: яйца, шунка, кашкавал.\nПриготвяне: запържете шунката и яйцата, добавете кашкавала.", 400, 22, 3, 34, MealType.BREAKFAST, keto, MeatPreferenceType.PORK, false, true, false, "кето", "закуска"),
-                new RSeed("Яйца с бекон и спанак", "Необходими продукти: яйца, бекон, спанак.\nПриготвяне: изпържете бекона и яйцата със спанак.", 410, 28, 4, 35, MealType.BREAKFAST, keto, MeatPreferenceType.PORK, false, true, false, "кето", "закуска"),
-                new RSeed("Кокосови палачинки", "Необходими продукти: кокосово брашно, яйца, ванилия.\nПриготвяне: разбийте и изпържете.", 340, 14, 6, 28, MealType.BREAKFAST, keto, MeatPreferenceType.NONE, true, true, false, "кето", "закуска"),
-                new RSeed("Скумрия със зеленчуци", "Необходими продукти: скумрия, тиквички, яйца.\nПриготвяне: задушете всичко заедно.", 430, 26, 4, 30, MealType.BREAKFAST, keto, MeatPreferenceType.FISH, false, false, false, "кето", "закуска"),
-
-                // --- LUNCH ---
-                new RSeed("Пилешки бутчета с карфиол", "Необходими продукти: пилешки бутчета, карфиол, масло.\nПриготвяне: изпечете до златисто в тава.", 510, 36, 6, 38, MealType.LUNCH, keto, MeatPreferenceType.CHICKEN, false, true, false, "кето", "обяд"),
-                new RSeed("Кето бургер без хляб", "Необходими продукти: телешка кюфте, салата, домат, сирене.\nПриготвяне: сглобете бургер между листа салата.", 580, 40, 4, 45, MealType.LUNCH, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "обяд"),
-                new RSeed("Пълнени гъби с кайма", "Необходими продукти: големи гъби, телешка кайма, кашкавал.\nПриготвяне: запълнете гъбите и запечете.", 490, 35, 5, 39, MealType.LUNCH, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "обяд"),
-                new RSeed("Салата с авокадо и яйце", "Необходими продукти: авокадо, варено яйце, зехтин.\nПриготвяне: нарежете и овкусете.", 440, 20, 4, 38, MealType.LUNCH, keto, MeatPreferenceType.NONE, true, true, false, "кето", "обяд"),
-                new RSeed("Свинско със зелен фасул", "Необходими продукти: свинско, зелен фасул, чесън.\nПриготвяне: запържете леко.", 520, 38, 8, 36, MealType.LUNCH, keto, MeatPreferenceType.PORK, false, true, false, "кето", "обяд"),
-                new RSeed("Риба тон с авокадо", "Необходими продукти: риба тон, авокадо, зелена салата.\nПриготвяне: смесете всичко.", 460, 34, 6, 32, MealType.LUNCH, keto, MeatPreferenceType.FISH, false, true, false, "кето", "обяд"),
-                new RSeed("Патладжан с кайма", "Необходими продукти: патладжан, телешка кайма, домати.\nПриготвяне: запечете във фурна.", 500, 36, 10, 33, MealType.LUNCH, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "обяд"),
-
-                // --- DINNER ---
-                new RSeed("Свинско със зеле", "Необходими продукти: свинско месо, зеле, подправки.\nПриготвяне: задушете месото със зелето.", 600, 45, 10, 40, MealType.DINNER, keto, MeatPreferenceType.PORK, false, false, false, "кето", "вечеря"),
-                new RSeed("Скумрия на скара с броколи", "Необходими продукти: скумрия, броколи, зехтин.\nПриготвяне: изпечете рибата и сервирайте със задушени броколи.", 520, 38, 4, 36, MealType.DINNER, keto, MeatPreferenceType.FISH, false, false, false, "кето", "вечеря"),
-                new RSeed("Мусака с карфиол", "Необходими продукти: карфиол, кайма, яйца, сметана.\nПриготвяне: подредете и запечете като мусака.", 540, 33, 7, 42, MealType.DINNER, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "вечеря"),
-                new RSeed("Яйца по бенедиктински с шунка", "Необходими продукти: яйца, шунка, холандез сос.\nПриготвяне: приготвят се яйца по пош и се заливат със сос.", 470, 28, 6, 37, MealType.DINNER, keto, MeatPreferenceType.PORK, false, true, false, "кето", "вечеря"),
-                new RSeed("Задушена риба с тиквички", "Необходими продукти: бяла риба, тиквички, масло.\nПриготвяне: задушете леко.", 510, 34, 6, 35, MealType.DINNER, keto, MeatPreferenceType.FISH, false, false, false, "кето", "вечеря"),
-                new RSeed("Кюфтета с гъбен сос", "Необходими продукти: кайма, гъби, сметана.\nПриготвяне: запържете и добавете сос.", 560, 39, 6, 41, MealType.DINNER, keto, MeatPreferenceType.BEEF, false, true, false, "кето", "вечеря"),
-                new RSeed("Печена сьомга със спанак", "Необходими продукти: филе от сьомга, спанак, лимон.\nПриготвяне: изпечете рибата и поднесете със задушен спанак.", 480, 36, 4, 38, MealType.DINNER, keto, MeatPreferenceType.FISH, false, false, false, "кето", "вечеря"),
-
-                // --- SNACK ---
-                new RSeed("Маслини и кашкавал", "Необходими продукти: зелени маслини, твърд кашкавал.\nПриготвяне: поднесете нарязани.", 260, 14, 2, 22, MealType.SNACK, keto, MeatPreferenceType.NONE, true, true, false, "кето", "снак"),
-                new RSeed("Селъри с фъстъчено масло", "Необходими продукти: стъбла селъри, фъстъчено масло.\nПриготвяне: напълнете селърито с фъстъчено масло.", 220, 8, 5, 18, MealType.SNACK, keto, MeatPreferenceType.NONE, true, false, true, "кето", "снак"),
-                new RSeed("Сушени меса и сирена", "Необходими продукти: прошуто, салам, сирена.\nПриготвяне: подредете като плато.", 330, 20, 1, 28, MealType.SNACK, keto, MeatPreferenceType.NO_FISH, false, true, false, "кето", "снак"),
-                new RSeed("Кето ядки микс", "Необходими продукти: бадеми, орехи, лешници.\nПриготвяне: смесете ядките в купа.", 290, 10, 6, 26, MealType.SNACK, keto, MeatPreferenceType.NONE, true, false, true, "кето", "снак"),
-                new RSeed("Кашкавал с орехи", "Необходими продукти: кашкавал, орехи.\nПриготвяне: нарежете и комбинирайте.", 270, 12, 3, 23, MealType.SNACK, keto, MeatPreferenceType.NONE, true, true, true, "кето", "снак"),
-                new RSeed("Салата с риба тон", "Необходими продукти: риба тон, маслини, зелена салата.\nПриготвяне: смесете съставките.", 310, 20, 4, 20, MealType.SNACK, keto, MeatPreferenceType.FISH, false, true, false, "кето", "снак"),
-                new RSeed("Кокосов крем с чия", "Необходими продукти: кокосово мляко, чия, ванилия.\nПриготвяне: оставете да стегне.", 280, 9, 6, 22, MealType.SNACK, keto, MeatPreferenceType.NONE, true, false, false, "кето", "снак")
-
-        ));
-        seeds.addAll(List.of(
-                new RSeed("Кисело мляко с чиа", "Кисело мляко, чиа, мед.", 240, 12, 10, 10, MealType.SNACK, bal, MeatPreferenceType.NONE, true, true, false, "снак", "млечен"),
-                new RSeed("Яйце и морковени пръчици", "Яйце, нарязани моркови.", 180, 10, 5, 10, MealType.SNACK, bal, MeatPreferenceType.CHICKEN, false, false, false, "снак", "леки"),
-                new RSeed("Плодова салата", "Ябълка, банан, киви, малини.", 160, 2, 35, 1, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, false, "снак", "веган"),
-                new RSeed("Сурови ядки и сушени плодове", "Бадеми, орехи, стафиди, кайсии.", 300, 8, 20, 20, MealType.SNACK, bal, MeatPreferenceType.NONE, true, false, true, "снак", "ядки"),
-                new RSeed("Печено пиле с тиквички", "Пилешко бутче, тиквички, чесън.", 500, 38, 15, 25, MealType.DINNER, bal, MeatPreferenceType.CHICKEN, false, false, false, "вечеря", "пиле"),
-                new RSeed("Задушена риба със зелен фасул", "Бяла риба, фасул, лимон.", 450, 32, 10, 18, MealType.DINNER, bal, MeatPreferenceType.FISH, false, false, true, "вечеря", "риба"),
-                new RSeed("Говеждо с гъби", "Телешко, гъби, лук, вино.", 520, 42, 12, 24, MealType.DINNER, prot, MeatPreferenceType.BEEF, false, false, false, "вечеря", "телешко"),
-                new RSeed("Вегетарианска яхния", "Картофи, моркови, леща, доматено пюре.", 390, 14, 42, 12, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "вечеря", "веган"),
-
-                new RSeed("Пиле с ориз и зеленчуци", "Пилешко филе, ориз, броколи, моркови.", 550, 38, 45, 18, MealType.LUNCH, prot, MeatPreferenceType.CHICKEN, false, false, false, "протеинова", "обяд"),
-                new RSeed("Телешки стек с картофи", "Телешки стек, варени картофи, салата.", 620, 45, 30, 28, MealType.LUNCH, prot, MeatPreferenceType.BEEF, false, false, false, "протеинова", "обяд"),
-                new RSeed("Свинско с грах и моркови", "Свинско месо, грах, моркови, зехтин.", 600, 35, 25, 30, MealType.LUNCH, bal, MeatPreferenceType.PORK, false, false, false, "балансирана", "обяд"),
-                new RSeed("Риба тон с киноа", "Риба тон, киноа, домати, маслини.", 480, 40, 22, 20, MealType.LUNCH, prot, MeatPreferenceType.FISH, false, false, true, "морска", "обяд"),
-                new RSeed("Овесена каша с плодове", "Овес, банан, боровинки, мед. Сварете овеса, добавете плодове.", 330, 9, 45, 10, MealType.BREAKFAST, bal, MeatPreferenceType.NONE, true, true, false, "балансирана", "закуска"),
-                new RSeed("Бъркани яйца с авокадо", "Яйца, авокадо, пълнозърнест хляб.", 390, 20, 12, 25, MealType.BREAKFAST, bal, MeatPreferenceType.CHICKEN, true, true, false, "балансирана", "закуска"),
-                new RSeed("Смути с кисело мляко", "Кисело мляко, банан, спанак, ленено семе.", 310, 15, 20, 14, MealType.BREAKFAST, bal, MeatPreferenceType.NONE, true, true, false, "балансирана", "закуска"),
-                new RSeed("Омлет с извара", "Необходими продукти: яйца, извара, чери домати.\nПриготвяне: запържете омлета, поднесете с домати.", 360, 30, 8, 20, MealType.BREAKFAST, prot, MeatPreferenceType.NONE, true, true, false, "протеинова", "закуска"),
-                new RSeed("Кисело мляко с орехи", "Необходими продукти: кисело мляко, орехи, мед.\nПриготвяне: смесете съставките.", 320, 18, 10, 15, MealType.BREAKFAST, prot, MeatPreferenceType.NONE, true, true, true, "протеинова", "закуска"),
-                new RSeed("Протеинови палачинки", "Необходими продукти: протеин, яйца, банан.\nПриготвяне: направете палачинки от сместа.", 370, 28, 18, 14, MealType.BREAKFAST, prot, MeatPreferenceType.NONE, true, true, false, "протеинова", "закуска"),
-
-                new RSeed("Салата с киноа", "Киноа, домати, краставица, зехтин. Смесете всичко.", 400, 12, 35, 14, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-                new RSeed("Тофу с зеленчуци", "Тофу, броколи, моркови, соев сос. Запържете леко.", 460, 22, 30, 18, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-                new RSeed("Ориз със зеленчуци", "Кафяв ориз, чушки, моркови, грах. Сварете ориза, добавете зеленчуци.", 420, 10, 60, 8, MealType.LUNCH, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "обяд"),
-
-                new RSeed("Къри с нахут", "Нахут, кокосово мляко, къри, домати. Гответе заедно.", 450, 14, 45, 18, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-                new RSeed("Печен зеленчуков микс", "Тиквички, патладжан, моркови. Изпечете във фурна.", 390, 6, 30, 14, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-                new RSeed("Гъби с ориз", "Гъби, кафяв ориз, лук, подправки. Сварете и задушете.", 420, 10, 50, 10, MealType.DINNER, vegan, MeatPreferenceType.NONE, true, false, false, "веган", "вечеря"),
-
-                new RSeed("Хумус с моркови", "Хумус, нарязани моркови. Потопете и хапвайте.", 280, 7, 20, 14, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-                new RSeed("Фурми с тахан", "Фурми, тахан. Напълнете фурмите с тахан.", 260, 4, 35, 10, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак"),
-                new RSeed("Банан с бадемово масло", "Банан, бадемово масло. Нарежете и намажете.", 290, 5, 28, 14, MealType.SNACK, vegan, MeatPreferenceType.NONE, true, false, true, "веган", "снак")
-        ));
-
-
-        long added = seeds.stream()
-                .filter(s -> !recipeRepository.existsByName(s.n)) // вече има? пропускаме
-                .peek(s -> {
-                    Recipe recipe = Recipe.builder()
-                            .name(s.n).description(s.d)
-                            .calories(s.kcal).protein(s.p).carbs(s.c).fat(s.f)
-                            .mealType(s.meal).dietType(s.diet).meatType(s.meat)
-                            .isVegetarian(s.veg).containsDairy(s.dairy).containsNuts(s.nuts)
-                            .tags(new HashSet<>(Arrays.asList(s.tags)))
-                            .build();
-                    recipeRepository.save(recipe);
-                })
-                .count();
-        System.out.println("✔ Рецепти добавени (нови): " + added);
+        Set<RSeed> uniqueSeeds = new HashSet<>();
+
+        DietType bal   = dietTypeRepository.findByName("Балансирана").orElseThrow(() -> new RuntimeException("DietType 'Балансирана' not found"));
+        DietType keto  = dietTypeRepository.findByName("Кето").orElseThrow(() -> new RuntimeException("DietType 'Кето' not found"));
+        DietType prot  = dietTypeRepository.findByName("Протеинова").orElseThrow(() -> new RuntimeException("DietType 'Протеинова' not found"));
+        DietType veg   = dietTypeRepository.findByName("Вегетарианска").orElseThrow(() -> new RuntimeException("DietType 'Вегетарианска' not found"));
+        DietType vegan = dietTypeRepository.findByName("Веган").orElseThrow(() -> new RuntimeException("DietType 'Веган' not found"));
+        DietType paleo = dietTypeRepository.findByName("Палео").orElseThrow(() -> new RuntimeException("DietType 'Палео' not found"));
+
+
+        // ==== Балансирана диета ====
+        // --- Закуска (Breakfast) ---
+        uniqueSeeds.add(new RSeed("Овесена каша с ябълка и канела",
+                "Овесени ядки, ябълка, канела, мляко. Сварете овеса с млякото и добавете ябълка и канела.",
+                340, 10, 50, 8, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана","закуска","бързо"));
+        uniqueSeeds.add(new RSeed("Яйца със спанак и пълнозърнест тост",
+                "Запържете яйцата със спанака и сервирайте с препечен пълнозърнест хляб.",
+                360, 18, 20, 20, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана","високо-протеин"));
+        uniqueSeeds.add(new RSeed("Кисело мляко с овес, мед и орехи",
+                "Смесете киселото мляко, овесените ядки и меда; поръсете с орехи.",
+                310, 14, 35, 10, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, true, false, false, "балансирана","бърза"));
+        uniqueSeeds.add(new RSeed("Сандвич с яйце, авокадо и домат",
+                "Пълнозърнест хляб, варено яйце, авокадо и резени домат – идеален за път.",
+                390, 15, 25, 24, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана","to-go", "здравословни мазнини"));
+        uniqueSeeds.add(new RSeed("Палачинки с извара и горски плодове",
+                "Овесено брашно, извара и яйца. Изпечете палачинките и сервирайте с горски плодове.",
+                350, 18, 30, 14, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана","фит-десерт"));
+        uniqueSeeds.add(new RSeed("Чиа пудинг с кокосово мляко и манго",
+                "Накиснете чията за 4-6 ч. в кокосово мляко, добавете пресни парчета манго преди сервиране.",
+                320, 9, 25, 15, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана","prep-friendly", "веган опция"));
+        uniqueSeeds.add(new RSeed("Мюсли с прясно мляко и банан",
+                "Смесете мюслито с прясно мляко и нарязан банан, оставете 5 мин да омекне.",
+                340, 10, 40, 8, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана","classic"));
+        uniqueSeeds.add(new RSeed("Бъркани яйца със сирене и чушки",
+                "Разбийте яйца със сирене и ситно нарязани чушки. Запържете до готовност.",
+                380, 22, 10, 28, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана","кето-приятелски"));
+        uniqueSeeds.add(new RSeed("Оризовки с авокадо и чиа",
+                "Намажете оризовки с авокадо и поръсете с чиа семена.",
+                300, 8, 30, 18, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "веган", "без-глутен"));
+        uniqueSeeds.add(new RSeed("Плодова салата с котидж сирене",
+                "Микс от сезонни плодове с котидж сирене.",
+                290, 15, 35, 10, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "лека", "свежа"));
+
+        // --- Обяд (Lunch) ---
+        uniqueSeeds.add(new RSeed("Салата с киноа, риба тон и зеленчуци",
+                "Сварете киноата, охладете и разбъркайте с риба тон, краставици, домати и маслини.",
+                420, 28, 40, 14, MealType.LUNCH, bal, MeatPreferenceType.FISH,
+                false, false, false, true, false, "балансирана","без-глутен", "бърз обяд"));
+        uniqueSeeds.add(new RSeed("Пилешко филе със сладък картоф и броколи",
+                "Запечете пилешкото филе и резените сладък картоф във фурна 25 мин при 200 °C. Задушете броколите на пара.",
+                480, 38, 35, 16, MealType.LUNCH, bal, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "балансирана","meal-prep"));
+        uniqueSeeds.add(new RSeed("Пъстърва на пара с кафяв ориз и задушени моркови",
+                "Гответе пъстървата на пара; поднесете с кафяв ориз и задушени моркови.",
+                500, 34, 38, 18, MealType.LUNCH, bal, MeatPreferenceType.FISH,
+                false, false, false, true, false, "балансирана","omega-3"));
+        uniqueSeeds.add(new RSeed("Свинско месо със зеле и моркови",
+                "Задушете свинското месо със зеле и моркови до пълно омекване. Овкусете с червен пипер.",
+                510, 36, 20, 22, MealType.LUNCH, bal, MeatPreferenceType.PORK,
+                false, false, false, false, true, "балансирана","ниско-въглехидрати"));
+        uniqueSeeds.add(new RSeed("Телешко с булгур и домати",
+                "Сварете булгура; задушете телешкото с домати и поднесете заедно.",
+                530, 40, 30, 20, MealType.LUNCH, bal, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "балансирана","желязо"));
+        uniqueSeeds.add(new RSeed("Голям омлет със зеленчуци (чушки, лук, гъби)",
+                "Яйца с чушки, лук и гъби; изпечете в тефлонов тиган.",
+                390, 20, 15, 22, MealType.LUNCH, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана","вегетарианска"));
+        uniqueSeeds.add(new RSeed("Тофу със зеленчуци и кафяв ориз",
+                "Запържете тофуто с броколи, моркови и чушки, сервирайте върху кафяв ориз.",
+                440, 24, 35, 14, MealType.LUNCH, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана","веган", "бързо"));
+        uniqueSeeds.add(new RSeed("Пилешка пържола със зелена салата и дресинг",
+                "Изпечете пилешка пържола на тиган, сервирайте със свежа зелена салата и лек дресинг.",
+                450, 40, 10, 25, MealType.LUNCH, bal, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "балансирана","лесно"));
+        uniqueSeeds.add(new RSeed("Салата с нахут, авокадо и краставица",
+                "Смесете нахут, нарязано авокадо, краставица, червен лук и лимонов дресинг.",
+                380, 15, 40, 18, MealType.LUNCH, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "веган", "без-глутен"));
+        uniqueSeeds.add(new RSeed("Морска храна с ориз и зеленчуци",
+                "Калмари/скариди запържени с ориз и микс от зеленчуци.",
+                500, 30, 45, 15, MealType.LUNCH, bal, MeatPreferenceType.FISH,
+                false, false, false, true, false, "балансирана", "морска храна"));
+        uniqueSeeds.add(new RSeed("Свинско филе със задушени гъби",
+                "Печено свинско филе, сервирано със задушени гъби и пресен магданоз.",
+                520, 38, 15, 28, MealType.LUNCH, bal, MeatPreferenceType.PORK,
+                false, false, false, false, true, "балансирана", "ниско-въглехидрати"));
+
+        // --- Вечеря (Dinner) ---
+        uniqueSeeds.add(new RSeed("Леща с ориз и свежа салата",
+                "Сварете лещата и ориза; поднесете с пресна салата от домати и краставици.",
+                430, 22, 40, 10, MealType.DINNER, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана","фибри"));
+        uniqueSeeds.add(new RSeed("Пилешка супа със зеленчуци",
+                "Пилешко месо, моркови, картофи, целина; вари се 40 мин и се овкусява с магданоз.",
+                400, 30, 20, 12, MealType.DINNER, bal, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "балансирана","comfort", "лека"));
+        uniqueSeeds.add(new RSeed("Рататуй с тиквички, патладжан и домати",
+                "Тиквички, патладжан, домати и чушки – печете 35 мин на 180 °C.",
+                370, 8, 25, 14, MealType.DINNER, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана","ниско-калорични", "веган"));
+        uniqueSeeds.add(new RSeed("Тилапия на фурна със задушен зелен фасул",
+                "Изпечете тилапията с лимонов сок; сервирайте със задушен зелен фасул.",
+                460, 32, 18, 20, MealType.DINNER, bal, MeatPreferenceType.FISH,
+                false, false, false, true, false, "балансирана","постен протеин"));
+        uniqueSeeds.add(new RSeed("Пълнени чушки с кайма и ориз",
+                "Чушки, свинска и телешка кайма и ориз във фурна с доматен сос.",
+                490, 28, 30, 18, MealType.DINNER, bal, MeatPreferenceType.NO_PREFERENCE,
+                false, false, false, false, false, "балансирана","класика"));
+        uniqueSeeds.add(new RSeed("Киноа с печени зеленчуци и гъби",
+                "Сварена киноа, тиквички, моркови и гъби, запечени със зехтин и подправки.",
+                420, 16, 35, 14, MealType.DINNER, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана","суперхрана", "веган"));
+        uniqueSeeds.add(new RSeed("Яйца с броколи и пармезан",
+                "Запечете яйца, броколи и настърган пармезан в керамичен съд.",
+                410, 20, 15, 24, MealType.DINNER, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана","кето-приятелски"));
+        uniqueSeeds.add(new RSeed("Мусака с телешка кайма",
+                "Слоеве от картофи, телешка кайма и бешамелов сос, запечени във фурна.",
+                550, 35, 30, 30, MealType.DINNER, bal, MeatPreferenceType.BEEF,
+                false, true, false, false, false, "балансирана","традиционна"));
+        uniqueSeeds.add(new RSeed("Агнешки котлети с розмарин и чесън",
+                "Печени агнешки котлети с пресен розмарин и чесън.",
+                560, 40, 10, 35, MealType.DINNER, bal, MeatPreferenceType.LAMB,
+                false, false, false, false, false, "балансирана", "празнично"));
+        uniqueSeeds.add(new RSeed("Свинско с гъби и ориз",
+                "Свинско месо, гъби и бял ориз, задушени в соев сос.",
+                530, 35, 30, 25, MealType.DINNER, bal, MeatPreferenceType.PORK,
+                false, false, false, false, true, "балансирана", "азиатски вкус"));
+
+        // --- Снак (Snack) ---
+        uniqueSeeds.add(new RSeed("Орехи с кисело мляко и мед",
+                "Кисело мляко, натрошени орехи и лъжичка мед.",
+                280, 14, 10, 20, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, true, true, false, false, "балансирана","здравословни мазнини"));
+        uniqueSeeds.add(new RSeed("Ябълка с фъстъчено масло",
+                "Нарежете ябълка на резени и намажете с фъстъчено масло.",
+                270, 6, 25, 14, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, false, true, false, false, "балансирана","on-the-go"));
+        uniqueSeeds.add(new RSeed("Смути с кисело мляко, банан и горски плодове",
+                "Пасирайте кисело мляко, банан и горски плодове до гладкост.",
+                290, 10, 28, 10, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана","витамин-буст"));
+        uniqueSeeds.add(new RSeed("Домашни барове с мюсли и ядки",
+                "Мюсли, мед и ядки – изпечете 15 мин, оставете да стегнат.",
+                300, 8, 30, 12, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, true, true, false, false, "балансирана","prep-bars"));
+        uniqueSeeds.add(new RSeed("Фреш от морков, ябълка и лимон",
+                "Изцедете сока от морков, ябълка и лимон; сервирайте охладено.",
+                150, 2, 28, 1, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана","свежо"));
+        uniqueSeeds.add(new RSeed("Райска ябълка с кисело мляко",
+                "Смесете нарязана райска ябълка с кисело мляко и мед.",
+                260, 9, 20, 8, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана","сезонно"));
+        uniqueSeeds.add(new RSeed("Грис с мляко и сладко",
+                "Сварете гриса в прясно мляко, поръсете с канела и добавете лъжичка сладко.",
+                310, 7, 35, 9, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана","носталгия"));
+        uniqueSeeds.add(new RSeed("Протеинов шейк (банан и мляко)",
+                "Банан, протеин на прах, мляко. Разбийте в блендер.",
+                250, 25, 20, 5, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана","бърз протеин"));
+        uniqueSeeds.add(new RSeed("Оризовки с хумус",
+                "Намажете оризовки с хумус.",
+                200, 5, 25, 8, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана","веган", "бързо"));
+        uniqueSeeds.add(new RSeed("Шепа бадеми и сушени череши",
+                "Микс от бадеми и сушени череши.",
+                230, 7, 18, 15, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, false, true, false, false, "балансирана","енергия"));
+        uniqueSeeds.add(new RSeed("Варено яйце и зеленчукови пръчици",
+                "Едно варено яйце със солети от морков и краставица.",
+                180, 10, 10, 10, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "бързо", "лека"));
+        uniqueSeeds.add(new RSeed("Малка шепа кашу и фурми",
+                "Кашу и фурми за бърза енергия.",
+                250, 6, 30, 12, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, false, true, false, false, "балансирана", "енергия", "сладко"));
+
+
+        // ==== Протеинова диета ====
+        // --- Закуска (Breakfast) ---
+        uniqueSeeds.add(new RSeed("Омлет с извара и чери домати",
+                "Яйца, извара, чери домати. Запържете омлета, поднесете с домати.",
+                360, 30, 8, 20, MealType.BREAKFAST, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "закуска"));
+        uniqueSeeds.add(new RSeed("Кисело мляко с протеин на прах и чия",
+                "Кисело мляко, протеин на прах, чия, стевия. Смесете съставките.",
+                320, 25, 15, 15, MealType.BREAKFAST, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "закуска"));
+        uniqueSeeds.add(new RSeed("Яйца по бенедиктински с пушено филе",
+                "Яйца, пушено пилешко филе, пълнозърнест хляб. Запечете и сервирайте.",
+                410, 30, 20, 24, MealType.BREAKFAST, prot, MeatPreferenceType.CHICKEN,
+                false, true, false, false, false, "протеинова", "закуска"));
+        uniqueSeeds.add(new RSeed("Протеинови палачинки с извара",
+                "Протеин на прах, яйца, извара, банан. Направете палачинки от сместа.",
+                370, 28, 18, 14, MealType.BREAKFAST, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "закуска"));
+        uniqueSeeds.add(new RSeed("Бъркани яйца с гъби и кашкавал",
+                "Разбийте яйца с гъби и настърган кашкавал. Запържете до готовност.",
+                400, 25, 10, 30, MealType.BREAKFAST, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "кето-приятелски"));
+        uniqueSeeds.add(new RSeed("Протеинов овес с фъстъчено масло",
+                "Овесени ядки, вода, протеин на прах, фъстъчено масло. Загрявайте до готовност.",
+                380, 25, 30, 15, MealType.BREAKFAST, prot, MeatPreferenceType.NONE,
+                true, false, true, false, false, "протеинова", "бърза"));
+
+        // --- Обяд (Lunch) ---
+        uniqueSeeds.add(new RSeed("Пуешко филе с киноа и аспержи",
+                "Пуешко филе, киноа, аспержи. Изпечете пуешкото и сервирайте с киноа и аспержи.",
+                520, 42, 35, 18, MealType.LUNCH, prot, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "протеинова", "обяд"));
+        uniqueSeeds.add(new RSeed("Телешки стек със зелен фасул и чесън",
+                "Телешки стек, зелен фасул. Изпечете стека и задушете фасула с чесън.",
+                540, 45, 10, 28, MealType.LUNCH, prot, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "протеинова", "обяд"));
+        uniqueSeeds.add(new RSeed("Риба тон (консерва) със зеленчукова салата",
+                "Риба тон от консерва, чушки, лук, домати, маслини. Смесете и поднесете.",
+                490, 38, 14, 22, MealType.LUNCH, prot, MeatPreferenceType.FISH,
+                false, false, false, true, false, "протеинова", "обяд", "бързо"));
+        uniqueSeeds.add(new RSeed("Пилешка салата с яйца и авокадо",
+                "Пилешко филе, яйца, зелена салата, авокадо. Нарежете и комбинирайте.",
+                480, 40, 8, 20, MealType.LUNCH, prot, MeatPreferenceType.CHICKEN,
+                false, true, false, false, false, "протеинова", "обяд", "здравословни мазнини"));
+        uniqueSeeds.add(new RSeed("Свински котлет с броколи",
+                "Изпечете свински котлет и сервирайте с броколи на пара.",
+                530, 40, 8, 35, MealType.LUNCH, prot, MeatPreferenceType.PORK,
+                false, false, false, false, true, "протеинова", "обяд"));
+        uniqueSeeds.add(new RSeed("Туршия от кисело зеле с нарязани телешки гърди",
+                "Нарязани телешки гърди, задушени с кисело зеле и червен пипер.",
+                550, 45, 20, 25, MealType.LUNCH, prot, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "протеинова", "традиционно", "зимно"));
+        uniqueSeeds.add(new RSeed("Салата с пилешко филе и спанак",
+                "Пилешко филе на грил, пресен спанак, чери домати, балсамов дресинг.",
+                460, 40, 10, 20, MealType.LUNCH, prot, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "протеинова", "лека"));
+
+        // --- Вечеря (Dinner) ---
+        uniqueSeeds.add(new RSeed("Сьомга на скара с лимон и копър",
+                "Филе от сьомга, подправки, лимон, копър. Изпечете на скара с подправки и лимонов сок.",
+                460, 38, 5, 28, MealType.DINNER, prot, MeatPreferenceType.FISH,
+                false, false, false, true, false, "протеинова", "вечеря"));
+        uniqueSeeds.add(new RSeed("Пилешко филе с гъби и сметанов сос",
+                "Пилешко филе, гъби, готварска сметана. Задушете до готовност.",
+                490, 36, 6, 24, MealType.DINNER, prot, MeatPreferenceType.CHICKEN,
+                false, true, false, false, false, "протеинова", "вечеря"));
+        uniqueSeeds.add(new RSeed("Пълнени тиквички с кайма и яйце",
+                "Тиквички, кайма (свинска/телешка), яйце, подправки. Напълнете и запечете.",
+                520, 42, 12, 26, MealType.DINNER, prot, MeatPreferenceType.NO_PREFERENCE,
+                false, false, false, false, false, "протеинова", "вечеря"));
+        uniqueSeeds.add(new RSeed("Печена пъстърва с розмарин",
+                "Пъстърва, подправки, лимон, розмарин. Изпечете във фурна.",
+                470, 35, 4, 22, MealType.DINNER, prot, MeatPreferenceType.FISH,
+                false, false, false, true, false, "протеинова", "вечеря"));
+        uniqueSeeds.add(new RSeed("Агнешко котлетче с мента",
+                "Агнешки котлети, свежа мента, зехтин. Запечете на грил.",
+                580, 45, 5, 40, MealType.DINNER, prot, MeatPreferenceType.LAMB,
+                false, false, false, false, false, "протеинова", "вечеря"));
+        uniqueSeeds.add(new RSeed("Телешко филе със задушен спанак",
+                "Телешко филе, задушен спанак с чесън. Пригответе на тиган.",
+                540, 48, 8, 35, MealType.DINNER, prot, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "протеинова", "бързо"));
+        uniqueSeeds.add(new RSeed("Свински медальони с гъби",
+                "Свински медальони, запържени с гъби и малко сметана.",
+                510, 40, 10, 30, MealType.DINNER, prot, MeatPreferenceType.PORK,
+                false, true, false, false, true, "протеинова", "кремообразно"));
+
+        // --- Снак (Snack) ---
+        uniqueSeeds.add(new RSeed("Протеинов бар с фурми и ядки",
+                "Фурми, фъстъчено масло, протеин на прах, ядки. Смесете и оформете барове.",
+                300, 24, 22, 12, MealType.SNACK, prot, MeatPreferenceType.NONE,
+                true, false, true, false, false, "протеинова", "снак"));
+        uniqueSeeds.add(new RSeed("Кисело мляко с протеин на прах",
+                "Кисело мляко, протеин на прах. Разбъркайте добре.",
+                280, 22, 10, 10, MealType.SNACK, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "снак"));
+        uniqueSeeds.add(new RSeed("Сурови ядки и сушени плодове",
+                "Орехи, бадеми, сушени кайсии. Смесете.",
+                320, 12, 20, 20, MealType.SNACK, prot, MeatPreferenceType.NONE,
+                true, false, true, false, false, "протеинова", "снак"));
+        uniqueSeeds.add(new RSeed("Извара с канела и стевия",
+                "Извара, канела, стевия. Разбъркайте.",
+                290, 20, 15, 12, MealType.SNACK, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "снак"));
+        uniqueSeeds.add(new RSeed("Сварени яйца (2 бр.)",
+                "Просто сварени яйца.",
+                160, 12, 1, 12, MealType.SNACK, prot, MeatPreferenceType.NONE,
+                true, false, false, false, false, "протеинова", "снак", "бързо"));
+        uniqueSeeds.add(new RSeed("Протеинов мус с какао",
+                "Протеин на прах, какао, вода/мляко. Разбийте до мус.",
+                180, 25, 5, 5, MealType.SNACK, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "снак"));
+        uniqueSeeds.add(new RSeed("Пушено пилешко филе (50гр)",
+                "Тънко нарязано пушено пилешко филе.",
+                100, 20, 0, 2, MealType.SNACK, prot, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "протеинова", "бързо"));
+        uniqueSeeds.add(new RSeed("Протеинов пудинг без захар",
+                "Готов протеинов пудинг от магазина, без добавена захар.",
+                150, 18, 10, 5, MealType.SNACK, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "удобно"));
+
+
+        // ==== Кето диета ====
+        // --- Закуска (Breakfast) ---
+        uniqueSeeds.add(new RSeed("Бъркани яйца с бекон и авокадо",
+                "Яйца, бекон, авокадо. Запържете и сервирайте.",
+                450, 20, 5, 40, MealType.BREAKFAST, keto, MeatPreferenceType.PORK,
+                false, false, false, false, true, "кето", "закуска", "високо-мазнини"));
+        uniqueSeeds.add(new RSeed("Кето кафе (Bulletproof Coffee)",
+                "Кафе, кокосово масло, масло от трева. Пасирайте до пяна.",
+                350, 2, 2, 35, MealType.BREAKFAST, keto, MeatPreferenceType.NONE,
+                true, true, false, false, false, "кето", "закуска", "бързо"));
+        uniqueSeeds.add(new RSeed("Омлет с гъби и сирене",
+                "Яйца, гъби, сирене. Запържете омлета.",
+                410, 18, 7, 35, MealType.BREAKFAST, keto, MeatPreferenceType.NONE,
+                true, true, false, false, false, "кето", "закуска"));
+        uniqueSeeds.add(new RSeed("Извара с малини и бадеми",
+                "Извара, малко малини, бадеми. Смесете.",
+                330, 20, 10, 25, MealType.BREAKFAST, keto, MeatPreferenceType.NONE,
+                true, true, true, false, false, "кето", "закуска"));
+        uniqueSeeds.add(new RSeed("Кето палачинки от кокосово брашно",
+                "Кокосово брашно, яйца, кокосово мляко. Изпечете палачинки.",
+                380, 15, 10, 30, MealType.BREAKFAST, keto, MeatPreferenceType.NONE,
+                true, false, false, false, false, "кето", "закуска"));
+        uniqueSeeds.add(new RSeed("Бъркани яйца с шунка и сирене",
+                "Яйца, шунка (телешка/пуешка), сирене. Запържете.",
+                420, 25, 5, 35, MealType.BREAKFAST, keto, MeatPreferenceType.NO_PORK,
+                false, true, false, false, false, "кето", "закуска"));
+
+        // --- Обяд (Lunch) ---
+        uniqueSeeds.add(new RSeed("Сьомга на тиган с аспержи",
+                "Сьомга, аспержи, зехтин. Запържете сьомгата.",
+                550, 40, 8, 40, MealType.LUNCH, keto, MeatPreferenceType.FISH,
+                false, false, false, true, false, "кето", "обяд"));
+        uniqueSeeds.add(new RSeed("Салата с пилешко, авокадо и маслини",
+                "Пилешко филе, авокадо, маслини, зелена салата, зехтин. Смесете.",
+                500, 35, 10, 35, MealType.LUNCH, keto, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "кето", "обяд", "без-въглехидрати"));
+        uniqueSeeds.add(new RSeed("Телешки кюфтета в сметанов сос",
+                "Телешка кайма, сметана, подправки. Сгответе кюфтетата.",
+                600, 40, 8, 50, MealType.LUNCH, keto, MeatPreferenceType.BEEF,
+                false, true, false, false, false, "кето", "обяд"));
+        uniqueSeeds.add(new RSeed("Свинско с гъби и кашкавал",
+                "Свинско месо, гъби, кашкавал. Задушете до готовност.",
+                580, 40, 10, 45, MealType.LUNCH, keto, MeatPreferenceType.PORK,
+                false, true, false, false, true, "кето", "обяд"));
+        uniqueSeeds.add(new RSeed("Агнешко кебапче с гръцка салата (без домати)",
+                "Агнешко кебапче, краставици, маслини, фета сирене (по желание).",
+                600, 45, 15, 40, MealType.LUNCH, keto, MeatPreferenceType.LAMB,
+                false, true, false, false, false, "кето", "обяд"));
+        uniqueSeeds.add(new RSeed("Пъстърва на тиган с масло и лимон",
+                "Пъстърва, масло, лимон. Запържете.",
+                570, 40, 5, 45, MealType.LUNCH, keto, MeatPreferenceType.FISH,
+                false, true, false, true, false, "кето", "обяд"));
+
+        // --- Вечеря (Dinner) ---
+        uniqueSeeds.add(new RSeed("Печено пилешко бедро с броколи и масло",
+                "Пилешко бедро, броколи, масло. Изпечете във фурна.",
+                530, 38, 10, 38, MealType.DINNER, keto, MeatPreferenceType.CHICKEN,
+                false, true, false, false, false, "кето", "вечеря"));
+        uniqueSeeds.add(new RSeed("Телешки стек с аспержи и масло",
+                "Телешки стек, аспержи, масло. Изпечете стека.",
+                590, 45, 7, 45, MealType.DINNER, keto, MeatPreferenceType.BEEF,
+                false, true, false, false, false, "кето", "вечеря"));
+        uniqueSeeds.add(new RSeed("Агнешко с карфиолено пюре",
+                "Агнешко месо, карфиол, масло. Задушете агнешкото, направете пюре от карфиол.",
+                620, 48, 12, 50, MealType.DINNER, keto, MeatPreferenceType.LAMB,
+                false, true, false, false, false, "кето", "вечеря"));
+        uniqueSeeds.add(new RSeed("Мазна риба (скумрия) на фурна със зеленчуци",
+                "Скумрия, чушки, лук, зехтин. Изпечете във фурна.",
+                560, 40, 10, 42, MealType.DINNER, keto, MeatPreferenceType.FISH,
+                false, false, false, true, false, "кето", "вечеря", "високо-мазнини"));
+        uniqueSeeds.add(new RSeed("Свински врат с броколи и сос Холандез",
+                "Свински врат, броколи, сос Холандез.",
+                650, 45, 8, 55, MealType.DINNER, keto, MeatPreferenceType.PORK,
+                false, true, false, false, true, "кето", "вечеря"));
+        uniqueSeeds.add(new RSeed("Телешки джолан с костен мозък",
+                "Телешки джолан, костен мозък, подправки. Бавно печене.",
+                700, 50, 5, 60, MealType.DINNER, keto, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "кето", "вечеря", "традиционно"));
+        uniqueSeeds.add(new RSeed("Пилешко на грил с гъби и кашкавал",
+                "Пилешко филе на грил, покрито с гъби и кашкавал. Запечете.",
+                520, 42, 8, 38, MealType.DINNER, keto, MeatPreferenceType.CHICKEN,
+                false, true, false, false, false, "кето", "лесно"));
+
+        // --- Снак (Snack) ---
+        uniqueSeeds.add(new RSeed("Шепа бадеми и орехи",
+                "Сурови бадеми и орехи.",
+                280, 8, 10, 25, MealType.SNACK, keto, MeatPreferenceType.NONE,
+                true, false, true, false, false, "кето", "снак"));
+        uniqueSeeds.add(new RSeed("Извара с малко сметана",
+                "Извара, малко готварска сметана.",
+                180, 18, 5, 10, MealType.SNACK, keto, MeatPreferenceType.NONE,
+                true, true, false, false, false, "кето", "снак"));
+        uniqueSeeds.add(new RSeed("Парче сирене Гауда",
+                "Парче сирене Гауда.",
+                150, 10, 1, 12, MealType.SNACK, keto, MeatPreferenceType.NONE,
+                true, true, false, false, false, "кето", "снак"));
+        uniqueSeeds.add(new RSeed("Кето бисквитки",
+                "Бисквитки с бадемово брашно и подсладител.",
+                190, 5, 8, 15, MealType.SNACK, keto, MeatPreferenceType.NONE,
+                true, false, true, false, false, "кето", "снак"));
+        uniqueSeeds.add(new RSeed("Олинкър с авокадо",
+                "Парчета олинкър с резени авокадо.",
+                220, 15, 5, 18, MealType.SNACK, keto, MeatPreferenceType.PORK,
+                false, false, false, false, true, "кето", "снак"));
+        uniqueSeeds.add(new RSeed("Парче черен шоколад (90% какао)",
+                "Парче черен шоколад.",
+                170, 3, 10, 15, MealType.SNACK, keto, MeatPreferenceType.NONE,
+                true, false, false, false, false, "кето", "снак"));
+        uniqueSeeds.add(new RSeed("Кето бомбички с фъстъчено масло",
+                "Смес от фъстъчено масло, кокосово масло и подсладител.",
+                250, 5, 8, 22, MealType.SNACK, keto, MeatPreferenceType.NONE,
+                true, false, true, false, false, "кето", "снак", "десерт"));
+
+
+        // ==== Вегетарианска диета ====
+        // --- Закуска (Breakfast) ---
+        uniqueSeeds.add(new RSeed("Омлет със спанак и гъби",
+                "Яйца, спанак, гъби. Запържете омлета.",
+                350, 18, 15, 25, MealType.BREAKFAST, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "закуска"));
+        uniqueSeeds.add(new RSeed("Кисело мляко с гранола и плодове",
+                "Кисело мляко, гранола, пресни плодове.",
+                320, 12, 40, 10, MealType.BREAKFAST, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "закуска"));
+        uniqueSeeds.add(new RSeed("Тост с авокадо и поширано яйце",
+                "Пълнозърнест тост, пюре от авокадо, поширано яйце.",
+                400, 15, 30, 25, MealType.BREAKFAST, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "закуска"));
+        uniqueSeeds.add(new RSeed("Пълнозърнест сандвич с хумус и зеленчуци",
+                "Пълнозърнест хляб, хумус, краставици, моркови.",
+                310, 10, 40, 12, MealType.BREAKFAST, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "бързо", "веган опция"));
+        uniqueSeeds.add(new RSeed("Бъркани яйца със сирене и чушки",
+                "Разбийте яйца със сирене и ситно нарязани чушки. Запържете до готовност.",
+                380, 22, 10, 28, MealType.BREAKFAST, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска","кето-приятелски"));
+
+        // --- Обяд (Lunch) ---
+        uniqueSeeds.add(new RSeed("Салата Капрезе с киноа",
+                "Моцарела, домати, босилек, киноа, зехтин.",
+                420, 20, 35, 20, MealType.LUNCH, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "обяд", "без-глутен"));
+        uniqueSeeds.add(new RSeed("Супа от леща с крутони",
+                "Леща, зеленчуци, подправки. Сервирайте с пълнозърнести крутони.",
+                380, 18, 50, 8, MealType.LUNCH, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "обяд", "фибри"));
+        uniqueSeeds.add(new RSeed("Бургер от нахут със салата",
+                "Котлет от нахут, пълнозърнеста питка, зеленчуци. Сервирайте със зелена салата.",
+                450, 25, 45, 15, MealType.LUNCH, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "обяд"));
+        uniqueSeeds.add(new RSeed("Паста с броколи и чесън",
+                "Пълнозърнеста паста, броколи, чесън, зехтин, пармезан.",
+                480, 18, 60, 18, MealType.LUNCH, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "бързо"));
+        uniqueSeeds.add(new RSeed("Пълнени картофи с гъби и сирене",
+                "Печен картоф, пълнен със запържени гъби и настъргано сирене.",
+                460, 15, 50, 20, MealType.LUNCH, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", " comfort food"));
+
+        // --- Вечеря (Dinner) ---
+        uniqueSeeds.add(new RSeed("Паста с песто и чери домати",
+                "Пълнозърнеста паста, песто, чери домати.",
+                480, 15, 60, 20, MealType.DINNER, veg, MeatPreferenceType.NONE,
+                true, true, true, false, false, "вегетарианска", "вечеря"));
+        uniqueSeeds.add(new RSeed("Зеленчуково къри с ориз Басмати",
+                "Различни зеленчуци, кокосово мляко, къри паста, ориз басмати.",
+                520, 12, 60, 25, MealType.DINNER, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "вечеря", "веган опция"));
+        uniqueSeeds.add(new RSeed("Пълнени гъби Портобело",
+                "Гъби Портобело, извара, спанак, подправки. Запечете.",
+                400, 22, 15, 30, MealType.DINNER, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "вечеря"));
+        uniqueSeeds.add(new RSeed("Омлет със сирене и задушени зеленчуци",
+                "Голям омлет със сирене, сервиран със задушени моркови и броколи.",
+                420, 20, 15, 30, MealType.DINNER, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "бърза"));
+        uniqueSeeds.add(new RSeed("Лазаня със спанак и рикота",
+                "Лазаня с рикота, спанак и доматен сос.",
+                550, 25, 50, 28, MealType.DINNER, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "традиционно"));
+
+        // --- Снак (Snack) ---
+        uniqueSeeds.add(new RSeed("Морковени пръчици с хумус",
+                "Нарязани моркови, хумус.",
+                180, 5, 20, 8, MealType.SNACK, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "снак", "бързо", "веган"));
+        uniqueSeeds.add(new RSeed("Плодов сандвич с фъстъчено масло",
+                "Две парчета ябълка с фъстъчено масло между тях.",
+                260, 6, 25, 14, MealType.SNACK, veg, MeatPreferenceType.NONE,
+                true, false, true, false, false, "вегетарианска", "снак"));
+        uniqueSeeds.add(new RSeed("Йогурт с горски плодове и семена",
+                "Натурален йогурт, горски плодове, ленено семе.",
+                270, 12, 25, 10, MealType.SNACK, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "снак"));
+        uniqueSeeds.add(new RSeed("Зеленчуков сок (домат, целина, спанак)",
+                "Изцеден сок от домати, целина и спанак.",
+                120, 4, 20, 1, MealType.SNACK, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "свежо", "детокс"));
+        uniqueSeeds.add(new RSeed("Парче пълнозърнест хляб с авокадо",
+                "Парче пълнозърнест хляб с намачкано авокадо.",
+                220, 6, 25, 12, MealType.SNACK, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "бързо"));
+
+
+        // ==== Веган диета ====
+        // --- Закуска (Breakfast) ---
+        uniqueSeeds.add(new RSeed("Веган овесена каша с бадемово мляко и плодове",
+                "Овесени ядки, бадемово мляко, горски плодове, кленов сироп.",
+                330, 8, 55, 7, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "закуска"));
+        uniqueSeeds.add(new RSeed("Тост с авокадо и чери домати",
+                "Пълнозърнест тост, авокадо, чери домати, магданоз.",
+                380, 7, 28, 25, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "закуска"));
+        uniqueSeeds.add(new RSeed("Смути с банан, спанак и растително мляко",
+                "Пасирайте банан, спанак и растително мляко до гладкост.",
+                300, 10, 40, 10, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "бързо", "зелено смути"));
+        uniqueSeeds.add(new RSeed("Оризова каша с кокосово мляко и стафиди",
+                "Сварете ориз с кокосово мляко, добавете стафиди.",
+                350, 6, 60, 8, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "сладко"));
+
+        // --- Обяд (Lunch) ---
+        uniqueSeeds.add(new RSeed("Леща чорба с пресен хляб",
+                "Леща, зеленчуци, подправки, сервира се с пресен хляб.",
+                400, 20, 55, 7, MealType.LUNCH, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "обяд", "фибри"));
+        uniqueSeeds.add(new RSeed("Фасул Яхния с кисели краставички",
+                "Бял фасул, домати, лук, моркови, сервира се с кисели краставички.",
+                450, 25, 60, 8, MealType.LUNCH, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "обяд", "традиционна"));
+        uniqueSeeds.add(new RSeed("Бургер с черен боб и сладки картофи",
+                "Котлет от черен боб, пълнозърнеста питка, сервира се с печени сладки картофи.",
+                500, 28, 65, 15, MealType.LUNCH, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "обяд"));
+        uniqueSeeds.add(new RSeed("Тофу бъркани яйца със спанак и гъби",
+                "Разбъркано тофу със спанак и гъби, подправено с куркума за цвят.",
+                420, 25, 20, 25, MealType.LUNCH, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "закуска-обяд"));
+        uniqueSeeds.add(new RSeed("Салата с нахут, червено цвекло и орехи",
+                "Сварен нахут, червено цвекло, пресен магданоз, орехи и лимонов дресинг.",
+                400, 18, 40, 18, MealType.LUNCH, vegan, MeatPreferenceType.NONE,
+                true, false, true, false, false, "веган", "салата"));
+
+        // --- Вечеря (Dinner) ---
+        uniqueSeeds.add(new RSeed("Печени зеленчуци с тофу",
+                "Микс от зеленчуци (броколи, чушки, лук), тофу, соев сос, изпечени на фурна.",
+                470, 25, 30, 28, MealType.DINNER, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "вечеря"));
+        uniqueSeeds.add(new RSeed("Къри с нахут и ориз",
+                "Нахут, кокосово мляко, къри паста, зеленчуци, сервира се с ориз.",
+                530, 20, 70, 20, MealType.DINNER, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "вечеря"));
+        uniqueSeeds.add(new RSeed("Пълнени картофи с веган сирене и гъби",
+                "Печени картофи, пълнени с веган сирене и запържени гъби.",
+                480, 15, 60, 20, MealType.DINNER, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "comfort food"));
+        uniqueSeeds.add(new RSeed("Зеленчуков сувлаки (без месо)",
+                "Шишчета от зеленчуци на грил, сервирани с питка и дзадзики от тофу.",
+                450, 15, 50, 18, MealType.DINNER, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "гръцки вкус"));
+
+        // --- Снак (Snack) ---
+        uniqueSeeds.add(new RSeed("Ябълка с бадемово масло",
+                "Ябълка, бадемово масло.",
+                280, 5, 25, 18, MealType.SNACK, vegan, MeatPreferenceType.NONE,
+                true, false, true, false, false, "веган", "снак"));
+        uniqueSeeds.add(new RSeed("Зеленчукови пръчици с гуакамоле",
+                "Моркови, краставици, чушки с домашно гуакамоле.",
+                220, 4, 15, 18, MealType.SNACK, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "снак"));
+        uniqueSeeds.add(new RSeed("Оризовки с авокадо и домати",
+                "Оризовки, намазани с авокадо и резени домати.",
+                200, 4, 20, 12, MealType.SNACK, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "бързо"));
+        uniqueSeeds.add(new RSeed("Веган протеинов бар",
+                "Протеинов бар от магазин, подходящ за вегани.",
+                250, 15, 25, 10, MealType.SNACK, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "удобно"));
+
+
+        // ==== Палео диета ====
+        // --- Закуска (Breakfast) ---
+        uniqueSeeds.add(new RSeed("Палео омлет със спанак и авокадо",
+                "Яйца, спанак, кокосово масло, авокадо. Запържете всичко заедно.",
+                340, 20, 6, 28, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE,
+                true, false, false, false, false, "палео", "закуска"));
+        uniqueSeeds.add(new RSeed("Палео палачинки от банан и яйца",
+                "Банан, яйца, кокосово масло. Изпечете палачинки.",
+                370, 14, 24, 24, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE,
+                true, false, false, false, false, "палео", "закуска"));
+        uniqueSeeds.add(new RSeed("Салата с авокадо и пушен бекон",
+                "Авокадо, пушен бекон, рукола, зехтин. Смесете съставките.",
+                410, 16, 8, 36, MealType.BREAKFAST, paleo, MeatPreferenceType.PORK,
+                false, false, false, false, true, "палео", "закуска"));
+        uniqueSeeds.add(new RSeed("Смути с бадемово мляко, ягоди и семена чиа",
+                "Бадемово мляко, ягоди, чиа. Пасирайте всичко.",
+                300, 10, 15, 20, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE,
+                true, false, false, false, false, "палео", "закуска"));
+        uniqueSeeds.add(new RSeed("Телешки колбас без добавки с яйца",
+                "Натурален телешки колбас, запържен с две яйца.",
+                390, 25, 5, 30, MealType.BREAKFAST, paleo, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "палео", "високо-протеин"));
+
+        // --- Обяд (Lunch) ---
+        uniqueSeeds.add(new RSeed("Пилешки гърди с тиквички и зехтин",
+                "Пилешко филе, тиквички, подправки. Изпечете във фурна.",
+                480, 38, 10, 24, MealType.LUNCH, paleo, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "палео", "обяд"));
+        uniqueSeeds.add(new RSeed("Говеждо задушено с броколи",
+                "Телешко месо, броколи, зехтин. Задушете заедно.",
+                520, 40, 8, 28, MealType.LUNCH, paleo, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "палео", "обяд"));
+        uniqueSeeds.add(new RSeed("Сьомга на фурна с авокадо",
+                "Сьомга, авокадо, лимон. Изпечете и сервирайте.",
+                510, 36, 5, 34, MealType.LUNCH, paleo, MeatPreferenceType.FISH,
+                false, false, false, true, false, "палео", "обяд"));
+        uniqueSeeds.add(new RSeed("Тиквички с яйца и телешка кайма",
+                "Тиквички, яйца, телешка кайма. Изпечете всичко заедно.",
+                500, 34, 10, 30, MealType.LUNCH, paleo, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "палео", "обяд"));
+        uniqueSeeds.add(new RSeed("Свинско филе с печени чушки",
+                "Свинско филе, изпечено на фурна с различни видове чушки.",
+                530, 38, 15, 30, MealType.LUNCH, paleo, MeatPreferenceType.PORK,
+                false, false, false, false, true, "палео", "пълноценно"));
+        uniqueSeeds.add(new RSeed("Пилешки бутчета с печени кореноплодни",
+                "Пилешки бутчета, моркови, пащърнак, целина. Печете до златисто.",
+                500, 35, 20, 25, MealType.LUNCH, paleo, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "палео", "comfort food"));
+
+        // --- Вечеря (Dinner) ---
+        uniqueSeeds.add(new RSeed("Риба на скара със зеленчуци микс",
+                "Риба, тиквички, домати, чушки. Изпечете на скара.",
+                460, 34, 8, 28, MealType.DINNER, paleo, MeatPreferenceType.FISH,
+                false, false, false, true, false, "палео", "вечеря"));
+        uniqueSeeds.add(new RSeed("Печени пилешки бутчета с розмарин",
+                "Пилешки бутчета, подправки, розмарин. Изпечете до златисто.",
+                480, 36, 6, 30, MealType.DINNER, paleo, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "палео", "вечеря"));
+        uniqueSeeds.add(new RSeed("Пълнени чушки с телешка кайма",
+                "Чушки, телешка кайма, подправки. Напълнете и запечете.",
+                490, 32, 6, 26, MealType.DINNER, paleo, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "палео", "вечеря"));
+        uniqueSeeds.add(new RSeed("Задушен заек с кореноплодни",
+                "Заешко месо, моркови, пащърнак, целина. Задушете до готовност.",
+                500, 36, 9, 26, MealType.DINNER, paleo, MeatPreferenceType.NO_PREFERENCE,
+                false, false, false, false, false, "палео", "вечеря"));
+        uniqueSeeds.add(new RSeed("Свинско свинско с праз и моркови",
+                "Свинско месо, праз, моркови, задушени до готовност.",
+                510, 35, 12, 28, MealType.DINNER, paleo, MeatPreferenceType.PORK,
+                false, false, false, false, true, "палео", "лесно"));
+        uniqueSeeds.add(new RSeed("Котлети от дивеч (елен/глиган) със сладък картоф",
+                "Котлети от дивеч, печени със сладък картоф.",
+                580, 45, 20, 30, MealType.DINNER, paleo, MeatPreferenceType.NO_PREFERENCE,
+                false, false, false, false, false, "палео", "дивеч", "пълноценно"));
+
+        // --- Снак (Snack) ---
+        uniqueSeeds.add(new RSeed("Палео бар с фурми и ядки",
+                "Фурми, бадемово масло, кокосови стърготини.",
+                290, 6, 25, 18, MealType.SNACK, paleo, MeatPreferenceType.NONE,
+                true, false, true, false, false, "палео", "снак"));
+        uniqueSeeds.add(new RSeed("Шепа сурови ядки (без фъстъци)",
+                "Микс от бадеми, орехи, кашу.",
+                270, 8, 15, 22, MealType.SNACK, paleo, MeatPreferenceType.NONE,
+                true, false, true, false, false, "палео", "снак"));
+        uniqueSeeds.add(new RSeed("Парче сушено месо (без добавки)",
+                "Домашно сушено телешко или пилешко месо.",
+                150, 20, 2, 5, MealType.SNACK, paleo, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "палео", "протеин", "бързо"));
+        uniqueSeeds.add(new RSeed("Плодове и семена",
+                "Ябълка с тиквени семки.",
+                200, 5, 25, 10, MealType.SNACK, paleo, MeatPreferenceType.NONE,
+                true, false, false, false, false, "палео", "лесно"));
+
+        // ==== Балансирана диета ====
+        // --- Закуска (Breakfast) ---
+        uniqueSeeds.add(new RSeed("Овесена каша с ябълка и канела",
+                "Овесени ядки, ябълка, канела, мляко. Сварете овеса с млякото и добавете ябълка и канела.",
+                340, 10, 50, 8, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "закуска", "бързо"));
+        uniqueSeeds.add(new RSeed("Яйца със спанак и пълнозърнест тост",
+                "Запържете яйцата със спанака и сервирайте с препечен пълнозърнест хляб.",
+                360, 18, 20, 20, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "високо-протеин"));
+        uniqueSeeds.add(new RSeed("Кисело мляко с овес, мед и орехи",
+                "Смесете киселото мляко, овесените ядки и меда; поръсете с орехи.",
+                310, 14, 35, 10, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, true, false, false, "балансирана", "бърза"));
+        uniqueSeeds.add(new RSeed("Сандвич с яйце, авокадо и домат",
+                "Пълнозърнест хляб, варено яйце, авокадо и резени домат – идеален за път.",
+                390, 15, 25, 24, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "to-go", "здравословни мазнини"));
+        uniqueSeeds.add(new RSeed("Палачинки с извара и горски плодове",
+                "Овесено брашно, извара и яйца. Изпечете палачинките и сервирайте с горски плодове.",
+                350, 18, 30, 14, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "фит-десерт"));
+        uniqueSeeds.add(new RSeed("Чиа пудинг с кокосово мляко и манго",
+                "Накиснете чията за 4-6 ч. в кокосово мляко, добавете пресни парчета манго преди сервиране.",
+                320, 9, 25, 15, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "prep-friendly", "веган опция"));
+        uniqueSeeds.add(new RSeed("Мюсли с прясно мляко и банан",
+                "Смесете мюслито с прясно мляко и нарязан банан, оставете 5 мин да омекне.",
+                340, 10, 40, 8, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "classic"));
+        uniqueSeeds.add(new RSeed("Бъркани яйца със сирене и чушки",
+                "Разбийте яйца със сирене и ситно нарязани чушки. Запържете до готовност.",
+                380, 22, 10, 28, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "кето-приятелски"));
+        uniqueSeeds.add(new RSeed("Оризовки с авокадо и чиа",
+                "Намажете оризовки с авокадо и поръсете с чиа семена.",
+                300, 8, 30, 18, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "веган", "без-глутен"));
+        uniqueSeeds.add(new RSeed("Плодова салата с котидж сирене",
+                "Микс от сезонни плодове с котидж сирене.",
+                290, 15, 35, 10, MealType.BREAKFAST, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "лека", "свежа"));
+
+        // --- Обяд (Lunch) ---
+        uniqueSeeds.add(new RSeed("Салата с киноа, риба тон и зеленчуци",
+                "Сварете киноата, охладете и разбъркайте с риба тон, краставици, домати и маслини.",
+                420, 28, 40, 14, MealType.LUNCH, bal, MeatPreferenceType.FISH,
+                false, false, false, true, false, "балансирана", "без-глутен", "бърз обяд"));
+        uniqueSeeds.add(new RSeed("Пилешко филе със сладък картоф и броколи",
+                "Запечете пилешкото филе и резените сладък картоф във фурна 25 мин при 200 °C. Задушете броколите на пара.",
+                480, 38, 35, 16, MealType.LUNCH, bal, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "балансирана", "meal-prep"));
+        uniqueSeeds.add(new RSeed("Пъстърва на пара с кафяв ориз и задушени моркови",
+                "Гответе пъстървата на пара; поднесете с кафяв ориз и задушени моркови.",
+                500, 34, 38, 18, MealType.LUNCH, bal, MeatPreferenceType.FISH,
+                false, false, false, true, false, "балансирана", "omega-3"));
+        uniqueSeeds.add(new RSeed("Свинско месо със зеле и моркови",
+                "Задушете свинското месо със зеле и моркови до пълно омекване. Овкусете с червен пипер.",
+                510, 36, 20, 22, MealType.LUNCH, bal, MeatPreferenceType.PORK,
+                false, false, false, false, true, "балансирана", "ниско-въглехидрати"));
+        uniqueSeeds.add(new RSeed("Телешко с булгур и домати",
+                "Сварете булгура; задушете телешкото с домати и поднесете заедно.",
+                530, 40, 30, 20, MealType.LUNCH, bal, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "балансирана", "желязо"));
+        uniqueSeeds.add(new RSeed("Голям омлет със зеленчуци (чушки, лук, гъби)",
+                "Яйца с чушки, лук и гъби; изпечете в тефлонов тиган.",
+                390, 20, 15, 22, MealType.LUNCH, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "вегетарианска"));
+        uniqueSeeds.add(new RSeed("Тофу със зеленчуци и кафяв ориз",
+                "Запържете тофуто с броколи, моркови и чушки, сервирайте върху кафяв ориз.",
+                440, 24, 35, 14, MealType.LUNCH, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "веган", "бързо"));
+        uniqueSeeds.add(new RSeed("Пилешка пържола със зелена салата и дресинг",
+                "Изпечете пилешка пържола на тиган, сервирайте със свежа зелена салата и лек дресинг.",
+                450, 40, 10, 25, MealType.LUNCH, bal, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "балансирана", "лесно"));
+        uniqueSeeds.add(new RSeed("Салата с нахут, авокадо и краставица",
+                "Смесете нахут, нарязано авокадо, краставица, червен лук и лимонов дресинг.",
+                380, 15, 40, 18, MealType.LUNCH, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "веган", "без-gлутен"));
+        uniqueSeeds.add(new RSeed("Морска храна с ориз и зеленчуци",
+                "Калмари/скариди запържени с ориз и микс от зеленчуци.",
+                500, 30, 45, 15, MealType.LUNCH, bal, MeatPreferenceType.FISH,
+                false, false, false, true, false, "балансирана", "морска храна"));
+        uniqueSeeds.add(new RSeed("Свинско филе със задушени гъби",
+                "Печено свинско филе, сервирано със задушени гъби и пресен магданоз.",
+                520, 38, 15, 28, MealType.LUNCH, bal, MeatPreferenceType.PORK,
+                false, false, false, false, true, "балансирана", "ниско-въглехидрати"));
+
+        // --- Вечеря (Dinner) ---
+        uniqueSeeds.add(new RSeed("Леща с ориз и свежа салата",
+                "Сварете лещата и ориза; поднесете с пресна салата от домати и краставици.",
+                430, 22, 40, 10, MealType.DINNER, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "фибри"));
+        uniqueSeeds.add(new RSeed("Пилешка супа със зеленчуци",
+                "Пилешко месо, моркови, картофи, целина; вари се 40 мин и се овкусява с магданоз.",
+                400, 30, 20, 12, MealType.DINNER, bal, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "балансирана", "comfort", "лека"));
+        uniqueSeeds.add(new RSeed("Рататуй с тиквички, патладжан и домати",
+                "Тиквички, патладжан, домати и чушки – печете 35 мин на 180 °C.",
+                370, 8, 25, 14, MealType.DINNER, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "ниско-калорични", "веган"));
+        uniqueSeeds.add(new RSeed("Тилапия на фурна със задушен зелен фасул",
+                "Изпечете тилапията с лимонов сок; сервирайте със задушен зелен фасул.",
+                460, 32, 18, 20, MealType.DINNER, bal, MeatPreferenceType.FISH,
+                false, false, false, true, false, "балансирана", "постен протеин"));
+        uniqueSeeds.add(new RSeed("Пълнени чушки с кайма и ориз",
+                "Чушки, свинска и телешка кайма и ориз във фурна с доматен сос.",
+                490, 28, 30, 18, MealType.DINNER, bal, MeatPreferenceType.NO_PREFERENCE,
+                false, false, false, false, false, "балансирана", "класика"));
+        uniqueSeeds.add(new RSeed("Киноа с печени зеленчуци и гъби",
+                "Сварена киноа, тиквички, моркови и гъби, запечени със зехтин и подправки.",
+                420, 16, 35, 14, MealType.DINNER, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "суперхрана", "веган"));
+        uniqueSeeds.add(new RSeed("Яйца с броколи и пармезан",
+                "Запечете яйца, броколи и настърган пармезан в керамичен съд.",
+                410, 20, 15, 24, MealType.DINNER, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "кето-приятелски"));
+        uniqueSeeds.add(new RSeed("Мусака с телешка кайма",
+                "Слоеве от картофи, телешка кайма и бешамелов сос, запечени във фурна.",
+                550, 35, 30, 30, MealType.DINNER, bal, MeatPreferenceType.BEEF,
+                false, true, false, false, false, "балансирана", "традиционна"));
+        uniqueSeeds.add(new RSeed("Агнешки котлети с розмарин и чесън",
+                "Печени агнешки котлети с пресен розмарин и чесън.",
+                560, 40, 10, 35, MealType.DINNER, bal, MeatPreferenceType.LAMB,
+                false, false, false, false, false, "балансирана", "празнично"));
+        uniqueSeeds.add(new RSeed("Свинско с гъби и ориз",
+                "Свинско месо, гъби и бял ориз, задушени в соев сос.",
+                530, 35, 30, 25, MealType.DINNER, bal, MeatPreferenceType.PORK,
+                false, false, false, false, true, "балансирана", "азиатски вкус"));
+
+        // --- Снак (Snack) ---
+        uniqueSeeds.add(new RSeed("Орехи с кисело мляко и мед",
+                "Кисело мляко, натрошени орехи и лъжичка мед.",
+                280, 14, 10, 20, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, true, true, false, false, "балансирана", "здравословни мазнини"));
+        uniqueSeeds.add(new RSeed("Ябълка с фъстъчено масло",
+                "Нарежете ябълка на резени и намажете с фъстъчено масло.",
+                270, 6, 25, 14, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, false, true, false, false, "балансирана", "on-the-go"));
+        uniqueSeeds.add(new RSeed("Смути с кисело мляко, банан и горски плодове",
+                "Пасирайте кисело мляко, банан и горски плодове до гладкост.",
+                290, 10, 28, 10, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "витамин-буст"));
+        uniqueSeeds.add(new RSeed("Домашни барове с мюсли и ядки",
+                "Мюсли, мед и ядки – изпечете 15 мин, оставете да стегнат.",
+                300, 8, 30, 12, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, true, true, false, false, "балансирана", "prep-bars"));
+        uniqueSeeds.add(new RSeed("Фреш от морков, ябълка и лимон",
+                "Изцедете сока от морков, ябълка и лимон; сервирайте охладено.",
+                150, 2, 28, 1, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "свежо"));
+        uniqueSeeds.add(new RSeed("Райска ябълка с кисело мляко",
+                "Смесете нарязана райска ябълка с кисело мляко и мед.",
+                260, 9, 20, 8, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "сезонно"));
+        uniqueSeeds.add(new RSeed("Грис с мляко и сладко",
+                "Сварете гриса в прясно мляко, поръсете с канела и добавете лъжичка сладко.",
+                310, 7, 35, 9, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "носталгия"));
+        uniqueSeeds.add(new RSeed("Протеинов шейк (банан и мляко)",
+                "Банан, протеин на прах, мляко. Разбийте в блендер.",
+                250, 25, 20, 5, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, true, false, false, false, "балансирана", "бърз протеин"));
+        uniqueSeeds.add(new RSeed("Оризовки с хумус",
+                "Намажете оризовки с хумус.",
+                200, 5, 25, 8, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "веган", "бързо"));
+        uniqueSeeds.add(new RSeed("Шепа бадеми и сушени череши",
+                "Микс от бадеми и сушени череши.",
+                230, 7, 18, 15, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, false, true, false, false, "балансирана", "енергия"));
+        uniqueSeeds.add(new RSeed("Варено яйце и зеленчукови пръчици",
+                "Едно варено яйце със солети от морков и краставица.",
+                180, 10, 10, 10, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, false, false, false, false, "балансирана", "бързо", "лека"));
+        uniqueSeeds.add(new RSeed("Малка шепа кашу и фурми",
+                "Кашу и фурми за бърза енергия.",
+                250, 6, 30, 12, MealType.SNACK, bal, MeatPreferenceType.NONE,
+                true, false, true, false, false, "балансирана", "енергия", "сладко"));
+
+
+        // ==== Кето диета ====
+        // --- Закуска (Breakfast) ---
+        uniqueSeeds.add(new RSeed("Бъркани яйца с бекон и авокадо",
+                "Запържете бекона, добавете яйцата и авокадото. Кето закуска.",
+                450, 25, 5, 38, MealType.BREAKFAST, keto, MeatPreferenceType.PORK,
+                false, false, false, false, true, "кето", "високо-мазнини"));
+        uniqueSeeds.add(new RSeed("Омлет със сирене чедър и гъби",
+                "Разбийте яйца със сирене чедър и гъби. Изпечете до златисто.",
+                400, 20, 8, 32, MealType.BREAKFAST, keto, MeatPreferenceType.NONE,
+                true, true, false, false, false, "кето", "вегетарианска"));
+        uniqueSeeds.add(new RSeed("Кето смути с авокадо, спанак и кокосово мляко",
+                "Пасирайте авокадо, спанак, кокосово мляко и малко протеин на прах.",
+                380, 15, 10, 30, MealType.BREAKFAST, keto, MeatPreferenceType.NONE,
+                true, false, false, false, false, "кето", "веган", "бързо"));
+        uniqueSeeds.add(new RSeed("Кето палачинки с бадемово брашно и маскарпоне",
+                "Палачинки от бадемово брашно, яйца и маскарпоне, сервирани с горски плодове.",
+                420, 18, 12, 35, MealType.BREAKFAST, keto, MeatPreferenceType.NONE,
+                true, true, true, false, false, "кето", "ниско-въглехидрати"));
+        uniqueSeeds.add(new RSeed("Яйца по бенедиктински с холандски сос (без хляб)",
+                "Поширани яйца, гарнирани с бекон и кето холандски сос.",
+                470, 20, 5, 40, MealType.BREAKFAST, keto, MeatPreferenceType.PORK,
+                false, true, false, false, true, "кето", "класика"));
+
+        // --- Обяд (Lunch) ---
+        uniqueSeeds.add(new RSeed("Сьомга на тиган със спаржа и лимон",
+                "Изпечете сьомгата на тиган; сервирайте със задушена спаржа и резен лимон.",
+                550, 35, 10, 45, MealType.LUNCH, keto, MeatPreferenceType.FISH,
+                false, false, false, true, false, "кето", "омега-3"));
+        uniqueSeeds.add(new RSeed("Пилешки бутчета с кожа и салата айсберг",
+                "Запечете пилешки бутчета; поднесете със свежа салата айсберг.",
+                600, 40, 8, 48, MealType.LUNCH, keto, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "кето", "високо-мазнини"));
+        uniqueSeeds.add(new RSeed("Салата Цезар без крутони с пилешко",
+                "Пилешко месо, маруля, пармезан, кето дресинг Цезар (без крутони).",
+                480, 38, 10, 32, MealType.LUNCH, keto, MeatPreferenceType.CHICKEN,
+                false, true, false, false, false, "кето", "класика"));
+        uniqueSeeds.add(new RSeed("Кето пица с карфиолова основа и салам",
+                "Основа от карфиол, доматен сос, моцарела и салам пеперони.",
+                520, 30, 15, 40, MealType.LUNCH, keto, MeatPreferenceType.NO_PREFERENCE, // Салам може да е свински
+                false, true, false, false, true, "кето", "комфорт-храна"));
+        uniqueSeeds.add(new RSeed("Телешки кюфтета с доматен сос и моцарела",
+                "Кюфтета от телешка кайма, приготвени в доматен сос и запечени с моцарела.",
+                580, 45, 12, 40, MealType.LUNCH, keto, MeatPreferenceType.BEEF,
+                false, true, false, false, false, "кето", "лесно"));
+
+        // --- Вечеря (Dinner) ---
+        uniqueSeeds.add(new RSeed("Агнешки котлети на грил с броколи",
+                "Изпечете агнешки котлети на грил; сервирайте с броколи на пара.",
+                650, 45, 10, 50, MealType.DINNER, keto, MeatPreferenceType.LAMB,
+                false, false, false, false, false, "кето", "празнично"));
+        uniqueSeeds.add(new RSeed("Пълнена тиква с телешка кайма и сирене",
+                "Тиква, пълнена с телешка кайма, гъби и сирене, изпечена във фурна.",
+                620, 42, 20, 45, MealType.DINNER, keto, MeatPreferenceType.BEEF,
+                false, true, false, false, false, "кето", "сезонно"));
+        uniqueSeeds.add(new RSeed("Кето лазаня с тиквички вместо кори",
+                "Слоеве от тиквички, месо и сирене, запечени до златисто.",
+                590, 38, 15, 48, MealType.DINNER, keto, MeatPreferenceType.NO_PREFERENCE,
+                false, true, false, false, false, "кето", "комфорт-храна"));
+        uniqueSeeds.add(new RSeed("Свинска пържола с масло и чесън",
+                "Дебела свинска пържола, изпечена на тиган с масло и чесън, сервирана с малко зелена салата.",
+                630, 40, 5, 50, MealType.DINNER, keto, MeatPreferenceType.PORK,
+                false, true, false, false, true, "кето", "ниско-въглехидрати"));
+        uniqueSeeds.add(new RSeed("Кето чили кон карне (без боб)",
+                "Мляно телешко месо, домати, чушки, лук и подправки, приготвени без боб.",
+                580, 45, 15, 40, MealType.DINNER, keto, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "кето", "засищащо"));
+
+        // --- Снак (Snack) ---
+        uniqueSeeds.add(new RSeed("Шепа бадеми и парче сирене",
+                "Малка шепа бадеми и едно парче твърдо сирене.",
+                220, 10, 5, 18, MealType.SNACK, keto, MeatPreferenceType.NONE,
+                true, true, true, false, false, "кето", "бързо"));
+        uniqueSeeds.add(new RSeed("Кето бомбички с фъстъчено масло",
+                "Кето бомбички от фъстъчено масло, кокосово брашно и стевия.",
+                280, 8, 8, 25, MealType.SNACK, keto, MeatPreferenceType.NONE,
+                true, false, true, false, false, "кето", "десерт"));
+        uniqueSeeds.add(new RSeed("Варено яйце с майонеза",
+                "Едно варено яйце, намазано с майонеза.",
+                150, 8, 1, 12, MealType.SNACK, keto, MeatPreferenceType.NONE,
+                true, false, false, false, false, "кето", "бърз протеин"));
+        uniqueSeeds.add(new RSeed("Парче авокадо със сол и черен пипер",
+                "Нарежете половин авокадо и поръсете със сол и черен пипер.",
+                180, 2, 8, 16, MealType.SNACK, keto, MeatPreferenceType.NONE,
+                true, false, false, false, false, "кето", "здравословни мазнини"));
+        uniqueSeeds.add(new RSeed("Кето бар с ядки и семена",
+                "Домашен кето бар от ядки, семена и кокосово масло.",
+                250, 10, 10, 20, MealType.SNACK, keto, MeatPreferenceType.NONE,
+                true, false, true, false, false, "кето", "енергия"));
+
+
+        // ==== Протеинова диета ====
+        // --- Закуска (Breakfast) ---
+        uniqueSeeds.add(new RSeed("Протеинов омлет с пилешко филе и чушки",
+                "Яйчен белтък, нарязано пилешко филе и чушки. Запържете до готовност.",
+                380, 40, 10, 15, MealType.BREAKFAST, prot, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "протеинова", "високо-протеин"));
+        uniqueSeeds.add(new RSeed("Извара с канела и малко мед",
+                "Извара, поръсена с канела и лъжичка мед.",
+                280, 30, 20, 8, MealType.BREAKFAST, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "бърза", "ниско-мазнини"));
+        uniqueSeeds.add(new RSeed("Протеинови палачинки с боровинки",
+                "Палачинки от протеин на прах, овесено брашно и яйца, с пресни боровинки.",
+                350, 35, 25, 10, MealType.BREAKFAST, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "фит-десерт"));
+        uniqueSeeds.add(new RSeed("Скир с протеин на прах и малини",
+                "Скир (скир), протеин на прах и пресни малини.",
+                320, 40, 15, 5, MealType.BREAKFAST, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "бързо", "много-протеин"));
+        uniqueSeeds.add(new RSeed("Бъркани яйца с шунка",
+                "Яйца, бъркани с нарязана шунка.",
+                390, 28, 5, 28, MealType.BREAKFAST, prot, MeatPreferenceType.PORK,
+                false, false, false, false, true, "протеинова", "класика"));
+
+        // --- Обяд (Lunch) ---
+        uniqueSeeds.add(new RSeed("Телешки стек на грил със зелен фасул",
+                "Телешки стек, изпечен на грил, сервиран със задушен зелен фасул.",
+                500, 50, 10, 28, MealType.LUNCH, prot, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "протеинова", "червено месо"));
+        uniqueSeeds.add(new RSeed("Пилешки гърди с киноа и задушени моркови",
+                "Печени пилешки гърди с киноа и задушени моркови.",
+                480, 45, 30, 15, MealType.LUNCH, prot, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "протеинова", "clean-eating"));
+        uniqueSeeds.add(new RSeed("Треска на фурна с картофи и копър",
+                "Филе от треска, изпечено на фурна с картофи и свеж копър.",
+                450, 40, 30, 15, MealType.LUNCH, prot, MeatPreferenceType.FISH,
+                false, false, false, true, false, "протеинова", "постна риба"));
+        uniqueSeeds.add(new RSeed("Калмари на тиган със салата от рукола",
+                "Запържени калмари на тиган, сервирани със салата от рукола и лимонов дресинг.",
+                470, 42, 10, 25, MealType.LUNCH, prot, MeatPreferenceType.FISH,
+                false, false, false, true, false, "протеинова", "морска храна"));
+        uniqueSeeds.add(new RSeed("Свинско контрафиле на грил със зелена салата",
+                "Свинско контрафиле, изпечено на грил, със зелена салата и лек дресинг.",
+                520, 48, 10, 30, MealType.LUNCH, prot, MeatPreferenceType.PORK,
+                false, false, false, false, true, "протеинова", "ниско-въглехидрати"));
+
+        // --- Вечеря (Dinner) ---
+        uniqueSeeds.add(new RSeed("Пуешка кайма с броколи и гъби",
+                "Пуешка кайма, задушена с броколи и гъби.",
+                420, 40, 15, 20, MealType.DINNER, prot, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "протеинова", "постен протеин"));
+        uniqueSeeds.add(new RSeed("Огретен с извара и яйца",
+                "Запечен огретен от извара, яйца и малко сирене.",
+                400, 35, 10, 22, MealType.DINNER, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "вегетарианска"));
+        uniqueSeeds.add(new RSeed("Пилешки шишчета със зеленчуци",
+                "Пилешки кубчета, нанизани на шиш със зеленчуци (чушки, лук, чери домати), изпечени на грил.",
+                450, 40, 20, 18, MealType.DINNER, prot, MeatPreferenceType.CHICKEN,
+                false, false, false, false, false, "протеинова", "бързо"));
+        uniqueSeeds.add(new RSeed("Протеинова салата с боб, царевица и авокадо",
+                "Микс от боб, царевица, нарязано авокадо, червен лук и лимонов дресинг.",
+                430, 25, 40, 18, MealType.DINNER, prot, MeatPreferenceType.NONE,
+                true, false, false, false, false, "протеинова", "веган", "без-глутен"));
+        uniqueSeeds.add(new RSeed("Мини кюфтенца от телешко с карфиолово пюре",
+                "Малки кюфтенца от телешка кайма, сервирани с пюре от карфиол.",
+                480, 45, 15, 28, MealType.DINNER, prot, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "протеинова", "ниско-въглехидрати"));
+
+        // --- Снак (Snack) ---
+        uniqueSeeds.add(new RSeed("Протеинов бар",
+                "Готов протеинов бар.",
+                220, 20, 20, 8, MealType.SNACK, prot, MeatPreferenceType.NONE,
+                false, true, true, false, false, "протеинова", "бързо", "on-the-go"));
+        uniqueSeeds.add(new RSeed("Протеинов пудинг",
+                "Готов протеинов пудинг.",
+                180, 20, 15, 5, MealType.SNACK, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "бързо"));
+        uniqueSeeds.add(new RSeed("Котидж сирене с чушка",
+                "Котидж сирене, сервирано с нарязана червена чушка.",
+                150, 18, 5, 8, MealType.SNACK, prot, MeatPreferenceType.NONE,
+                true, true, false, false, false, "протеинова", "бързо", "лека"));
+        uniqueSeeds.add(new RSeed("Сурово кашу и стафиди",
+                "Малка шепа сурово кашу и стафиди.",
+                200, 6, 25, 10, MealType.SNACK, prot, MeatPreferenceType.NONE,
+                true, false, true, false, false, "протеинова", "енергия"));
+        uniqueSeeds.add(new RSeed("Филийка пълнозърнест хляб с пуешко филе",
+                "Една филийка пълнозърнест хляб с две парчета пуешко филе.",
+                190, 15, 20, 5, MealType.SNACK, prot, MeatPreferenceType.VEGETARIAN,
+                false, false, false, false, false, "протеинова", "бързо"));
+
+
+        // ==== Вегетарианска диета ====
+        // --- Закуска (Breakfast) ---
+        uniqueSeeds.add(new RSeed("Яйца на очи с авокадо и чери домати",
+                "Две яйца на очи, сервирани с половин авокадо и чери домати.",
+                370, 16, 20, 25, MealType.BREAKFAST, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "здравословни мазнини"));
+        uniqueSeeds.add(new RSeed("Тост с хумус и краставица",
+                "Пълнозърнест тост, намазан с хумус и гарниран с резени краставица.",
+                300, 10, 40, 10, MealType.BREAKFAST, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "бързо"));
+        uniqueSeeds.add(new RSeed("Гръцко кисело мляко с мед и плодове",
+                "Гръцко кисело мляко, мед и микс от сезонни плодове.",
+                330, 20, 30, 10, MealType.BREAKFAST, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "високо-протеин"));
+        uniqueSeeds.add(new RSeed("Сандвичи с крема сирене и репички",
+                "Пълнозърнест хляб, намазан с крема сирене и резени репички.",
+                320, 12, 30, 15, MealType.BREAKFAST, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "лека"));
+
+        // --- Обяд (Lunch) ---
+        uniqueSeeds.add(new RSeed("Салата Табуле с нахут",
+                "Салата от булгур, домати, краставици, магданоз, мента и нахут, овкусена с лимон и зехтин.",
+                400, 15, 60, 12, MealType.LUNCH, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "свежа"));
+        uniqueSeeds.add(new RSeed("Супа от гъби и сметана",
+                "Кремообразна гъбена супа със сметана и пресен магданоз.",
+                380, 10, 25, 25, MealType.LUNCH, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "уютно"));
+        uniqueSeeds.add(new RSeed("Вегетариански бургер с гъби Портобело",
+                "Гъба Портобело, изпечена на грил, сервирана в пълнозърнеста питка със салата.",
+                450, 18, 40, 20, MealType.LUNCH, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "бързо хранене"));
+        uniqueSeeds.add(new RSeed("Пълнени чушки с ориз и зеленчуци",
+                "Чушки, пълнени с ориз, моркови, лук, домати и подправки, запечени във фурна.",
+                420, 12, 50, 15, MealType.LUNCH, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "класика"));
+
+        // --- Вечеря (Dinner) ---
+        uniqueSeeds.add(new RSeed("Паста с песто и чери домати",
+                "Пълнозърнеста паста с домашно песто и пресни чери домати.",
+                480, 15, 60, 20, MealType.DINNER, veg, MeatPreferenceType.NONE,
+                true, true, true, false, false, "вегетарианска", "бързо"));
+        uniqueSeeds.add(new RSeed("Ориз с гъби и сметана",
+                "Бял ориз, задушен с гъби, лук и сметана.",
+                460, 10, 55, 20, MealType.DINNER, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "уютно"));
+        uniqueSeeds.add(new RSeed("Патладжан с доматен сос и моцарела",
+                "Резени патладжан, запечени с доматен сос и моцарела.",
+                430, 15, 30, 25, MealType.DINNER, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "италианско"));
+        uniqueSeeds.add(new RSeed("Зеленчуково къри с кокосово мляко",
+                "Разнообразни зеленчуци в кремообразен къри сос с кокосово мляко, сервирани с басмати ориз.",
+                500, 15, 55, 25, MealType.DINNER, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "азиатско", "веган опция"));
+
+        // --- Снак (Snack) ---
+        uniqueSeeds.add(new RSeed("Ориз с прясно мляко",
+                "Сварен ориз, подсладен с малко захар и прясно мляко.",
+                280, 8, 40, 10, MealType.SNACK, veg, MeatPreferenceType.NONE,
+                true, true, false, false, false, "вегетарианска", "носталгия"));
+        uniqueSeeds.add(new RSeed("Плодове и шепа ядки",
+                "Смесени сезонни плодове с малка шепа ядки.",
+                250, 5, 30, 15, MealType.SNACK, veg, MeatPreferenceType.NONE,
+                true, false, true, false, false, "вегетарианска", "бързо", "свежо"));
+        uniqueSeeds.add(new RSeed("Зеленчукови пръчици с хумус",
+                "Моркови, краставици и целина, нарязани на пръчици, сервирани с хумус.",
+                200, 8, 20, 10, MealType.SNACK, veg, MeatPreferenceType.NONE,
+                true, false, false, false, false, "вегетарианска", "лека", "свежо"));
+
+
+        // ==== Веган диета ====
+        // --- Закуска (Breakfast) ---
+        uniqueSeeds.add(new RSeed("Овесена каша с ябълка и бадемово мляко",
+                "Овесени ядки, ябълка, канела, бадемово мляко. Сварете овеса с млякото и добавете ябълка и канела.",
+                330, 9, 50, 7, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE,
+                true, false, true, false, false, "веган", "закуска", "бързо"));
+        uniqueSeeds.add(new RSeed("Тофу с бъркани зеленчуци",
+                "Тофу, натрошено и запържено с чушки, лук и спанак. Овкусете с куркума.",
+                350, 20, 15, 20, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "високо-протеин"));
+        uniqueSeeds.add(new RSeed("Чиа пудинг с ягоди и кленов сироп",
+                "Чиа семена, накиснати в растително мляко, с пресни ягоди и кленов сироп.",
+                310, 8, 30, 15, MealType.BREAKFAST, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "prep-friendly"));
+
+        // --- Обяд (Lunch) ---
+        uniqueSeeds.add(new RSeed("Леща на яхния с моркови и домати",
+                "Леща, сварена със ситно нарязани моркови, лук и домати.",
+                410, 20, 50, 8, MealType.LUNCH, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "фибри"));
+        uniqueSeeds.add(new RSeed("Сандвичи с авокадо, домат и рукола",
+                "Пълнозърнест хляб с намачкано авокадо, резени домат и рукола.",
+                390, 10, 35, 22, MealType.LUNCH, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "бързо", "здравословни мазнини"));
+        uniqueSeeds.add(new RSeed("Веган боул с киноа, черен боб и царевица",
+                "Киноа, черен боб, царевица, нарязано авокадо и пикантен дресинг.",
+                460, 20, 55, 18, MealType.LUNCH, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "суперхрана", "без-глутен"));
+
+        // --- Вечеря (Dinner) ---
+        uniqueSeeds.add(new RSeed("Зеленчуково къри с тофу и ориз басмати",
+                "Тофу, зеленчуци и кокосово мляко, приготвени като къри, сервирани с ориз басмати.",
+                520, 25, 60, 20, MealType.DINNER, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "азиатско"));
+        uniqueSeeds.add(new RSeed("Нахут със спанак и домати",
+                "Нахут, задушен със спанак и домати, овкусен с подправки.",
+                450, 18, 55, 15, MealType.DINNER, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "бързо"));
+        uniqueSeeds.add(new RSeed("Веган лазаня с тиквички и зеленчуци",
+                "Лазаня с тиквички вместо кори, доматен сос и различни зеленчуци.",
+                480, 15, 40, 25, MealType.DINNER, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "комфорт-храна"));
+
+        // --- Снак (Snack) ---
+        uniqueSeeds.add(new RSeed("Ориз с кокосово мляко и стафиди",
+                "Сварен ориз с кокосово мляко, подсладен и поръсен със стафиди.",
+                290, 6, 45, 10, MealType.SNACK, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "сладко"));
+        uniqueSeeds.add(new RSeed("Ябълка с бадемово масло",
+                "Нарежете ябълка на резени и намажете с бадемово масло.",
+                260, 5, 25, 15, MealType.SNACK, vegan, MeatPreferenceType.NONE,
+                true, false, true, false, false, "веган", "on-the-go"));
+        uniqueSeeds.add(new RSeed("Смути от банан, спанак и растително мляко",
+                "Пасирайте банан, спанак и растително мляко до гладкост.",
+                270, 8, 30, 8, MealType.SNACK, vegan, MeatPreferenceType.NONE,
+                true, false, false, false, false, "веган", "енергия"));
+
+
+        // ==== Палео диета ====
+        // --- Закуска (Breakfast) ---
+        uniqueSeeds.add(new RSeed("Бъркани яйца с гъби и пуешка шунка",
+                "Яйца, гъби и пуешка шунка, запържени заедно.",
+                420, 28, 10, 30, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE,
+                false, false, false, false, false, "палео", "високо-протеин"));
+        uniqueSeeds.add(new RSeed("Палео палачинки с кокосово брашно и горски плодове",
+                "Палачинки от кокосово брашно, яйца и банан, сервирани с горски плодове.",
+                380, 15, 25, 22, MealType.BREAKFAST, paleo, MeatPreferenceType.NONE,
+                true, false, false, false, false, "палео", "без-глутен"));
+        uniqueSeeds.add(new RSeed("Сьомга на грил с авокадо",
+                "Парче сьомга, изпечено на грил, сервирано с резени авокадо.",
+                480, 30, 8, 35, MealType.BREAKFAST, paleo, MeatPreferenceType.FISH,
+                false, false, false, true, false, "палео", "омега-3"));
+
+        // --- Обяд (Lunch) ---
+        uniqueSeeds.add(new RSeed("Телешки стек със сладки картофи и зеленчуци",
+                "Телешки стек на грил, сервиран с печени сладки картофи и сезонни зеленчуци.",
+                550, 45, 30, 28, MealType.LUNCH, paleo, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "палео", "засищащо"));
+        uniqueSeeds.add(new RSeed("Пилешка салата с авокадо и ядки",
+                "Нарязано печено пилешко, микс салати, авокадо, ядки и зехтинов дресинг.",
+                500, 40, 15, 30, MealType.LUNCH, paleo, MeatPreferenceType.CHICKEN,
+                false, false, true, false, false, "палео", "бързо"));
+        uniqueSeeds.add(new RSeed("Свински котлети с печени ябълки и лук",
+                "Свински котлети, изпечени със резени ябълки и лук.",
+                580, 40, 25, 35, MealType.LUNCH, paleo, MeatPreferenceType.PORK,
+                false, false, false, false, true, "палео", "плодове и месо"));
+
+        // --- Вечеря (Dinner) ---
+        uniqueSeeds.add(new RSeed("Агнешко кебапче с печени чушки и патладжан",
+                "Агнешки кебапчета, изпечени с чушки и патладжан на грил.",
+                600, 50, 20, 35, MealType.DINNER, paleo, MeatPreferenceType.LAMB,
+                false, false, false, false, false, "палео", "богато"));
+        uniqueSeeds.add(new RSeed("Пуешки кюфтета с доматен сос и тиквички",
+                "Кюфтета от пуешка кайма в доматен сос, сервирани със задушени тиквички.",
+                480, 40, 20, 25, MealType.DINNER, paleo, MeatPreferenceType.NO_PREFERENCE,
+                false, false, false, false, false, "палео", "постен протеин"));
+        uniqueSeeds.add(new RSeed("Морски дарове на грил с аспержи",
+                "Микс от морски дарове (скариди, калмари) на грил, сервирани с аспержи.",
+                520, 35, 15, 28, MealType.DINNER, paleo, MeatPreferenceType.FISH,
+                false, false, false, true, false, "палео", "морска храна"));
+
+        // --- Снак (Snack) ---
+        uniqueSeeds.add(new RSeed("Варено яйце и парче плод",
+                "Едно варено яйце и един среден плод (например, банан или ябълка).",
+                200, 10, 20, 10, MealType.SNACK, paleo, MeatPreferenceType.NONE,
+                true, false, false, false, false, "палео", "бързо"));
+        uniqueSeeds.add(new RSeed("Сурови моркови и малко орехи",
+                "Малка шепа сурови моркови и няколко ореха.",
+                180, 5, 15, 12, MealType.SNACK, paleo, MeatPreferenceType.NONE,
+                true, false, true, false, false, "палео", "хрупкаво"));
+        uniqueSeeds.add(new RSeed("Малко сушено месо (джърки)",
+                "Малко количество сушено телешко или пуешко месо (без захар).",
+                150, 20, 5, 8, MealType.SNACK, paleo, MeatPreferenceType.BEEF,
+                false, false, false, false, false, "палео", "протеин"));
+
+
+        // Записване на уникалните рецепти в базата данни
+        uniqueSeeds.forEach(s -> {
+            // Използвайте existsByNameAndMealType, за да избегнете дублиране при повторно стартиране
+            // Уверете се, че този метод е добавен към вашия RecipeRepository
+            if (!recipeRepository.existsByNameAndMealType(s.n, s.meal)) {
+                Recipe recipe = Recipe.builder()
+                        .name(s.n)
+                        .description(s.d)
+                        .calories(s.kcal)
+                        .protein(s.p)
+                        .carbs(s.c)
+                        .fat(s.f)
+                        .mealType(s.meal)
+                        .dietType(s.diet)
+                        .meatType(s.meat)
+                        .isVegetarian(s.veg)
+                        .containsDairy(s.dairy)
+                        .containsNuts(s.nuts)
+                        .containsFish(s.fish) // Ново поле
+                        .containsPork(s.pork) // Ново поле
+                        .tags(new HashSet<>(Arrays.asList(s.tags)))
+                        .allergens(new HashSet<>()) // Добави конкретни алергени, ако е необходимо
+                        .instructions("Пригответе според описанието или намерете пълни инструкции онлайн.") // Примерни инструкции
+                        .build();
+                recipeRepository.save(recipe);
+            }
+        });
+        System.out.println("✔ Рецептите синхронизирани");
     }
+
+
 
     /* ==================================*/
     /*               EXERCISES           */
@@ -1313,4 +1717,3 @@ public class DataInitializer implements CommandLineRunner {
         userRepository.save(u);
     }
 }
-

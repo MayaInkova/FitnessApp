@@ -21,12 +21,12 @@ public class NutritionPlanService {
 
     private static final Logger logger = LoggerFactory.getLogger(NutritionPlanService.class);
 
-    private final NutritionPlanRepository        nutritionPlanRepository;
-    private final RecipeRepository               recipeRepository;
-    private final TrainingPlanRepository         trainingPlanRepository;
-    private final UserRepository                 userRepository;
-    private final TrainingPlanService            trainingPlanService;
-    private final WeeklyNutritionPlanRepository  weeklyNutritionPlanRepository;
+    private final NutritionPlanRepository nutritionPlanRepository;
+    private final RecipeRepository recipeRepository;
+    private final TrainingPlanRepository trainingPlanRepository;
+    private final UserRepository userRepository;
+    private final TrainingPlanService trainingPlanService;
+    private final WeeklyNutritionPlanRepository weeklyNutritionPlanRepository;
 
     @Transactional
     public NutritionPlanDTO generateAndSaveNutritionPlanForUserDTO(User user){
@@ -39,6 +39,7 @@ public class NutritionPlanService {
         }
         final double P = 0.30, C = 0.45, F = 0.25;
 
+        // За дневен план, подаваме празни сетове, тъй като нямаме контекст на седмица
         NutritionPlan entity = generateDailyNutritionPlan(
                 user,
                 LocalDate.now(),
@@ -46,7 +47,9 @@ public class NutritionPlanService {
                 (targetCalories*P)/4.0,
                 (targetCalories*C)/4.0,
                 (targetCalories*F)/9.0,
-                null);
+                null,
+                new HashSet<>(), // usedRecipeIdsInWeek
+                new HashSet<>()); // usedRecipeIdsInDay
         return convertNutritionPlanToDTO(entity);
     }
 
@@ -58,13 +61,13 @@ public class NutritionPlanService {
         LocalDate startDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
         LocalDate endDate   = startDate.plusDays(6);
 
-        /*  Създаваме и пазим седмичния контейнер */
+        /* Създаваме и пазим седмичния контейнер */
         WeeklyNutritionPlan newWeeklyPlan = WeeklyNutritionPlan.builder()
                 .user(user)
                 .startDate(startDate)
                 .endDate(endDate)
                 .build();
-        final WeeklyNutritionPlan weeklyPlan = weeklyNutritionPlanRepository.save(newWeeklyPlan); // final – effectively‑final
+        final WeeklyNutritionPlan weeklyPlan = weeklyNutritionPlanRepository.save(newWeeklyPlan);
 
         /* ---- базови калории и проценти ---- */
         double baseCalories = NutritionCalculator.calculateTDEE(user);
@@ -77,6 +80,16 @@ public class NutritionPlanService {
         TrainingPlan lastTraining = trainingPlanRepository.findByUserOrderByDateGeneratedDesc(user)
                 .stream().findFirst().orElse(null);
 
+        // Извличаме всички рецепти веднъж и ги филтрираме
+        List<Recipe> allFilteredRecipes = filterRecipes(recipeRepository.findAll(), user);
+        if(allFilteredRecipes.isEmpty()) {
+            logger.error("Няма рецепти, отговарящи на критериите за потребител: {}", user.getEmail());
+            throw new IllegalStateException("Няма рецепти, отговарящи на критериите на вашия профил. Моля, коригирайте предпочитанията си или изчакайте нови рецепти.");
+        }
+
+        // Нов сет за проследяване на използвани рецепти в рамките на цялата седмица
+        Set<Integer> usedRecipeIdsInWeek = new HashSet<>();
+
         for(int i=0;i<7;i++){
             LocalDate current = startDate.plusDays(i);
             com.fitnessapp.model.DayOfWeek dow = com.fitnessapp.model.DayOfWeek.valueOf(current.getDayOfWeek().name());
@@ -85,13 +98,21 @@ public class NutritionPlanService {
                     lastTraining.getTrainingSessions().stream().anyMatch(s->s.getDayOfWeek()==dow);
             double dayCalories = isTraining? baseCalories*1.10 : baseCalories;
 
-            /*   Вземаме или създаваме дневния план и го вързваме към weeklyPlan */
+            // Вземаме или създаваме дневния план и го вързваме към weeklyPlan
+            // Тук подаваме usedRecipeIdsInWeek, за да може да се избягват повторения между дните
             NutritionPlan dayPlan = nutritionPlanRepository.findByUserAndDateGenerated(user,current)
                     .map(existing->{
-                        if(!weeklyPlan.equals(existing.getWeeklyNutritionPlan())){
+                        if(existing.getWeeklyNutritionPlan() == null || !weeklyPlan.equals(existing.getWeeklyNutritionPlan())){
                             existing.setWeeklyNutritionPlan(weeklyPlan);
                             nutritionPlanRepository.save(existing);
                         }
+                        initializePlanLazyFields(existing);
+
+                        // Добавяме ID-тата на рецептите от съществуващия план към usedRecipeIdsInWeek
+                        // Това е важно, ако съществуващ план за даден ден вече има избрани рецепти
+                        existing.getMeals().forEach(meal -> usedRecipeIdsInWeek.add(meal.getRecipe().getId()));
+
+                        logger.info("Existing nutrition plan found for user {} for {}. Returning existing plan.", user.getFullName(), current);
                         return existing;
                     }).orElseGet(() -> generateDailyNutritionPlan(
                             user,
@@ -100,9 +121,11 @@ public class NutritionPlanService {
                             (dayCalories*P)/4.0,
                             (dayCalories*C)/4.0,
                             (dayCalories*F)/9.0,
-                            weeklyPlan));
+                            weeklyPlan,
+                            usedRecipeIdsInWeek, // Подаваме usedRecipeIdsInWeek
+                            new HashSet<>())); // Нов сет за всеки ден (usedRecipeIdsInDay)
 
-            weeklyPlan.addDailyPlan(dayPlan);
+            weeklyPlan.addDailyPlan(dayPlan); // Добавяме дневния план към седмичния
             dailyDTOs.put(dow, convertNutritionPlanToDTO(dayPlan));
         }
 
@@ -111,7 +134,12 @@ public class NutritionPlanService {
         double totalCarb = dailyDTOs.values().stream().mapToDouble(NutritionPlanDTO::getCarbohydrates).sum();
         double totalFat  = dailyDTOs.values().stream().mapToDouble(NutritionPlanDTO::getFat).sum();
 
+        // За да се уверят, че ежедневните планове са инициализирани за DTO конверсията
+        Hibernate.initialize(weeklyPlan.getDailyPlans());
+
+
         return WeeklyNutritionPlanDTO.builder()
+                .id(weeklyPlan.getId())
                 .userId(user.getId())
                 .userEmail(user.getEmail())
                 .startDate(startDate)
@@ -125,17 +153,18 @@ public class NutritionPlanService {
     }
 
     @Transactional
-    private NutritionPlan generateDailyNutritionPlan(User user, LocalDate date, double targetCalories, double targetProteinGrams, double targetCarbsGrams, double targetFatGrams, WeeklyNutritionPlan weeklyPlanEntity){
+    private NutritionPlan generateDailyNutritionPlan(User user, LocalDate date, double targetCalories, double targetProteinGrams, double targetCarbsGrams, double targetFatGrams, WeeklyNutritionPlan weeklyPlanEntity, Set<Integer> usedRecipeIdsInWeek, Set<Integer> usedRecipeIdsInDay){
 
         Optional<NutritionPlan> existing = nutritionPlanRepository.findByUserAndDateGenerated(user, date);
         if(existing.isPresent()){
             NutritionPlan plan = existing.get();
-
-            if (weeklyPlanEntity != null && !weeklyPlanEntity.equals(plan.getWeeklyNutritionPlan())) {
-                plan.setWeeklyNutritionPlan(weeklyPlanEntity); // Актуализираме връзката, ако е част от нов седмичен план
-                nutritionPlanRepository.save(plan); // Запазваме актуализацията
+            if (weeklyPlanEntity != null && (plan.getWeeklyNutritionPlan() == null || !weeklyPlanEntity.equals(plan.getWeeklyNutritionPlan()))) {
+                plan.setWeeklyNutritionPlan(weeklyPlanEntity);
+                nutritionPlanRepository.save(plan);
             }
             initializePlanLazyFields(plan);
+            // Ако има съществуващ план, добавяме неговите рецепти към usedRecipeIdsInWeek
+            plan.getMeals().forEach(meal -> usedRecipeIdsInWeek.add(meal.getRecipe().getId()));
             logger.info("Existing nutrition plan found for user {} for {}. Returning existing plan.", user.getFullName(), date);
             return plan;
         }
@@ -145,14 +174,14 @@ public class NutritionPlanService {
                 user.getEmail(), targetProteinGrams, targetCarbsGrams, targetFatGrams);
 
 
-        List<Recipe> filtered = filterRecipes(recipeRepository.findAll(), user);
-        if(filtered.isEmpty()) {
+        List<Recipe> filteredRecipes = filterRecipes(recipeRepository.findAll(), user);
+        if(filteredRecipes.isEmpty()) {
             logger.error("Няма рецепти, отговарящи на критериите за потребител: {}", user.getEmail());
             throw new IllegalStateException("Няма рецепти, отговарящи на критериите на вашия профил. Моля, коригирайте предпочитанията си или изчакайте нови рецепти.");
         }
 
 
-        Map<MealType,List<Recipe>> byType = filtered.stream().collect(Collectors.groupingBy(Recipe::getMealType));
+        Map<MealType,List<Recipe>> byType = filteredRecipes.stream().collect(Collectors.groupingBy(Recipe::getMealType));
 
         List<com.fitnessapp.model.Meal> meals = new ArrayList<>();
 
@@ -160,12 +189,12 @@ public class NutritionPlanService {
         mealCalorieDistribution.put(MealType.BREAKFAST, 0.20);
         mealCalorieDistribution.put(MealType.LUNCH, 0.35);
         mealCalorieDistribution.put(MealType.DINNER, 0.35);
-        mealCalorieDistribution.put(MealType.SNACK, 0.10); // Останалите 10% за закуски
+        mealCalorieDistribution.put(MealType.SNACK, 0.10);
 
         // Избор и добавяне на рецепти за основните хранения
-        addMeal(meals, byType.getOrDefault(MealType.BREAKFAST, Collections.emptyList()), MealType.BREAKFAST, targetCalories * mealCalorieDistribution.get(MealType.BREAKFAST));
-        addMeal(meals, byType.getOrDefault(MealType.LUNCH, Collections.emptyList()), MealType.LUNCH, targetCalories * mealCalorieDistribution.get(MealType.LUNCH));
-        addMeal(meals, byType.getOrDefault(MealType.DINNER, Collections.emptyList()), MealType.DINNER, targetCalories * mealCalorieDistribution.get(MealType.DINNER));
+        addMeal(meals, byType.getOrDefault(MealType.BREAKFAST, Collections.emptyList()), MealType.BREAKFAST, targetCalories * mealCalorieDistribution.get(MealType.BREAKFAST), usedRecipeIdsInWeek, usedRecipeIdsInDay);
+        addMeal(meals, byType.getOrDefault(MealType.LUNCH, Collections.emptyList()), MealType.LUNCH, targetCalories * mealCalorieDistribution.get(MealType.LUNCH), usedRecipeIdsInWeek, usedRecipeIdsInDay);
+        addMeal(meals, byType.getOrDefault(MealType.DINNER, Collections.emptyList()), MealType.DINNER, targetCalories * mealCalorieDistribution.get(MealType.DINNER), usedRecipeIdsInWeek, usedRecipeIdsInDay);
 
         // Добавяне на закуски според предпочитанията за честота на хранене
         List<Recipe> snacks = byType.getOrDefault(MealType.SNACK, Collections.emptyList());
@@ -173,24 +202,32 @@ public class NutritionPlanService {
 
         if (user.getMealFrequencyPreference() == MealFrequencyPreferenceType.FIVE_TIMES_DAILY) {
             if (!snacks.isEmpty()) {
-                addMeal(meals, snacks, MealType.SNACK, snackTargetCaloriesTotal);
+                addMeal(meals, snacks, MealType.SNACK, snackTargetCaloriesTotal, usedRecipeIdsInWeek, usedRecipeIdsInDay);
             }
         } else if (user.getMealFrequencyPreference() == MealFrequencyPreferenceType.SIX_TIMES_DAILY) {
             if (!snacks.isEmpty()) {
                 // Първа закуска
-                addMeal(meals, snacks, MealType.SNACK, snackTargetCaloriesTotal / 2);
+                addMeal(meals, snacks, MealType.SNACK, snackTargetCaloriesTotal / 2, usedRecipeIdsInWeek, usedRecipeIdsInDay);
 
                 // Втора закуска - опит за различна рецепта
-                List<Recipe> remainingSnacks = new ArrayList<>(snacks);
-                // Премахваме току-що добавената рецепта, ако има такава
+                // Създаваме копие на списъка със закуски, за да можем да модифицираме без да засягаме оригиналния
+                List<Recipe> secondSnackRecipes = new ArrayList<>(snacks);
+
+                // Премахваме току-що добавената рецепта (първата закуска), ако има такава, за да осигурим разнообразие
                 if (!meals.isEmpty() && meals.get(meals.size() - 1).getMealType() == MealType.SNACK && meals.get(meals.size() - 1).getRecipe() != null) {
-                    remainingSnacks.removeIf(r -> r.getId().equals(meals.get(meals.size() - 1).getRecipe().getId()));
+                    final Integer lastAddedRecipeId = meals.get(meals.size() - 1).getRecipe().getId();
+                    secondSnackRecipes.removeIf(r -> r.getId().equals(lastAddedRecipeId));
                 }
-                if (!remainingSnacks.isEmpty()) {
-                    addMeal(meals, remainingSnacks, MealType.SNACK, snackTargetCaloriesTotal / 2);
+                // Проверяваме и спрямо използваните за седмицата/деня
+                secondSnackRecipes.removeIf(r -> usedRecipeIdsInWeek.contains(r.getId()) || usedRecipeIdsInDay.contains(r.getId()));
+
+
+                if (!secondSnackRecipes.isEmpty()) {
+                    addMeal(meals, secondSnackRecipes, MealType.SNACK, snackTargetCaloriesTotal / 2, usedRecipeIdsInWeek, usedRecipeIdsInDay);
                 } else if (snacks.size() > 0) {
-                    // Ако няма други закуски, добавяме същата, но може да се помисли за по-добро управление
-                    addMeal(meals, snacks, MealType.SNACK, snackTargetCaloriesTotal / 2);
+                    // Ако няма други различни закуски, добавяме отново от оригиналния списък (може да се повтори)
+                    logger.warn("Недостатъчно разнообразни рецепти за втора закуска. Повтаря се рецепта.");
+                    addMeal(meals, snacks, MealType.SNACK, snackTargetCaloriesTotal / 2, usedRecipeIdsInWeek, usedRecipeIdsInDay);
                 }
             }
         }
@@ -201,8 +238,6 @@ public class NutritionPlanService {
         plan.setDayOfWeek(com.fitnessapp.model.DayOfWeek.valueOf(date.getDayOfWeek().name()));
         plan.setWeeklyNutritionPlan(weeklyPlanEntity);
         plan.setTargetCalories(targetCalories);
-        plan.setDateGenerated(date);
-        plan.setWeeklyNutritionPlan(weeklyPlanEntity);
         plan.setUserGenderSnapshot(user.getGender());
         plan.setUserAgeSnapshot(user.getAge());
         plan.setUserWeightSnapshot(user.getWeight());
@@ -224,14 +259,12 @@ public class NutritionPlanService {
         plan.setGoal(user.getGoal());
 
         for (com.fitnessapp.model.Meal m : meals) {
-            plan.addMeal(m); // Използваме addMeal, за да установим двупосочната връзка
+            plan.addMeal(m);
         }
 
-
-        // Изчисляваме реалните макроси и калории на базата на избраните и порционирани рецепти
         double protein = 0, fat = 0, carbs = 0;
         double actualCalories = 0;
-        for(com.fitnessapp.model.Meal m: plan.getMeals()){ // Използваме plan.getMeals() след добавянето
+        for(com.fitnessapp.model.Meal m: plan.getMeals()){
             Recipe r = m.getRecipe();
             if(r!=null){
                 double currentProtein = Optional.ofNullable(r.getProtein()).orElse(0.0);
@@ -256,11 +289,11 @@ public class NutritionPlanService {
                 date, actualCalories, protein, carbs, fat);
         return saved;
     }
+
     @Transactional
     public NutritionPlanDTO saveNutritionPlan(NutritionPlan plan) {
         logger.info("Записване на NutritionPlan (директно): {}", plan.getId());
         NutritionPlan savedPlan = nutritionPlanRepository.save(plan);
-        // При директно запазване, ако планирате да го връщате като DTO веднага, инициализирайте полетата
         initializePlanLazyFields(savedPlan);
         return convertNutritionPlanToDTO(savedPlan);
     }
@@ -293,7 +326,7 @@ public class NutritionPlanService {
         List<NutritionPlan> plans = nutritionPlanRepository.findByUserOrderByDateGeneratedDesc(user);
 
         return plans.stream()
-                .map(this::convertNutritionPlanToHistoryDTO) // Нов помощен метод
+                .map(this::convertNutritionPlanToHistoryDTO)
                 .collect(Collectors.toList());
     }
 
@@ -325,10 +358,10 @@ public class NutritionPlanService {
                 .build();
     }
 
-    @Transactional(readOnly = true) // Може да се ползва readOnly = true тук, защото само четем и инициализираме
+    @Transactional(readOnly = true)
     private NutritionPlanDTO convertNutritionPlanToDTO(NutritionPlan plan){
         if(plan==null) return null;
-        initializePlanLazyFields(plan); // Инициализиране на Lazy полета
+        initializePlanLazyFields(plan);
         return NutritionPlanDTO.builder()
                 .id(plan.getId())
                 .dateGenerated(plan.getDateGenerated())
@@ -348,8 +381,7 @@ public class NutritionPlanService {
 
         RecipeDTO recipeDTO = convertRecipeToRecipeDTO(meal.getRecipe());
 
-        // Изчисляване на калории и макроси за конкретната порция
-        Double portionSize = Optional.ofNullable(meal.getPortionSize()).orElse(1.0); // Дефолтна порция 1.0
+        Double portionSize = Optional.ofNullable(meal.getPortionSize()).orElse(1.0);
         Double recipeCalories = (meal.getRecipe() != null) ? Optional.ofNullable(meal.getRecipe().getCalories()).orElse(0.0) : 0.0;
         Double recipeProtein = (meal.getRecipe() != null) ? Optional.ofNullable(meal.getRecipe().getProtein()).orElse(0.0) : 0.0;
         Double recipeCarbs = (meal.getRecipe() != null) ? Optional.ofNullable(meal.getRecipe().getCarbs()).orElse(0.0) : 0.0;
@@ -371,14 +403,13 @@ public class NutritionPlanService {
     private RecipeDTO convertRecipeToRecipeDTO(Recipe recipe){
         if(recipe==null) return null;
         Hibernate.initialize(recipe.getDietType());
-        if(recipe.getAllergens() != null) Hibernate.initialize(recipe.getAllergens()); // Проверка за null преди initialize
-        if(recipe.getTags() != null) Hibernate.initialize(recipe.getTags()); // Проверка за null преди initialize
+        if(recipe.getAllergens() != null) Hibernate.initialize(recipe.getAllergens());
+        if(recipe.getTags() != null) Hibernate.initialize(recipe.getTags());
 
         return RecipeDTO.builder()
                 .id(recipe.getId())
                 .name(recipe.getName())
                 .description(recipe.getDescription())
-                .imageUrl(recipe.getImageUrl())
                 .calories(recipe.getCalories())
                 .protein(recipe.getProtein())
                 .carbs(recipe.getCarbs())
@@ -390,7 +421,7 @@ public class NutritionPlanService {
                 .containsNuts(recipe.getContainsNuts())
                 .containsFish(recipe.getContainsFish())
                 .containsPork(recipe.getContainsPork())
-                .meatType(recipe.getMeatType()) // Няма нужда от тернарен оператор за енуми, ако вече е инициализиран
+                .meatType(recipe.getMeatType())
                 .allergens(recipe.getAllergens()!=null? recipe.getAllergens() : Collections.emptySet())
                 .tags(recipe.getTags()!=null? recipe.getTags() : Collections.emptySet())
                 .build();
@@ -399,7 +430,6 @@ public class NutritionPlanService {
     private TrainingPlanDTO convertTrainingPlanToDTO(TrainingPlan plan){
         if(plan==null) return null;
         Hibernate.initialize(plan.getTrainingSessions());
-        // Добавена инициализация на упражненията за всяка сесия, за да не са празни
         if (plan.getTrainingSessions() != null) {
             plan.getTrainingSessions().forEach(session -> Hibernate.initialize(session.getExercises()));
         }
@@ -435,9 +465,9 @@ public class NutritionPlanService {
                 .sets(ex.getSets())
                 .reps(ex.getReps())
                 .durationMinutes(ex.getDurationMinutes())
-                .type(ex.getType()) // Добавете тип, ако DTO го има
-                .difficultyLevel(ex.getDifficultyLevel()) // Добавете трудност, ако DTO го има
-                .equipment(ex.getEquipment()) // Добавете оборудване, ако DTO го има
+                .type(ex.getType())
+                .difficultyLevel(ex.getDifficultyLevel())
+                .equipment(ex.getEquipment())
                 .build();
     }
 
@@ -448,12 +478,9 @@ public class NutritionPlanService {
             logger.warn("User #{} not found", userId);
             return null;
         }
-        // Взимаме последния хранителен план
         NutritionPlan nutrition = nutritionPlanRepository.findByUser(user).stream().max(Comparator.comparing(NutritionPlan::getDateGenerated)).orElse(null);
-        // Взимаме последния тренировъчен план
         TrainingPlan  training  = trainingPlanRepository.findByUserOrderByDateGeneratedDesc(user).stream().findFirst().orElse(null);
 
-        // Инициализирайте lazy полетата, преди да се опитате да ги конвертирате
         if (nutrition != null) {
             initializePlanLazyFields(nutrition);
         }
@@ -464,8 +491,7 @@ public class NutritionPlanService {
             }
         }
 
-
-        if(nutrition==null && training==null) return FullPlanDTO.builder().build(); // Ако няма нито един план
+        if(nutrition==null && training==null) return FullPlanDTO.builder().build();
 
         return FullPlanDTO.builder()
                 .nutritionPlanId(nutrition!=null? nutrition.getId():null)
@@ -474,12 +500,12 @@ public class NutritionPlanService {
                 .fat(nutrition!=null? nutrition.getFat():null)
                 .carbohydrates(nutrition!=null? nutrition.getCarbohydrates():null)
                 .goalName(nutrition!=null && nutrition.getGoal()!=null? nutrition.getGoal().getName():null)
-                .meals(nutrition!=null? nutrition.getMeals().stream().map(this::convertMealToMealDTO).collect(Collectors.toList()): Collections.emptyList()) // Използвайте Collections.emptyList() вместо null
+                .meals(nutrition!=null? nutrition.getMeals().stream().map(this::convertMealToMealDTO).collect(Collectors.toList()): Collections.emptyList())
                 .trainingPlanId(training!=null? training.getId():null)
-                .trainingPlanDescription(getTrainingSummary(user)) // Уверете се, че getTrainingSummary работи коректно
+                .trainingPlanDescription(getTrainingSummary(user))
                 .trainingDaysPerWeek(training!=null? training.getDaysPerWeek():null)
                 .trainingDurationMinutes(training!=null? training.getDurationMinutes():null)
-                .trainingSessions(training!=null? training.getTrainingSessions().stream().map(this::convertTrainingSessionToTrainingSessionDTO).collect(Collectors.toList()): Collections.emptyList()) // Използвайте Collections.emptyList() вместо null
+                .trainingSessions(training!=null? training.getTrainingSessions().stream().map(this::convertTrainingSessionToTrainingSessionDTO).collect(Collectors.toList()): Collections.emptyList())
                 .build();
     }
 
@@ -502,7 +528,7 @@ public class NutritionPlanService {
         if(plan.getMeals()!=null){
             plan.getMeals().forEach(m->{
                 if(m.getRecipe()!=null){
-                    Hibernate.initialize(m.getRecipe()); // Инициализирайте самата рецепта
+                    Hibernate.initialize(m.getRecipe());
                     Hibernate.initialize(m.getRecipe().getDietType());
                     if(m.getRecipe().getAllergens() != null) Hibernate.initialize(m.getRecipe().getAllergens());
                     if(m.getRecipe().getTags() != null) Hibernate.initialize(m.getRecipe().getTags());
@@ -514,9 +540,8 @@ public class NutritionPlanService {
         Hibernate.initialize(plan.getUserDietTypeSnapshot());
         Hibernate.initialize(plan.getWeeklyNutritionPlan());
         if (plan.getWeeklyNutritionPlan() != null) {
-            Hibernate.initialize(plan.getWeeklyNutritionPlan().getDailyPlans()); // Ако има DailyPlans, инициализирайте ги
+            Hibernate.initialize(plan.getWeeklyNutritionPlan().getDailyPlans());
         }
-        // Можете да добавите и user snapshot, ако е Lazy:
         Hibernate.initialize(plan.getUser());
     }
 
@@ -530,9 +555,9 @@ public class NutritionPlanService {
         if(user.getActivityLevel()==null)        missing.add("ниво на активност");
         if(user.getGoal()==null)                 missing.add("цел");
         if(user.getDietType()==null)             missing.add("диетичен тип");
-        if(user.getMeatPreference()==null)       missing.add("предпочитания за месо"); // Важно за филтрирането!
-        if(user.getConsumesDairy()==null)        missing.add("консумира млечни продукти"); // Важно за филтрирането!
-        if(user.getMealFrequencyPreference()==null) missing.add("честота на хранене"); // Важно за филтрирането!
+        if(user.getMeatPreference()==null)       missing.add("предпочитания за месо");
+        if(user.getConsumesDairy()==null)        missing.add("консумира млечни продукти");
+        if(user.getMealFrequencyPreference()==null) missing.add("честота на хранене");
 
         if(!missing.isEmpty())
             throw new IllegalArgumentException("Липсват следните данни за генериране на хранителен план: "+String.join(", ", missing));
@@ -564,7 +589,6 @@ public class NutritionPlanService {
                     if (user.getMeatPreference() == MeatPreferenceType.NO_FISH && Optional.ofNullable(recipe.getContainsFish()).orElse(false)) {
                         return false;
                     }
-                    // Добавете други конкретни проверки според вашите MeatPreferenceType стойности
                 }
             }
 
@@ -574,104 +598,206 @@ public class NutritionPlanService {
                 if (user.getAllergies().stream().anyMatch(userAllergy ->
                         recipe.getAllergens().stream().anyMatch(recipeAllergen ->
                                 recipeAllergen.equalsIgnoreCase(userAllergy)))) {
-                    return false; // Рецептата съдържа алерген, към който потребителят е алергичен
+                    return false;
                 }
             }
 
             // Филтриране по млечни продукти
             if (user.getConsumesDairy() != null && !user.getConsumesDairy() && Optional.ofNullable(recipe.getContainsDairy()).orElse(false)) {
-                return false; // Потребителят не консумира млечни, а рецептата съдържа
+                return false;
             }
-
-
 
             return true;
         }).collect(Collectors.toList());
     }
 
-
-    private void addMeal(List<com.fitnessapp.model.Meal> meals, List<Recipe> recipes, MealType mealType, double targetCaloriesForMeal) {
+    /**
+     * Добавя хранене към списъка с хранения, избирайки рецепта с рандомизация,
+     * като избягва рецепти, които вече са използвани през седмицата или през деня,
+     * в рамките на калориен толеранс.
+     * @param meals Списък с хранения за текущия дневен план.
+     * @param recipes Налични рецепти за избор (вече филтрирани по потребителски предпочитания и тип хранене).
+     * @param mealType Тип на храненето (напр. BREAKFAST, LUNCH).
+     * @param targetCaloriesForMeal Целеви калории за това конкретно хранене.
+     * @param usedRecipeIdsInWeek Set от ID-та на рецепти, използвани вече през текущата седмица.
+     * @param usedRecipeIdsInDay Set от ID-та на рецепти, използвани вече през текущия ден.
+     */
+    private void addMeal(List<com.fitnessapp.model.Meal> meals, List<Recipe> recipes, MealType mealType, double targetCaloriesForMeal, Set<Integer> usedRecipeIdsInWeek, Set<Integer> usedRecipeIdsInDay) {
         if (recipes == null || recipes.isEmpty()) {
             logger.warn("Няма налични рецепти за {}. Пропускане.", mealType);
             return;
         }
 
-        Recipe bestRecipe = null;
-        double minCalorieDifference = Double.MAX_VALUE;
+        double calorieTolerance = targetCaloriesForMeal * 0.15;
 
-        // Намиране на най-близката рецепта по калории
+        List<Recipe> suitableRecipes = new ArrayList<>();
         for (Recipe recipe : recipes) {
             double recipeCaloriesPerPortion = Optional.ofNullable(recipe.getCalories()).orElse(0.0);
-            if (recipeCaloriesPerPortion > 0) { // Избягваме деление на нула
+            if (recipeCaloriesPerPortion > 0) {
                 double difference = Math.abs(recipeCaloriesPerPortion - targetCaloriesForMeal);
-                if (difference < minCalorieDifference) {
-                    minCalorieDifference = difference;
-                    bestRecipe = recipe;
+                if (difference <= calorieTolerance) {
+                    suitableRecipes.add(recipe);
                 }
             }
         }
 
-        if (bestRecipe != null) {
-            double recipeCaloriesPerPortion = Optional.ofNullable(bestRecipe.getCalories()).orElse(0.0);
-            double portionSize = 1.0; // По подразбиране 1 порция
+        Recipe chosenRecipe = null;
+        List<Recipe> availableForSelection = new ArrayList<>(suitableRecipes);
+        Collections.shuffle(availableForSelection); // Разбъркваме, за да получим случаен ред
+
+        // Опитваме да изберем рецепта, която не е използвана през седмицата И през деня
+        for (Recipe recipe : availableForSelection) {
+            if (!usedRecipeIdsInWeek.contains(recipe.getId()) && !usedRecipeIdsInDay.contains(recipe.getId())) {
+                chosenRecipe = recipe;
+                break;
+            }
+        }
+
+        if (chosenRecipe == null) {
+            // Ако всички подходящи рецепти са изчерпани, опитваме да изберем такава, която не е използвана САМО през деня
+            // (т.е. може да е била използвана предишни дни от седмицата, но да не се повтаря в същия ден)
+            logger.warn("Всички уникални подходящи рецепти за {} са изчерпани за текущата седмица. Опитваме да изберем такава, която не е използвана в текущия ден.", mealType);
+            Collections.shuffle(suitableRecipes); // Разбъркваме отново оригиналния suitableRecipes
+            for (Recipe recipe : suitableRecipes) {
+                if (!usedRecipeIdsInDay.contains(recipe.getId())) {
+                    chosenRecipe = recipe;
+                    break;
+                }
+            }
+        }
+
+        if (chosenRecipe == null) {
+            // Ако и това не помогне, търсим най-близката по калории от всички налични, дори ако е повторение
+            logger.warn("Всички уникални подходящи рецепти за {} са изчерпани дори за текущия ден. Избиране на най-близката налична, възможно е повторение.", mealType);
+            double minCalorieDifference = Double.MAX_VALUE;
+            for (Recipe recipe : suitableRecipes) {
+                double recipeCaloriesPerPortion = Optional.ofNullable(recipe.getCalories()).orElse(0.0);
+                if (recipeCaloriesPerPortion > 0) {
+                    double difference = Math.abs(recipeCaloriesPerPortion - targetCaloriesForMeal);
+                    if (difference < minCalorieDifference) {
+                        minCalorieDifference = difference;
+                        chosenRecipe = recipe;
+                    }
+                }
+            }
+            // Краен случай: ако дори и най-близката рецепта не е намерена
+            if (chosenRecipe == null && !recipes.isEmpty()){
+                Collections.shuffle(recipes); // Избираме напълно произволна от всички
+                chosenRecipe = recipes.get(0);
+                logger.warn("Всички рецепти за {} са с 0 калории или невалидни. Избрана напълно произволна: '{}'", mealType, chosenRecipe.getName());
+            }
+        }
+
+
+        if (chosenRecipe != null) {
+            double recipeCaloriesPerPortion = Optional.ofNullable(chosenRecipe.getCalories()).orElse(0.0);
+            double portionSize = 1.0;
 
             if (recipeCaloriesPerPortion > 0) {
                 portionSize = targetCaloriesForMeal / recipeCaloriesPerPortion;
-
             }
 
             com.fitnessapp.model.Meal meal = com.fitnessapp.model.Meal.builder()
                     .mealType(mealType)
-                    .recipe(bestRecipe)
+                    .recipe(chosenRecipe)
                     .portionSize(portionSize)
                     .build();
             meals.add(meal);
-            logger.debug("Добавено хранене: {} (Рецепта: '{}') с порция {:.2f} за целеви калории {:.2f}",
-                    mealType, bestRecipe.getName(), portionSize, targetCaloriesForMeal);
+            usedRecipeIdsInWeek.add(chosenRecipe.getId());
+            usedRecipeIdsInDay.add(chosenRecipe.getId());
+
+            logger.info("Добавено хранене: {} (Рецепта: '{}') с порция {:.2f} за целеви калории {:.2f}",
+                    mealType, chosenRecipe.getName(), portionSize, targetCaloriesForMeal);
         } else {
             logger.warn("Не беше намерена подходяща рецепта за {}. Моля, проверете наличните рецепти.", mealType);
         }
     }
 
+
     @Transactional
     public WeeklyNutritionPlanDTO getOrCreateWeeklyPlan(User user) {
-        return weeklyNutritionPlanRepository
-                .findTopByUserOrderByStartDateDesc(user)
-                .map(this::convertToWeeklyNutritionPlanDTO)
-                .orElseGet(() -> generateAndSaveWeeklyNutritionPlanForUserDTO(user));
+        Optional<WeeklyNutritionPlan> latestPlan = weeklyNutritionPlanRepository.findTopByUserOrderByStartDateDesc(user);
+        if (latestPlan.isPresent()) {
+            WeeklyNutritionPlan plan = latestPlan.get();
+            LocalDate today = LocalDate.now();
+            if (!today.isBefore(plan.getStartDate()) && !today.isAfter(plan.getEndDate())) {
+                initializeWeeklyPlanLazyFields(plan);
+                return convertToWeeklyNutritionPlanDTO(plan);
+            }
+        }
+        return generateAndSaveWeeklyNutritionPlanForUserDTO(user);
     }
 
+    @Transactional
     public WeeklyNutritionPlanDTO replaceMeal(
             Integer planId,
             Integer originalMealId,
             Integer substituteRecipeId) {
 
-        WeeklyNutritionPlan plan = weeklyNutritionPlanRepository.findById(planId)
-                .orElseThrow(() -> new RuntimeException("План с ID " + planId + " не е намерен."));
+        WeeklyNutritionPlan weeklyPlan = weeklyNutritionPlanRepository.findById(planId)
+                .orElseThrow(() -> new RuntimeException("Седмичен план с ID " + planId + " не е намерен."));
 
-        Meal meal = plan.getDailyPlans().stream()
+        initializeWeeklyPlanLazyFields(weeklyPlan);
+
+        com.fitnessapp.model.Meal mealToReplace = weeklyPlan.getDailyPlans().stream()
                 .flatMap(dp -> dp.getMeals().stream())
                 .filter(m -> m.getId().equals(originalMealId))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Хранене с ID " + originalMealId + " не е намерено."));
+                .orElseThrow(() -> new RuntimeException("Хранене с ID " + originalMealId + " не е намерено в седмичния план."));
 
         Recipe newRecipe = recipeRepository.findById(substituteRecipeId)
                 .orElseThrow(() -> new RuntimeException("Рецепта с ID " + substituteRecipeId + " не съществува."));
 
-        meal.setRecipe(newRecipe);
-        weeklyNutritionPlanRepository.save(plan);
+        mealToReplace.setRecipe(newRecipe);
 
-        return convertToWeeklyNutritionPlanDTO(plan);
+        NutritionPlan parentDailyPlan = mealToReplace.getNutritionPlan();
+        if (parentDailyPlan != null) {
+            recalculateNutritionPlanMacros(parentDailyPlan);
+            nutritionPlanRepository.save(parentDailyPlan);
+        }
+
+
+        weeklyNutritionPlanRepository.save(weeklyPlan);
+
+        return convertToWeeklyNutritionPlanDTO(weeklyPlan);
+    }
+
+    private void recalculateNutritionPlanMacros(NutritionPlan plan) {
+        double protein = 0, fat = 0, carbs = 0;
+        double actualCalories = 0;
+
+        Hibernate.initialize(plan.getMeals());
+
+        for (com.fitnessapp.model.Meal m : plan.getMeals()) {
+            Recipe r = m.getRecipe();
+            if (r != null) {
+                double currentProtein = Optional.ofNullable(r.getProtein()).orElse(0.0);
+                double currentFat = Optional.ofNullable(r.getFat()).orElse(0.0);
+                double currentCarbs = Optional.ofNullable(r.getCarbs()).orElse(0.0);
+                double currentCalories = Optional.ofNullable(r.getCalories()).orElse(0.0);
+
+                protein += currentProtein * m.getPortionSize();
+                fat += currentFat * m.getPortionSize();
+                carbs += currentCarbs * m.getPortionSize();
+                actualCalories += currentCalories * m.getPortionSize();
+            }
+        }
+        plan.setProtein(protein);
+        plan.setFat(fat);
+        plan.setCarbohydrates(carbs);
     }
 
     public WeeklyNutritionPlanDTO convertToWeeklyNutritionPlanDTO(WeeklyNutritionPlan plan) {
         if (plan == null) return null;
 
+        initializeWeeklyPlanLazyFields(plan);
+
         Map<DayOfWeek, NutritionPlanDTO> dailyDTOs = plan.getDailyPlans().stream()
+                .sorted(Comparator.comparing(NutritionPlan::getDateGenerated))
                 .collect(Collectors.toMap(
                         NutritionPlan::getDayOfWeek,
                         this::convertNutritionPlanToDTO,
-                        (a, b) -> a,
+                        (oldValue, newValue) -> oldValue,
                         LinkedHashMap::new
                 ));
 
@@ -692,5 +818,16 @@ public class NutritionPlanService {
                 .totalCarbsGrams(totalCarb)
                 .totalFatGrams(totalFat)
                 .build();
+    }
+
+    private void initializeWeeklyPlanLazyFields(WeeklyNutritionPlan plan) {
+        if (plan == null) return;
+        Hibernate.initialize(plan.getUser());
+        Hibernate.initialize(plan.getDailyPlans());
+        if (plan.getDailyPlans() != null) {
+            plan.getDailyPlans().forEach(dailyPlan -> {
+                initializePlanLazyFields(dailyPlan);
+            });
+        }
     }
 }
