@@ -189,7 +189,7 @@ public class NutritionPlanService {
         mealCalorieDistribution.put(MealType.BREAKFAST, 0.20);
         mealCalorieDistribution.put(MealType.LUNCH, 0.35);
         mealCalorieDistribution.put(MealType.DINNER, 0.35);
-        mealCalorieDistribution.put(MealType.SNACK, 0.10);
+        mealCalorieDistribution.put(MealType.SNACK, 0.10); // Снакът получава 10% от общите калории
 
         // Избор и добавяне на рецепти за основните хранения
         addMeal(meals, byType.getOrDefault(MealType.BREAKFAST, Collections.emptyList()), MealType.BREAKFAST, targetCalories * mealCalorieDistribution.get(MealType.BREAKFAST), usedRecipeIdsInWeek, usedRecipeIdsInDay);
@@ -198,11 +198,16 @@ public class NutritionPlanService {
 
         // Добавяне на закуски според предпочитанията за честота на хранене
         List<Recipe> snacks = byType.getOrDefault(MealType.SNACK, Collections.emptyList());
-        double snackTargetCaloriesTotal = targetCalories * mealCalorieDistribution.get(MealType.SNACK);
+        double snackTargetCaloriesTotal = targetCalories * mealCalorieDistribution.get(MealType.SNACK); // 10% от общите калории
 
-        if (user.getMealFrequencyPreference() == MealFrequencyPreferenceType.FIVE_TIMES_DAILY) {
+        // АКТУАЛИЗИРАНА ЛОГИКА ЗА ДОБАВЯНЕ НА СНАК
+        // Ако "4 хранения" означава 3 основни + 1 снак, тогава добавяме FOUR_TIMES_DAILY тук.
+        if (user.getMealFrequencyPreference() == MealFrequencyPreferenceType.FIVE_TIMES_DAILY ||
+                user.getMealFrequencyPreference() == MealFrequencyPreferenceType.FOUR_TIMES_DAILY) { // Добавен FOUR_TIMES_DAILY
             if (!snacks.isEmpty()) {
                 addMeal(meals, snacks, MealType.SNACK, snackTargetCaloriesTotal, usedRecipeIdsInWeek, usedRecipeIdsInDay);
+            } else {
+                logger.warn("Няма налични рецепти за снак за потребител {} с честота на хранене {}. Снакът е пропуснат.", user.getEmail(), user.getMealFrequencyPreference());
             }
         } else if (user.getMealFrequencyPreference() == MealFrequencyPreferenceType.SIX_TIMES_DAILY) {
             if (!snacks.isEmpty()) {
@@ -229,8 +234,12 @@ public class NutritionPlanService {
                     logger.warn("Недостатъчно разнообразни рецепти за втора закуска. Повтаря се рецепта.");
                     addMeal(meals, snacks, MealType.SNACK, snackTargetCaloriesTotal / 2, usedRecipeIdsInWeek, usedRecipeIdsInDay);
                 }
+            } else {
+                logger.warn("Няма налични рецепти за снак за потребител {} с честота на хранене {}. Снаковете са пропуснати.", user.getEmail(), user.getMealFrequencyPreference());
             }
         }
+        // КРАЙ НА АКТУАЛИЗИРАНАТА ЛОГИКА
+
 
         NutritionPlan plan = new NutritionPlan();
         plan.setUser(user);
@@ -566,34 +575,69 @@ public class NutritionPlanService {
 
     private List<Recipe> filterRecipes(List<Recipe> allRecipes, User user) {
         return allRecipes.stream().filter(recipe -> {
-            // Филтриране по диетичен тип
-            if (user.getDietType() != null && recipe.getDietType() != null &&
-                    !recipe.getDietType().equals(user.getDietType())) {
-                return false;
+            // 1. **ПЪРВО: Приоритизирано филтриране за "БЕЗ МЕСО" / ВЕГЕТАРИАНЕЦ / ВЕГАН**
+            // Определяме дали потребителят е вегетарианец/веган въз основа на неговите предпочитания
+            boolean userRequiresVegetarianOrVegan = false;
+            // Проверка по предпочитание за месо (по-силно)
+            if (user.getMeatPreference() == MeatPreferenceType.VEGETARIAN || user.getMeatPreference() == MeatPreferenceType.VEGAN) {
+                userRequiresVegetarianOrVegan = true;
+            }
+            // Проверка по диетичен тип (ако е вегетарианска/веган диета)
+            else if (user.getDietType() != null) {
+                String userDietTypeName = user.getDietType().getName();
+                if ("Вегетарианска".equalsIgnoreCase(userDietTypeName) || "Веган".equalsIgnoreCase(userDietTypeName)) {
+                    userRequiresVegetarianOrVegan = true;
+                }
             }
 
-            // Филтриране по предпочитания за месо
-            if (user.getMeatPreference() != null) {
-                if (user.getMeatPreference() == MeatPreferenceType.VEGETARIAN && !Optional.ofNullable(recipe.getIsVegetarian()).orElse(false)) {
-                    return false;
+            if (userRequiresVegetarianOrVegan) {
+                // Ако потребителят е вегетарианец/веган, рецептата ТРЯБВА да е вегетарианска
+                if (!Optional.ofNullable(recipe.getIsVegetarian()).orElse(false)) {
+                    return false; // Филтрира, ако рецептата НЕ е вегетарианска
                 }
+                // Ако потребителят е веган, рецептата ТРЯБВА да е веган
+                // Уверете се, че MeatPreferenceType има VEGAN и Recipe има getIsVegan()
+                if (user.getMeatPreference() == MeatPreferenceType.VEGAN || ("Веган".equalsIgnoreCase(user.getDietType() != null ? user.getDietType().getName() : null))) {
+                    if (!Optional.ofNullable(recipe.getIsVegan()).orElse(false)) {
+                        return false; // Филтрира, ако рецептата НЕ е веган
+                    }
+                }
+                // Проверяваме MeatType на рецептата - ако е VEGETARIAN/VEGAN, трябва да е NONE (без месо)
+                if (recipe.getMeatType() != null && recipe.getMeatType() != MeatPreferenceType.NONE) {
+                    return false; // Филтрира, ако рецептата съдържа някакъв тип месо (различен от NONE)
+                }
+            }
 
+            // 2. Следващо: Филтриране по КОНКРЕТНИ ИЗКЛЮЧЕНИЯ за месо (ако потребителят не е цялостно без месо)
+            // Тази логика е за потребители, които ядат месо, но имат специфични ограничения (напр. без свинско, без риба)
+            if (!userRequiresVegetarianOrVegan && user.getMeatPreference() != null) {
                 if (user.getMeatPreference() == MeatPreferenceType.NO_PORK && Optional.ofNullable(recipe.getContainsPork()).orElse(false)) {
-                    return false;
+                    return false; // Филтрира, ако не яде свинско и рецептата съдържа такова
                 }
-                // Логика за съвместимост между MeatPreferenceType и MealMeatType
-                if (recipe.getMeatType() != null && user.getMeatPreference() != null) {
-                    if (user.getMeatPreference() == MeatPreferenceType.VEGETARIAN && recipe.getMeatType() != MeatPreferenceType.NONE) {
-                        return false;
-                    }
-                    if (user.getMeatPreference() == MeatPreferenceType.NO_FISH && Optional.ofNullable(recipe.getContainsFish()).orElse(false)) {
-                        return false;
-                    }
+                if (user.getMeatPreference() == MeatPreferenceType.NO_FISH && Optional.ofNullable(recipe.getContainsFish()).orElse(false)) {
+                    return false; // Филтрира, ако не яде риба и рецептата съдържа такава
                 }
+                // Добавете и други 'NO_...' предпочитания тук, ако имате такива
             }
 
 
-            // Филтриране по алергии (Allergens е Set<String>, Allergies е List<String>)
+            // 3. Филтриране по ОСНОВЕН ДИЕТИЧЕН ТИП (ако не е 'Балансирана' или 'Без месо' вече се филтрира горе)
+            // Ако user.getDietType() е "Балансирана", тогава рецептите с DietType.BALANCED, VEGETARIAN, VEGAN и т.н. са приемливи.
+            // Тук се филтрират само рецепти, чийто DietType е различен и НЕ СЪВМЕСТИМ с избрания от потребителя.
+            if (user.getDietType() != null && recipe.getDietType() != null) {
+                String userDietTypeName = user.getDietType().getName();
+                String recipeDietTypeName = recipe.getDietType().getName();
+
+                // Ако потребителят е избрал специфична диета (Кето, Средиземноморска и т.н.), рецептата трябва да отговаря
+                if (!"Балансирана".equalsIgnoreCase(userDietTypeName) && // Ако потребителят е избрал БАЛАНСИРАНА, не ограничаваме силно тук
+                        !userDietTypeName.equalsIgnoreCase(recipeDietTypeName)) {
+                    return false;
+                }
+                // Допълнителни условия за съвместимост, ако "Балансирана" рецепта може да бъде и "Вегетарианска", но user.getDietType() е "Веган"
+                // Тази част може да е по-сложна в зависимост от вашата йерархия на диетичните типове.
+            }
+
+            // 4. Филтриране по алергии (Тази част изглежда коректна от оригиналния код)
             if (user.getAllergies() != null && !user.getAllergies().isEmpty() && recipe.getAllergens() != null) {
                 if (user.getAllergies().stream().anyMatch(userAllergy ->
                         recipe.getAllergens().stream().anyMatch(recipeAllergen ->
@@ -602,26 +646,16 @@ public class NutritionPlanService {
                 }
             }
 
-            // Филтриране по млечни продукти
+            // 5. Филтриране по млечни продукти (Тази част изглежда коректна от оригиналния код)
             if (user.getConsumesDairy() != null && !user.getConsumesDairy() && Optional.ofNullable(recipe.getContainsDairy()).orElse(false)) {
                 return false;
             }
 
+            // Ако всички филтри са преминати, рецептата е подходяща
             return true;
         }).collect(Collectors.toList());
     }
 
-    /**
-     * Добавя хранене към списъка с хранения, избирайки рецепта с рандомизация,
-     * като избягва рецепти, които вече са използвани през седмицата или през деня,
-     * в рамките на калориен толеранс.
-     * @param meals Списък с хранения за текущия дневен план.
-     * @param recipes Налични рецепти за избор (вече филтрирани по потребителски предпочитания и тип хранене).
-     * @param mealType Тип на храненето (напр. BREAKFAST, LUNCH).
-     * @param targetCaloriesForMeal Целеви калории за това конкретно хранене.
-     * @param usedRecipeIdsInWeek Set от ID-та на рецепти, използвани вече през текущата седмица.
-     * @param usedRecipeIdsInDay Set от ID-та на рецепти, използвани вече през текущия ден.
-     */
     private void addMeal(List<com.fitnessapp.model.Meal> meals, List<Recipe> recipes, MealType mealType, double targetCaloriesForMeal, Set<Integer> usedRecipeIdsInWeek, Set<Integer> usedRecipeIdsInDay) {
         if (recipes == null || recipes.isEmpty()) {
             logger.warn("Няма налични рецепти за {}. Пропускане.", mealType);

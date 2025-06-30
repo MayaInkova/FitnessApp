@@ -6,6 +6,8 @@ import lombok.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional; // Уверете се, че Optional е импортиран, въпреки че за поле не е задължителен, но е добра практика
+
 import java.util.Set;
 
 @Entity
@@ -31,6 +33,7 @@ public class Recipe {
     private Double  fat;
 
     private Boolean isVegetarian;
+    private Boolean isVegan;
     private Boolean containsDairy;
     private Boolean containsNuts;
     private Boolean containsFish;

@@ -49,7 +49,7 @@ public class DataInitializer implements CommandLineRunner {
         seedDietTypes();
         seedActivityLevels();
         seedGoals();
-        seedRecipes(); // Този метод ще бъде актуализиран
+        seedRecipes();
         seedExercises();
         seedTestUsers();
     }
@@ -58,7 +58,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private void seedRoles() {
         Stream.of("ROLE_USER", "ROLE_ADMIN", "ROLE_MODERATOR", "ROLE_GUEST")
-                .filter(r -> !roleRepository.existsByName(r)) // ⚡️ only if missing
+                .filter(r -> !roleRepository.existsByName(r))
                 .forEach(r -> roleRepository.save(Role.builder().name(r).build()));
         System.out.println("✔ Ролите синхронизирани");
     }

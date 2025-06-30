@@ -3,6 +3,7 @@ package com.fitnessapp.model;
 public enum MeatPreferenceType {
     NONE("без месо"),
     VEGETARIAN("вегетарианско"),
+    VEGAN("веган"),
     CHICKEN("пилешко"),
     BEEF("телешко"),
     PORK("свинско"),
