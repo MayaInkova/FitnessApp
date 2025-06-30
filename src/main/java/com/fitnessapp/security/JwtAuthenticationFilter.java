@@ -59,20 +59,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        String requestURI = request.getRequestURI();
-        String contextPath = request.getContextPath();
-        String path = requestURI.substring(contextPath.length());
-
-        // Променено: /api/chatbot/ вече не се пропуска от JWT филтъра
-        boolean shouldSkip = path.startsWith("/api/auth/");
-
-        if (shouldSkip) {
-            logger.info(" Skipping JWT authentication for path: {} (Full URI: {})", path, requestURI);
-        } else {
-            logger.info(" Applying JWT authentication for path: {} (Full URI: {})", path, requestURI);
-        }
-        return shouldSkip;
-    }
 }
