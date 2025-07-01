@@ -88,6 +88,9 @@ public class User implements UserDetails {
 
     private Boolean isTemporaryAccount = false;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<WeeklyNutritionPlan> weeklyNutritionPlans;
+
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<NutritionPlan> nutritionPlans;

@@ -32,7 +32,9 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.NoSuchElementException;
 
 @Service
 public class UserService {
@@ -94,10 +96,21 @@ public class UserService {
     }
 
 
+    // 🌟 МОДИФИЦИРАН МЕТОД: Сега приема опционален параметър за търсене
     @Transactional(readOnly = true)
-    public List<UserResponseDTO> getAllUsersDTO() {
-        logger.info("Извличане на всички потребителски DTO.");
-        return userRepository.findAll().stream()
+    public List<UserResponseDTO> getAllUsersForAdmin(String searchTerm) {
+        logger.info("Извличане на всички потребителски DTO за администраторски изглед. SearchTerm: {}", searchTerm);
+        List<User> users;
+
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            // Търсене по имейл или пълно име
+            users = userRepository.findByEmailContainingIgnoreCaseOrFullNameContainingIgnoreCase(searchTerm, searchTerm);
+        } else {
+            // Без търсене - връщаме всички
+            users = userRepository.findAll();
+        }
+
+        return users.stream()
                 .map(this::convertUserToUserResponseDTO)
                 .collect(Collectors.toList());
     }
@@ -107,9 +120,18 @@ public class UserService {
     public UserResponseDTO updateUserProfile(Integer userId, UserUpdateRequest updateRequest) {
         logger.info("Актуализиране на потребителски профил за ID: {}", userId);
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Потребител не е намерен с ID: " + userId));
+                .orElseThrow(() -> new NoSuchElementException("Потребител не е намерен с ID: " + userId)); // Променено на NoSuchElementException за консистентност с другите методи
 
         Optional.ofNullable(updateRequest.getFullName()).ifPresent(user::setFullName);
+
+        // 🌟 НОВО: Актуализиране на имейл с проверка за уникалност
+        if (updateRequest.getEmail() != null && !updateRequest.getEmail().equals(user.getEmail())) {
+            if (userRepository.findByEmail(updateRequest.getEmail()).isPresent()) {
+                throw new IllegalArgumentException("Имейлът '" + updateRequest.getEmail() + "' вече е зает.");
+            }
+            user.setEmail(updateRequest.getEmail());
+        }
+
         Optional.ofNullable(updateRequest.getAge()).ifPresent(user::setAge);
         Optional.ofNullable(updateRequest.getHeight()).ifPresent(user::setHeight);
         Optional.ofNullable(updateRequest.getWeight()).ifPresent(user::setWeight);
@@ -144,17 +166,17 @@ public class UserService {
 
         User updatedUser = userRepository.save(user);
         logger.info("Потребителският профил е актуализиран за ID: {}", userId);
-        return convertUserToUserResponseDTO(updatedUser); // Convert to DTO before returning
+        return convertUserToUserResponseDTO(updatedUser);
     }
 
     @Transactional
     public void updateDietTypeForUser(Integer userId, String dietTypeName) {
         logger.info("Актуализиране на тип диета за потребител ID: {} до {}", userId, dietTypeName);
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Потребител не е намерен с ID: " + userId));
+                .orElseThrow(() -> new NoSuchElementException("Потребител не е намерен с ID: " + userId));
 
         DietType dietType = dietTypeRepository.findByNameIgnoreCase(dietTypeName)
-                .orElseThrow(() -> new RuntimeException("Тип диета '" + dietTypeName + "' не е намерен."));
+                .orElseThrow(() -> new NoSuchElementException("Тип диета '" + dietTypeName + "' не е намерен."));
 
         user.setDietType(dietType);
         userRepository.save(user);
@@ -165,14 +187,19 @@ public class UserService {
     public User assignRole(Integer userId, String roleName) {
         logger.info("Присвояване на роля '{}' на потребител ID: {}", roleName, userId);
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Потребител не е намерен с ID: " + userId));
+                .orElseThrow(() -> new NoSuchElementException("Потребител с ID " + userId + " не е намерен."));
 
         Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new RuntimeException("Роля '" + roleName + "' не е намерена."));
+                .orElseThrow(() -> new NoSuchElementException("Роля '" + roleName + "' не е намерена."));
 
         if (user.getRoles() == null) {
             user.setRoles(new HashSet<>());
         }
+        if (user.getRoles().contains(role)) {
+            logger.warn("Потребител с ID {} вече има роля '{}'.", userId, roleName);
+            throw new IllegalArgumentException("Потребител с ID " + userId + " вече има роля '" + roleName + "'.");
+        }
+
         user.getRoles().add(role);
 
         User updatedUser = userRepository.save(user);
@@ -186,12 +213,11 @@ public class UserService {
         logger.info("Опит за изтриване на потребител с ID: {}", id);
         if (!userRepository.existsById(id)) {
             logger.warn("Потребител с ID {} не е намерен за изтриване.", id);
-            throw new RuntimeException("Потребител с ID " + id + " не е намерен за изтриване.");
+            throw new NoSuchElementException("Потребител с ID " + id + " не е намерен за изтриване."); // Променено на NoSuchElementException
         }
         userRepository.deleteById(id);
         logger.info("Потребител с ID {} успешно изтрит.", id);
     }
-
 
 
     private UserResponseDTO convertUserToUserResponseDTO(User user) {
@@ -200,7 +226,6 @@ public class UserService {
             return null;
         }
 
-
         Hibernate.initialize(user.getActivityLevel());
         Hibernate.initialize(user.getGoal());
         Hibernate.initialize(user.getDietType());
@@ -208,7 +233,7 @@ public class UserService {
         Hibernate.initialize(user.getOtherDietaryPreferences());
         Hibernate.initialize(user.getNutritionPlans());
         Hibernate.initialize(user.getTrainingPlans());
-
+        Hibernate.initialize(user.getRoles());
 
         Integer latestNutritionPlanId = user.getNutritionPlans() != null && !user.getNutritionPlans().isEmpty() ?
                 user.getNutritionPlans().stream()
@@ -226,10 +251,14 @@ public class UserService {
                 : null;
 
 
+        Set<String> rolesNames = user.getRoles() != null ? user.getRoles().stream()
+                .map(Role::getName)
+                .collect(Collectors.toSet()) : new HashSet<>();
+
         return UserResponseDTO.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
-                .email(user.getEmail())
+                .email(user.getEmail()) // 🌟 Включваме имейла в DTO
                 .age(user.getAge())
                 .height(user.getHeight())
                 .weight(user.getWeight())
@@ -244,17 +273,14 @@ public class UserService {
                 .trainingDaysPerWeek(user.getTrainingDaysPerWeek())
                 .trainingDurationMinutes(user.getTrainingDurationMinutes())
                 .level(user.getLevel())
-                .allergies(user.getAllergies())
-                .otherDietaryPreferences(user.getOtherDietaryPreferences())
+                .allergies(user.getAllergies() != null ? user.getAllergies() : new HashSet<>())
+                .otherDietaryPreferences(user.getOtherDietaryPreferences() != null ? user.getOtherDietaryPreferences() : new HashSet<>())
                 .meatPreference(user.getMeatPreference())
                 .consumesDairy(user.getConsumesDairy())
                 .mealFrequencyPreference(user.getMealFrequencyPreference())
-                .roles(user.getRoles() != null ? user.getRoles().stream()
-                        .map(Role::getName)
-                        .collect(Collectors.toSet()) : new HashSet<>())
+                .roles(rolesNames)
                 .nutritionPlanId(latestNutritionPlanId)
                 .trainingPlanId(latestTrainingPlanId)
                 .build();
     }
-
 }

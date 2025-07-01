@@ -2,7 +2,6 @@ package com.fitnessapp.controller;
 
 import com.fitnessapp.dto.UserUpdateRequest;
 import com.fitnessapp.dto.UserResponseDTO;
-import com.fitnessapp.model.User;
 import com.fitnessapp.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,14 +11,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.List; // Вероятно вече не е нужно, ако няма getAllUsers
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
-
-
 public class UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
@@ -31,13 +29,17 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
-        logger.info("Получена GET заявка за всички потребители.");
-        List<UserResponseDTO> users = userService.getAllUsersDTO();
-        return ResponseEntity.ok(users);
-    }
+    // 💥 ПРЕМАХНАТО: Методът getAllUsers() е преместен в AdminController.java
+    // Ако все пак искате да имате getAllUsers тук (което не е препоръчително за обикновени потребители),
+    // тогава трябва да извикате userService.getAllUsersForAdmin(null);
+    //
+    // @GetMapping("/all")
+    // @PreAuthorize("hasRole('ADMIN')")
+    // public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
+    //     logger.info("Получена GET заявка за всички потребители.");
+    //     List<UserResponseDTO> users = userService.getAllUsersForAdmin(null); // Подаваме null за търсене
+    //     return ResponseEntity.ok(users);
+    // }
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated() and (#id == authentication.principal.id or hasRole('ADMIN'))")
@@ -54,32 +56,24 @@ public class UserController {
 
     @PutMapping("/{id}")
     @PreAuthorize("isAuthenticated() and (#id == authentication.principal.id or hasRole('ADMIN'))")
-    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Integer id, @RequestBody UserUpdateRequest updateRequest) { // Променен тип на връщане на DTO
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Integer id, @RequestBody UserUpdateRequest updateRequest) {
         logger.info("Получена PUT заявка за актуализация на потребител с ID: {}", id);
         try {
-
             UserResponseDTO updatedUser = userService.updateUserProfile(id, updateRequest);
             return ResponseEntity.ok(updatedUser);
-        } catch (RuntimeException e) {
+        } catch (RuntimeException e) { // Хваща RuntimeException, включително NoSuchElementException и IllegalArgumentException от UserService
             logger.error("Грешка при актуализация на потребител с ID {}: {}", id, e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // Потребител не е намерен
+            // Връщаме 404 ако потребителят не е намерен, или 400 за невалидни данни (напр. зает имейл)
+            HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+            if (e instanceof NoSuchElementException) {
+                status = HttpStatus.NOT_FOUND;
+            } else if (e instanceof IllegalArgumentException) {
+                status = HttpStatus.BAD_REQUEST;
+            }
+            return ResponseEntity.status(status).body(null); // Можете да върнете и съобщението: .body(e.getMessage())
         } catch (Exception e) {
             logger.error("Неочаквана грешка при актуализация на потребител с ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> deleteUser(@PathVariable Integer id) {
-        logger.info("Получена DELETE заявка за потребител с ID: {}", id);
-        try {
-            userService.deleteUser(id);
-            return new ResponseEntity<>("Потребител с ID " + id + " е изтрит успешно.", HttpStatus.OK);
-        } catch (Exception e) {
-            logger.error("Грешка при изтриване на потребител с ID {}: {}", id, e.getMessage(), e);
-            return new ResponseEntity<>("Грешка при изтриване на потребител.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
 }

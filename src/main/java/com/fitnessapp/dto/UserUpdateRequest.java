@@ -18,6 +18,7 @@ import java.util.Set;
 public class UserUpdateRequest {
 
     private String fullName;
+    private String email;
 
     private Integer age;
     private Double height;
