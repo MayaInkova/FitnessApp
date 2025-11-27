@@ -22,7 +22,6 @@ public class UserProfileMapper {
     @Autowired
     private GoalRepository goalRepository; // Инжектираме GoalRepository
 
-    // private String avatarUrl; // Ако не се използва, може да се премахне
 
     public UserProfileDTO toDto(User u){
         if (u == null) return null;
@@ -57,12 +56,12 @@ public class UserProfileMapper {
     }
 
     /** ъпдейтваме само полетата, които DTO-то носи (null → пропускаме) */
-    public void updateEntity(User u, UserProfileDTO dto) { // Премахнах activityRepo и dietRepo от параметрите, защото вече са @Autowired
+    public void updateEntity(User u, UserProfileDTO dto) {
         // Основни данни
         Optional.ofNullable(dto.getWeight()).ifPresent(u::setWeight);
         Optional.ofNullable(dto.getHeight()).ifPresent(u::setHeight);
         Optional.ofNullable(dto.getAge()).ifPresent(u::setAge);
-        Optional.ofNullable(dto.getFullName()).ifPresent(u::setFullName); // Добавено
+        Optional.ofNullable(dto.getFullName()).ifPresent(u::setFullName);
 
         // Конвертиране от String към Enum GenderType
         if (dto.getGender() != null && !dto.getGender().isEmpty()) {
@@ -97,7 +96,7 @@ public class UserProfileMapper {
         Optional.ofNullable(dto.getConsumesDairy()).ifPresent(u::setConsumesDairy);
 
         // Set<String> се мапват директно. Важно: Ако DTO изпрати null, Set-а ще стане null.
-        // Ако искате да се изчисти, но да не стане null, трябва да проверите за празен Set.
+        // Ако искаме да се изчисти, но да не стане null, трябва да проверим за празен Set.
         if(dto.getAllergies()!=null) {
             u.setAllergies(dto.getAllergies());
         }

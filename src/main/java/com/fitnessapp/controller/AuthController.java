@@ -19,8 +19,8 @@ import java.time.Duration;
 import java.util.Map;
 
 // НОВИ ИМПОРТИ ЗА ЗАЯВКИ ЗА ЗАБРАВЕНА/ВЪЗСТАНОВЕНА ПАРОЛА
-import com.fitnessapp.request.ForgotPasswordRequest; // Уверете се, че пътят е правилен
-import com.fitnessapp.request.ResetPasswordRequest; // Уверете се, че пътят е правилен
+import com.fitnessapp.request.ForgotPasswordRequest;
+import com.fitnessapp.request.ResetPasswordRequest;
 
 
 @RestController

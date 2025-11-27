@@ -29,17 +29,6 @@ public class UserController {
         this.userService = userService;
     }
 
-    // 💥 ПРЕМАХНАТО: Методът getAllUsers() е преместен в AdminController.java
-    // Ако все пак искате да имате getAllUsers тук (което не е препоръчително за обикновени потребители),
-    // тогава трябва да извикате userService.getAllUsersForAdmin(null);
-    //
-    // @GetMapping("/all")
-    // @PreAuthorize("hasRole('ADMIN')")
-    // public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
-    //     logger.info("Получена GET заявка за всички потребители.");
-    //     List<UserResponseDTO> users = userService.getAllUsersForAdmin(null); // Подаваме null за търсене
-    //     return ResponseEntity.ok(users);
-    // }
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated() and (#id == authentication.principal.id or hasRole('ADMIN'))")
@@ -70,7 +59,7 @@ public class UserController {
             } else if (e instanceof IllegalArgumentException) {
                 status = HttpStatus.BAD_REQUEST;
             }
-            return ResponseEntity.status(status).body(null); // Можете да върнете и съобщението: .body(e.getMessage())
+            return ResponseEntity.status(status).body(null);
         } catch (Exception e) {
             logger.error("Неочаквана грешка при актуализация на потребител с ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);

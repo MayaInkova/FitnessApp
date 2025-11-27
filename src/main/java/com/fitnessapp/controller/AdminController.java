@@ -90,7 +90,7 @@ public class AdminController {
         }
     }
 
-    // 🌟 ЕНДПОЙНТ за изтриване на потребител (преместен тук, ако не е бил в AdminController)
+    // 🌟 ЕНДПОЙНТ за изтриване на потребител
     @DeleteMapping("/users/{id}")
     @PreAuthorize("hasRole('ADMIN')") // Уверете се, че само администратори могат да го използват
     public ResponseEntity<String> deleteUser(@PathVariable Integer id) {

@@ -200,7 +200,7 @@ public class NutritionPlanService {
         List<Recipe> snacks = byType.getOrDefault(MealType.SNACK, Collections.emptyList());
         double snackTargetCaloriesTotal = targetCalories * mealCalorieDistribution.get(MealType.SNACK); // 10% от общите калории
 
-        // АКТУАЛИЗИРАНА ЛОГИКА ЗА ДОБАВЯНЕ НА СНАК
+
         // Ако "4 хранения" означава 3 основни + 1 снак, тогава добавяме FOUR_TIMES_DAILY тук.
         if (user.getMealFrequencyPreference() == MealFrequencyPreferenceType.FIVE_TIMES_DAILY ||
                 user.getMealFrequencyPreference() == MealFrequencyPreferenceType.FOUR_TIMES_DAILY) { // Добавен FOUR_TIMES_DAILY
@@ -238,7 +238,7 @@ public class NutritionPlanService {
                 logger.warn("Няма налични рецепти за снак за потребител {} с честота на хранене {}. Снаковете са пропуснати.", user.getEmail(), user.getMealFrequencyPreference());
             }
         }
-        // КРАЙ НА АКТУАЛИЗИРАНАТА ЛОГИКА
+
 
 
         NutritionPlan plan = new NutritionPlan();
@@ -596,7 +596,7 @@ public class NutritionPlanService {
                     return false; // Филтрира, ако рецептата НЕ е вегетарианска
                 }
                 // Ако потребителят е веган, рецептата ТРЯБВА да е веган
-                // Уверете се, че MeatPreferenceType има VEGAN и Recipe има getIsVegan()
+
                 if (user.getMeatPreference() == MeatPreferenceType.VEGAN || ("Веган".equalsIgnoreCase(user.getDietType() != null ? user.getDietType().getName() : null))) {
                     if (!Optional.ofNullable(recipe.getIsVegan()).orElse(false)) {
                         return false; // Филтрира, ако рецептата НЕ е веган
@@ -617,7 +617,7 @@ public class NutritionPlanService {
                 if (user.getMeatPreference() == MeatPreferenceType.NO_FISH && Optional.ofNullable(recipe.getContainsFish()).orElse(false)) {
                     return false; // Филтрира, ако не яде риба и рецептата съдържа такава
                 }
-                // Добавете и други 'NO_...' предпочитания тук, ако имате такива
+
             }
 
 
@@ -633,11 +633,10 @@ public class NutritionPlanService {
                         !userDietTypeName.equalsIgnoreCase(recipeDietTypeName)) {
                     return false;
                 }
-                // Допълнителни условия за съвместимост, ако "Балансирана" рецепта може да бъде и "Вегетарианска", но user.getDietType() е "Веган"
-                // Тази част може да е по-сложна в зависимост от вашата йерархия на диетичните типове.
+
             }
 
-            // 4. Филтриране по алергии (Тази част изглежда коректна от оригиналния код)
+
             if (user.getAllergies() != null && !user.getAllergies().isEmpty() && recipe.getAllergens() != null) {
                 if (user.getAllergies().stream().anyMatch(userAllergy ->
                         recipe.getAllergens().stream().anyMatch(recipeAllergen ->
@@ -646,7 +645,7 @@ public class NutritionPlanService {
                 }
             }
 
-            // 5. Филтриране по млечни продукти (Тази част изглежда коректна от оригиналния код)
+
             if (user.getConsumesDairy() != null && !user.getConsumesDairy() && Optional.ofNullable(recipe.getContainsDairy()).orElse(false)) {
                 return false;
             }

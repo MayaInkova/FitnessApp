@@ -33,7 +33,7 @@ public class GoalService {
 
     public Goal updateGoal(Integer id, Goal updatedGoal) {
         Goal existing = goalRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Целта не е намерена")); // Предупреждение за типо
+                .orElseThrow(() -> new RuntimeException("Целта не е намерена"));
 
         existing.setName(updatedGoal.getName());
         existing.setDescription(updatedGoal.getDescription());

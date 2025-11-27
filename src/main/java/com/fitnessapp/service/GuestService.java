@@ -24,7 +24,7 @@ public class GuestService {
         User guest = User.builder()
                 .fullName("Гост")
                 .email("guest_" + UUID.randomUUID() + "@fitnessapp.local")
-                .password("") // няма нужда от парола
+                .password("")
                 .roles(Set.of(guestRole))
                 .build();
 
