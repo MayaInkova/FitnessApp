@@ -302,7 +302,7 @@ public class TrainingPlanService {
     @Transactional(readOnly = true) // Транзакцията е важна за initialize
     public TrainingPlanDTO convertTrainingPlanToDTO(TrainingPlan plan) {
         if (plan == null) return null;
-        initializeTrainingPlanLazyFields(plan); // Инициализирайте всички Lazy полета
+        initializeTrainingPlanLazyFields(plan);
 
         List<TrainingSessionDTO> sessionDTOs = plan.getTrainingSessions().stream()
                 .map(this::convertSessionToDTO)
@@ -380,7 +380,7 @@ public class TrainingPlanService {
 
     @Transactional(readOnly = true)
     public List<TrainingPlanDTO> getTrainingPlansByUserDTO(User user) {
-        // Уверете се, че работите с managed User entity в рамките на транзакцията
+
         User managedUser = userRepository.findById(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User with ID " + user.getId() + " not found."));
 
@@ -434,7 +434,7 @@ public class TrainingPlanService {
                     return TrainingPlanHistoryDTO.builder()
                             .id(plan.getId())
                             .dateGenerated(plan.getDateGenerated())
-                            .trainingPlanDescription(getTrainingPlanSummary(plan)) // ИЗПОЛЗВАЙТЕ ПОМОЩЕН МЕТОД
+                            .trainingPlanDescription(getTrainingPlanSummary(plan))
                             .trainingDaysPerWeek(plan.getDaysPerWeek())
                             .trainingDurationMinutes(plan.getDurationMinutes())
                             .userGenderSnapshot(plan.getUserGenderSnapshot() != null ? plan.getUserGenderSnapshot().name() : null)
